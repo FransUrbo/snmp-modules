@@ -1,0 +1,4 @@
+# http://forums.cacti.net/about302-0-asc-15.html
+# snmpwalk -On -c public localhost .1.3.6.1.4.1.8767.2.1
+# snmpwalk -On -c public localhost bind9Stats
+pass .1.3.6.1.4.1.8767.2.1           /etc/snmp/bind9-snmp-stats.pl
