@@ -130,7 +130,7 @@
 			</hash_1000066586c97d8614596724e3bd01852352e2>
 			<hash_10000665063ade42903d80c500d840de6e8cfa>
 				<task_item_id>hash_080006724c643300b84ffe2f0935fa24d73b97</task_item_id>
-				<color_id>00FF00</color_id>
+				<color_id>FF0000</color_id>
 				<graph_type_id>5</graph_type_id>
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
@@ -178,7 +178,7 @@
 			</hash_100006b466b66e33579c1bf2a905ab734b1510>
 			<hash_100006077feed79081a34079459754cf1cbd35>
 				<task_item_id>hash_0800066298d79f09a62e8ce04ab259957853cf</task_item_id>
-				<color_id>FFF200</color_id>
+				<color_id>000000</color_id>
 				<graph_type_id>5</graph_type_id>
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
