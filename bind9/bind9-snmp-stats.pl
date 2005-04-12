@@ -41,8 +41,6 @@ my %types    = ("1" => 'total',
 		"2" => 'forward',
 		"3" => 'reverse');
 
-my $oidval;
-
 # ----------
 
 if(!$ENV{"PS1"} && open(DBG, ">> /tmp/bind9-stats.dbg")) {
@@ -68,70 +66,154 @@ foreach (keys %types) {
 # ----------
 
 # man snmpd.conf: string, integer, unsigned, objectid, timeticks, ipaddress, counter, or gauge
+
 sub print_b9stNumber {
     my $tot = shift;
 
-    print "$OID_BASE.1.0\n";
-    print "integer\n";
-    print "$tot\n";
+    if($debug) {
+	print "----- OID_BASE.b9stNumber.0\n";
+	print "$OID_BASE.1.0	$tot\n\n";
+    } else {
+	print "$OID_BASE.1.0\n";
+	print "integer\n";
+	print "$tot\n";
+    }
 }
 
-sub print_b9stIndex() {
-    my $l = 1, $j, $k;
+sub print_b9stIndex {
+    my $j = shift;
+    my %cnts;
 
-    foreach $j (keys %counters) {
-	foreach $k (keys %types) {
-	    print $OID_BASE,".2.1.1.$l\n";
+    if($j) {
+	print "----- OID_BASE.b9stIndex.$j\n" if($debug);
+	%cnts = ($j => $counters{$j});
+    } else {
+	print "----- OID_BASE.b9stIndex.x\n" if($debug);
+	%cnts = %counters;
+    }
+
+    foreach $j (keys %cnts) {
+	if($debug) {
+	    print "$OID_BASE.2.1.1.$j	$j\n";
+	} else {
+	    print "$OID_BASE.2.1.1.$j\n";
 	    print "integer\n";
-	    print "$l\n";
-	    
-	    $l++;
+	    print "$j\n";
 	}
     }
+
+    print "\n" if($debug);
 }
 
-sub print_b9stDescr() {
-    my $l = 1, $j, $k;
-    foreach $j (keys %counters) {
-	foreach $k (keys %types) {
-	    print $OID_BASE,".2.1.2.$l\n";
+sub print_b9stCounterName {
+    my $j = shift;
+    my %cnts;
+
+    if($j) {
+	print "----- OID_BASE.b9stCounterName.$j\n" if($debug);
+	%cnts = ($j => $counters{$j});
+    } else {
+	print "----- OID_BASE.b9stCounterName.x\n" if($debug);
+	%cnts = %counters;
+    }
+
+    foreach $j (keys %cnts) {
+	if($debug) {
+	    print "$OID_BASE.2.1.2.$j	",$counters{$j},"\n";
+	} else {
+	    print "$OID_BASE.2.1.2.$j\n";
 	    print "string\n";
-	    print $counters{$j},":",$types{$k},"\n";
-	    
-	    $l++;
+	    print $counters{$j},"\n";
 	}
     }
+
+    print "\n" if($debug);
 }
 
-sub y {
-    my $x = shift;
+sub print_b9stCounterType {
+    my $type = shift;
+    my $j    = shift;
 
-    if(     ($x >=  1) && ($x <=  3)) {
-	return 1;
-    } elsif(($x >=  4) && ($x <=  6)) {
-	return 2;
-    } elsif(($x >=  7) && ($x <=  9)) {
-	return 3;
-    } elsif(($x >= 10) && ($x <= 12)) {
-	return 4;
-    } elsif(($x >= 13) && ($x <= 15)) {
-	return 5;
-    } elsif(($x >= 16) && ($x <= 18)) {
-	return 6;
+    my $counter;
+    my %cnts;
+    my $type_nr = 0;
+
+    if($j) {
+	%cnts    = ($j => $counters{$j});
+    } else {
+	%cnts = %counters;
     }
-}
 
-sub z {
-    my $x = shift;
-
-    if(     ($x == 1) || ($x == 4) || ($x == 7) || ($x == 10) || ($x == 13) || ($x == 16)) {
-	return 1;
-    } elsif(($x == 2) || ($x == 5) || ($x == 8) || ($x == 11) || ($x == 14) || ($x == 17)) {
-	return 2;
-    } elsif(($x == 3) || ($x == 6) || ($x == 9) || ($x == 12) || ($x == 15) || ($x == 18)) {
-	return 3;
+    foreach $j (keys %types) {
+	if($types{$j} eq $type) {
+	    # .1   => Index
+	    # .2   => CounterName
+	    # .3-5 => CounterType
+	    $type_nr = $j + 2;
+	    last;
+	}
     }
+
+    print "----- OID_BASE.b9stCounterType.$type_nr.x (",$types{$j},")\n" if($debug);
+    foreach $j (keys %cnts) {
+	$counter  = $counters{$j};
+
+	if($debug) {
+	    print "$OID_BASE.2.1.$type_nr.$j	",$DATA{$counter}{$type},"\n";
+	} else {
+	    print "$OID_BASE.2.1.$type_nr.$j\n";
+	    print "counter\n";
+	    print $DATA{$counter}{$type},"\n";
+	}
+    }
+
+    print "\n" if($debug);
 }
+
+# ----------
+
+system "$rndc stats"; 
+
+my %total; 
+my %forward; 
+my %reverse; 
+
+my $tmp=$log; 
+$tmp=~s/\W/_/g; 
+$delta.=$tmp.".offset"; 
+
+open(DUMP, $log) || die "$log: $!"; 
+
+if (-e $delta) { 
+    open(D, $delta) || die "can't open delta file '$delta' for '$log': $!"; 
+    my $file_offset = <D>; 
+    chomp $file_offset; 
+    close(D); 
+    my $log_size = -s $log; 
+    if ($file_offset <= $log_size) { 
+	seek(DUMP, $file_offset, 0); 
+    } 
+} 
+
+while(<DUMP>) { 
+    next if /^(---|\+\+\+)/; 
+    chomp; 
+    my ($what, $nr, $direction) = split(/\s+/, $_, 3); 
+    if (! $direction) { 
+	$DATA{$what}{"total"} += $nr; 
+    } elsif ($direction =~ m/in-addr.arpa/) { 
+	$DATA{$what}{"reverse"} += $nr; 
+    } else { 
+	$DATA{$what}{"forward"} += $nr; 
+    } 
+
+} 
+
+open(D,"> $delta") || die "can't open delta file '$delta' for log '$log': $!"; 
+print D tell(DUMP); 
+close(D); 
+
+close(DUMP); 
 
 # ----------
 
@@ -164,246 +246,190 @@ for($i=0; $ARGV[$i]; $i++) {
 	$tmp =~ s/$OID_BASE//;
 
 	print "=> tmp(1)=$tmp\n" if($debug);
-	if($tmp eq '.1.0') {
-	    # ------------------------------------- OID_BASE.1.0	(b9stNumber)
+	if($tmp =~ /^\.1/) {
+	    # ------------------------------------- OID_BASE.1		(b9stNumber)
 	    if($arg eq '-n') {
-		# OID_BASE.b9stIndex.x
-		print "----- OID_BASE.b9stIndex.x\n" if($debug);
-		&print_b9stIndex();
+		# OID_BASE.b9stIndex.1
+		&print_b9stIndex(1);
 	    
 		exit 0;
 	    } else {
-		&print_b9stNumber($count_counters*$count_types);
+		&print_b9stNumber($count_counters);
 
 		exit 0;
 	    }
-	} elsif($tmp =~ /\.2\.1\.1/) {
+	} elsif($tmp =~ /^\.2\.1\.1/) {
 	    # ------------------------------------- OID_BASE.2.1.1	(b9stIndex)
 	    $tmp =~ s/\.2\.1\.1//; $tmp =~ s/\.//;
-	    my $x;
+	    print "=> .2.1.1: tmp=$tmp\n" if($debug);
 
+	    my $x;
 	    if($arg eq '-n') {
-		# OID_BASE.b9stIndex.x
-		$x = $tmp + 1;
-		
-		if($x > ($count_counters*$count_types)) {
-		    print "----- OID_BASE.b9stDescr.x\n" if($debug);
-		    &print_b9stDescr();
+		if(!$tmp) {
+		    # OID_BASE.b9stIndex.1
+		    &print_b9stIndex(1);
 		    
 		    exit 0;
+		} else {
+		    # OID_BASE.b9stIndex.x
+		    $x = $tmp + 1;
+		    
+		    if($x > $count_counters) {
+			# NEXT: OID_BASE.b9stCounterName.1
+			&print_b9stCounterName(1);
+			
+			exit 0;
+		    } else {
+			&print_b9stIndex($x);
+			exit 0;
+		    }
 		}
-		
-		print $OID_BASE,".2.1.1.$x\n";
-		print "integer\n";
-		print "$x\n";
-		
+	    } elsif($tmp) {
+		&print_b9stIndex($tmp);
 		exit 0;
 	    } else {
-		$x = $tmp;
-
-		my $y = &y($x);
-		my $z = &z($x);
-		print "=> x=$x, y=$y, z=$z\n\n" if($debug);
-
-		print $OID_BASE,".2.1.1.$x\n";
-		print "integer\n";
-		print "$x\n";
-
-		exit 0;
-	    }
-	} elsif($tmp =~ /\.2\.1\.2/) {
-	    # ------------------------------------- OID_BASE.2.1.2	(b9stDescr)
-	    $tmp =~ s/\.2\.1\.2//; $tmp =~ s/\.//;
-	    my $x;
-
-	    if($arg eq '-n') {
-		# OID_BASE.b9stDescr.x
-		$x = $tmp + 1;
-		
-		if($x > ($count_counters*$count_types)) {
-		    # Next is b9stValue.1
-		    $x = 1;
-		    
-		    my $y = &y($x);
-		    my $z = &z($x);
-		    print "=> x=$x, y=$y, z=$z\n\n" if($debug);
-		    
-		    $oidval   = $x;
-		    @counters = $y;
-		    @types    = $z;
-		} else {
-		    my $y = &y($x);
-		    my $z = &z($x);
-		    print "=> x=$x, y=$y, z=$z\n\n" if($debug);
-		    
-		    print $OID_BASE,".2.1.2.$x\n";
-		    print "string\n";
-		    print $counters{$y},":",$types{$z},"\n";
-		    
-		    exit 0;
-		}
-	    } else {
-		$x = $tmp;
-
-		my $y = &y($x);
-		my $z = &z($x);
-		print "=> x=$x, y=$y, z=$z\n\n" if($debug);
-		    
-		print $OID_BASE,".2.1.2.$x\n";
-		print "string\n";
-		print $counters{$y},":",$types{$z},"\n";
-		
-		exit 0;
-	    }
-	} else {
-	    # ------------------------------------- OID_BASE.2.1.3	(b9stValue)
-	    $tmp =~ s/\.2\.1\.3//; $tmp =~ s/\.//;
-	    my $x;
-
-	    my ($x) = split('\.', $tmp);
-	    print "=> x=$x\n" if($debug);
-	    
-	    if(!$x) {
-		# $OID_BASE => $OID_BASE.1
-		print "=> This is the top\n\n" if($debug);
-		
-		# OID_BASE.b9stNumber.0
-		print "----- OID_BASE.b9stNumber.0\n" if($debug);
-		&print_b9stNumber($count_counters*$count_types);
-		
-		# OID_BASE.b9stIndex.x
-		print "----- OID_BASE.b9stIndex.x\n" if($debug);
-		&print_b9stIndex();
-		
-		# OID_BASE.b9stDescr.x
-		print "----- OID_BASE.b9stDescr.x\n" if($debug);
-		&print_b9stDescr();
-		
-		print "\n" if($debug);
-		
-		if($arg eq '-n') {
-		    $oidval   = 1;
-		    @counters = qw(1);
-		    @types    = qw(1);
-		} else {
-		    print "No value in this object - exiting!\n" if($debug);
-		    exit 1;
-		}
-	    } elsif(($x < 1) || ($x > ($count_counters*$count_types))) {
-		# || (($arg eq '-n') && (($count_counters*$count_types)+1))) {
-		# Non-existant branch
-		print "Non-existant branch\n" if($debug);
+		print "No value in this object - exiting!\n" if($debug);
 		exit 1;
-	    } else {
-		if($arg eq '-n') {
-		    # $OID_BASE.x => $OID_BASE.x+1
-		    $x++;
-		} # else fall through...
+	    }
+	} elsif($tmp =~ /^\.2\.1\.2/) {
+	    # ------------------------------------- OID_BASE.2.1.2	(b9stCounterName)
+	    $tmp =~ s/\.2\.1\.2//; $tmp =~ s/\.//;
+	    print "=> .2.1.2: tmp=$tmp\n" if($debug);
 
-		if($x > ($count_counters*$count_types)) {
-		    print "No value in this object - exiting!\n" if($debug);
-		    exit 1;
+	    my $x;
+	    if($arg eq '-n') {
+		if(!$tmp) {
+		    # OID_BASE.b9stCounterName.1
+		    &print_b9stCounterName(1);
+		    
+		    exit 0;
+		} else {
+		    # OID_BASE.b9stCounterName.x
+		    $x = $tmp + 1;
+		    
+		    if($x > $count_counters) {
+			# NEXT: OID_BASE.b9stCounterTotal.1
+			&print_b9stCounterType("total", 1);
+			
+			exit 0;
+		    } else {
+			&print_b9stCounterName($x);
+			exit 0;
+		    }
 		}
+	    } elsif($tmp) {
+		&print_b9stCounterName($tmp);
+		exit 0;
+	    } else {
+		print "No value in this object - exiting!\n" if($debug);
+		exit 1;
+	    }
+	} elsif($tmp =~ /^\.2\.1\.3/) {
+	    # ------------------------------------- OID_BASE.2.1.3	(b9stCounterTotal)
+	    $tmp =~ s/\.2\.1\.3//; $tmp =~ s/\.//;
+	    print "=> .2.1.3: tmp=$tmp\n" if($debug);
 
-		my $y = &y($x);
-		my $z = &z($x);
-		print "=> x=$x, y=$y, z=$z\n\n" if($debug);
-		
-		$oidval = $x;
-		$counters[0] = $y;
-		$types[0] = $z;
+	    my $x;
+	    if($arg eq '-n') {
+		if(!$tmp) {
+		    # OID_BASE.b9stCounterTotal.1
+		    &print_b9stCounterType("total", 1);
+		    
+		    exit 0;
+		} else {
+		    # OID_BASE.b9stCounterTotal.x
+		    $x = $tmp + 1;
+		    
+		    if($x > $count_counters) {
+			# NEXT: OID_BASE.b9stCounterForward.1
+			&print_b9stCounterType("forward", 1);
+			
+			exit 0;
+		    } else {
+			&print_b9stCounterType("total", $x);
+			exit 0;
+		    }
+		}
+	    } elsif($tmp) {
+		&print_b9stCounterType("total", $tmp);
+		exit 0;
+	    } else {
+		print "No value in this object - exiting!\n" if($debug);
+		exit 1;
+	    }
+	} elsif($tmp =~ /^\.2\.1\.4/) {
+	    # ------------------------------------- OID_BASE.2.1.4	(b9stCounterForward)
+	    $tmp =~ s/\.2\.1\.4//; $tmp =~ s/\.//;
+	    print "=> .2.1.4: tmp=$tmp\n" if($debug);
+
+	    my $x;
+	    if($arg eq '-n') {
+		if(!$tmp) {
+		    # OID_BASE.b9stCounterForward.1
+		    &print_b9stCounterType("forward", 1);
+		    
+		    exit 0;
+		} else {
+		    # OID_BASE.b9stCounterForward.x
+		    $x = $tmp + 1;
+		    
+		    if($x > $count_counters) {
+			# NEXT: OID_BASE.b9stCounterReverse.1
+			&print_b9stCounterType("reverse", 1);
+			
+			exit 0;
+		    } else {
+			&print_b9stCounterType("forward", $x);
+			exit 0;
+		    }
+		}
+	    } elsif($tmp) {
+		&print_b9stCounterType("forward", $tmp);
+		exit 0;
+	    } else {
+		print "No value in this object - exiting!\n" if($debug);
+		exit 1;
+	    }
+	} elsif($tmp =~ /^\.2\.1\.5/) {
+	    # ------------------------------------- OID_BASE.2.1.5	(b9stCounterReverse)
+	    $tmp =~ s/\.2\.1\.5//; $tmp =~ s/\.//;
+	    print "=> .2.1.5: tmp=$tmp\n" if($debug);
+
+	    my $x;
+	    if($arg eq '-n') {
+		if(!$tmp) {
+		    # OID_BASE.b9stCounterReverse.1
+		    &print_b9stCounterType("reverse", 1);
+		    
+		    exit 0;
+		} else {
+		    # OID_BASE.b9stCounterReverse.x
+		    $x = $tmp + 1;
+		    
+		    if($x > $count_counters) {
+			# NEXT: VOID
+			print "No value in this object - exiting!\n" if($debug);
+			exit 1;
+		    } else {
+			&print_b9stCounterType("reverse", $x);
+			exit 0;
+		    }
+		}
+	    } elsif($tmp) {
+		&print_b9stCounterType("reverse", $tmp);
+		exit 0;
+	    } else {
+		print "No value in this object - exiting!\n" if($debug);
+		exit 1;
+	    }
+	} else {
+	    if($arg eq '-n') {
+		&print_b9stNumber($count_counters);
+		exit 0;
+	    } else {
+		print "No value in this object - exiting!\n" if($debug);
+		exit 1;
 	    }
 	}
     }
 }
-
-if($debug) {
-    print "=> OID base: $OID_BASE\n";
-    print "=> Counters: ";
-    foreach (@counters) {
-	print $_," ";
-    }
-    print "\n";
-    print "=> Types:    ";
-    foreach (@types) {
-	print $_," ";
-    }
-    print "\n";
-
-    exit 0;
-}
-
-# ----------
-
-system "$rndc stats"; 
-
-my %total; 
-my %forward; 
-my %reverse; 
-
-my $tmp=$log; 
-$tmp=~s/\W/_/g; 
-$delta.=$tmp.".offset"; 
-
-open(DUMP,$log) || die "$log: $!"; 
-
-if (-e $delta) { 
-    open(D,$delta) || die "can't open delta file '$delta' for '$log': $!"; 
-    my $file_offset=<D>; 
-    chomp $file_offset; 
-    close(D); 
-    my $log_size = -s $log; 
-    if ($file_offset <= $log_size) { 
-	seek(DUMP,$file_offset,0); 
-    } 
-} 
-
-while(<DUMP>) { 
-    next if /^(---|\+\+\+)/; 
-    chomp; 
-    my ($what, $nr, $direction) = split(/\s+/,$_,3); 
-    if (! $direction) { 
-	$DATA{$what}{"total"} += $nr; 
-    } elsif ($direction =~ m/in-addr.arpa/) { 
-	$DATA{$what}{"reverse"} += $nr; 
-    } else { 
-	$DATA{$what}{"forward"} += $nr; 
-    } 
-
-} 
-
-open(D,"> $delta") || die "can't open delta file '$delta' for log '$log': $!"; 
-print D tell(DUMP); 
-close(D); 
-
-close(DUMP); 
-
-# ----------
-
-$oidval = 1 if(!$oidval);
-my $oid = $OID_BASE.".2.1.3."; #+ .b9stTable.b9stEntry.b9stValue
-
-foreach $nr_count (@counters) { 
-    $counter  = $counters{$nr_count};
-
-    print "\n" if($debug);
-    foreach $nr_type (@types) {
-	$type = $types{$nr_type};
-
-	printf("%-9s - %-7s - ", $counter, $type) if($debug);
-	if($debug) {
-	    print "$oid($oidval)";
-	} else {
-	    print "$oid$oidval\n";
-	}
-
-	# man snmpd.conf: string, integer, unsigned, objectid, timeticks, ipaddress, counter, or gauge
-	print "gauge\n" if(!$debug);
-
-	print " -> " if($debug);
-	print $DATA{$counter}{$type},"\n";
-
-	$oidval++;
-    }
-} 
-
