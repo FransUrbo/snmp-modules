@@ -25,3 +25,12 @@ cacti_data_query_snmp_local_bind9_statistics.xml
 			This is all the templates to import into
 			cacti to retreive Bind9 statistics via
 			a Indexed SNMP query.
+
+
+
+NOTE:
+The latest version of these files can be found via anonymous cvs
+(just press the ENTER key when asked for a password):
+
+cvs -d :pserver:anonymous@cvs.bayour.com:/var/cvs login
+cvs -d :pserver:anonymous@cvs.bayour.com:/var/cvs co snmp
