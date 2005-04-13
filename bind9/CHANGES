@@ -1,4 +1,4 @@
-SNMB4Bind9 1.1 TO BE ANNOUNCED
+SNMB4Bind9 1.1 Release (Apr 13 2005)
 	Bug fixes
 	  + Include 'Counter32' not 'Counter'.
 
