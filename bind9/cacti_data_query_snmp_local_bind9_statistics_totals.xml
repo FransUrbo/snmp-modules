@@ -2,7 +2,7 @@
 	<hash_04000634b0c55bf7817a313a1d270bd3de6966>
 		<name>SNMP - Local - Bind9 Statistics</name>
 		<description>Retreive Bind9 statistic counters</description>
-		<xml_path>&amp;lt;path_cacti&amp;gt;/resource/snmp_queries/bind9-stats.xml</xml_path>
+		<xml_path>&amp;lt;path_cacti&amp;gt;/resource/snmp_queries/bind9-stats_totals.xml</xml_path>
 		<data_input_id>hash_030006bf566c869ac6443b0c75d1c32b5a350e</data_input_id>
 		<graphs>
 			<hash_1100064619a418424adcee2b065f2037038f3c>
