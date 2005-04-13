@@ -1,11 +1,11 @@
 <cacti>	
-	<hash_04000634b0c55bf7817a313a1d270bd3de6966>
+	<hash_040006654a53df137c66fdbb80b70eaf482cb2>
 		<name>SNMP - Local - Bind9 Statistics - totals</name>
 		<description>Retreive Bind9 statistic counters</description>
 		<xml_path>&amp;lt;path_cacti&amp;gt;/resource/snmp_queries/bind9-stats_totals.xml</xml_path>
 		<data_input_id>hash_030006bf566c869ac6443b0c75d1c32b5a350e</data_input_id>
 		<graphs>
-			<hash_1100064619a418424adcee2b065f2037038f3c>
+			<hash_1100064fa5fd09907cd251b44853732846ea06>
 				<name>SNMP - Local - Bind9 Statistics - totals</name>
 				<graph_template_id>hash_000006d1c4d28267b759c9f40da161bf1c970f</graph_template_id>
 				<rrd>
@@ -26,23 +26,23 @@
 					</item_002>
 				</rrd>
 				<sv_graph>
-					<hash_1200064257b9a330e1c2435562743a934a1bd8>
+					<hash_120006835bd23c989f22725e121e8a5a13cc86>
 						<field_name>title</field_name>
-						<sequence>3</sequence>
-						<text> |host_description| - Bind9 Statistics - |query_b9stCounterName|</text>
-					</hash_1200064257b9a330e1c2435562743a934a1bd8>
+						<sequence>1</sequence>
+						<text>|host_description| - Bind9 Statistics - |query_b9stCounterName|</text>
+					</hash_120006835bd23c989f22725e121e8a5a13cc86>
 				</sv_graph>
 				<sv_data_source>
-					<hash_1300066dd26d3c9d49c2e1b9f3f2b7dd532744>
+					<hash_1300066862c1cdb929d250a3785168edc98dbf>
 						<field_name>name</field_name>
 						<data_template_id>hash_010006983dcdaa7a98ab90299c6a6a084465e4</data_template_id>
-						<sequence>2</sequence>
-						<text> |host_description| - Bind9 Statistics - |query_b9stCounterName|</text>
-					</hash_1300066dd26d3c9d49c2e1b9f3f2b7dd532744>
+						<sequence>1</sequence>
+						<text>|host_description| - Bind9 Statistics - |query_b9stCounterName|</text>
+					</hash_1300066862c1cdb929d250a3785168edc98dbf>
 				</sv_data_source>
-			</hash_1100064619a418424adcee2b065f2037038f3c>
+			</hash_1100064fa5fd09907cd251b44853732846ea06>
 		</graphs>
-	</hash_04000634b0c55bf7817a313a1d270bd3de6966>
+	</hash_040006654a53df137c66fdbb80b70eaf482cb2>
 	<hash_000006d1c4d28267b759c9f40da161bf1c970f>
 		<name>SNMP - Local - Bind9 Statistics - totals</name>
 		<graph>
@@ -87,7 +87,7 @@
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
+				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
 				<text_format>Total</text_format>
 				<hard_return></hard_return>
 				<sequence>1</sequence>
@@ -99,7 +99,7 @@
 				<consolidation_function_id>4</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
+				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
 				<text_format>Current:</text_format>
 				<hard_return></hard_return>
 				<sequence>2</sequence>
@@ -111,7 +111,7 @@
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
+				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
 				<text_format>Average:</text_format>
 				<hard_return></hard_return>
 				<sequence>3</sequence>
@@ -123,7 +123,7 @@
 				<consolidation_function_id>3</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
+				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
 				<text_format>Maximum:</text_format>
 				<hard_return>on</hard_return>
 				<sequence>4</sequence>
@@ -135,7 +135,7 @@
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
+				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
 				<text_format>Forward</text_format>
 				<hard_return></hard_return>
 				<sequence>5</sequence>
@@ -159,7 +159,7 @@
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
+				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
 				<text_format>Average:</text_format>
 				<hard_return></hard_return>
 				<sequence>7</sequence>
@@ -171,7 +171,7 @@
 				<consolidation_function_id>3</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
+				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
 				<text_format>Maximum:</text_format>
 				<hard_return>on</hard_return>
 				<sequence>8</sequence>
@@ -183,7 +183,7 @@
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
+				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
 				<text_format>Reverse</text_format>
 				<hard_return></hard_return>
 				<sequence>9</sequence>
@@ -195,7 +195,7 @@
 				<consolidation_function_id>4</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
+				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
 				<text_format>Current:</text_format>
 				<hard_return></hard_return>
 				<sequence>10</sequence>
@@ -207,7 +207,7 @@
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
+				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
 				<text_format>Average:</text_format>
 				<hard_return></hard_return>
 				<sequence>11</sequence>
@@ -219,7 +219,7 @@
 				<consolidation_function_id>3</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
+				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
 				<text_format>Maximum:</text_format>
 				<hard_return></hard_return>
 				<sequence>12</sequence>
