@@ -1,4 +1,12 @@
-SNMB4Bind9 1.1 Release (Apr 13 2005)
+bind9-snmp 1.2 TO BE ANNOUNCED
+	Bug fixes
+	  + Missing hard-return in a graph item.
+
+	Misc changes
+	  + Moved/renamed the CVS repository (s/snmp/bind9-snmp) because of a freshmeat
+	    announcement.
+
+bind9-snmp 1.1 Release (Apr 13 2005)
 	Bug fixes
 	  + Include 'Counter32' not 'Counter'.
 
