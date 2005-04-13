@@ -1,12 +1,12 @@
 <cacti>	
 	<hash_04000634b0c55bf7817a313a1d270bd3de6966>
-		<name>SNMP - Local - Bind9 Statistics</name>
+		<name>SNMP - Local - Bind9 Statistics - totals</name>
 		<description>Retreive Bind9 statistic counters</description>
 		<xml_path>&amp;lt;path_cacti&amp;gt;/resource/snmp_queries/bind9-stats_totals.xml</xml_path>
 		<data_input_id>hash_030006bf566c869ac6443b0c75d1c32b5a350e</data_input_id>
 		<graphs>
 			<hash_1100064619a418424adcee2b065f2037038f3c>
-				<name>SNMP - Local - Bind9 Statistics</name>
+				<name>SNMP - Local - Bind9 Statistics - totals</name>
 				<graph_template_id>hash_000006d1c4d28267b759c9f40da161bf1c970f</graph_template_id>
 				<rrd>
 					<item_000>
@@ -44,7 +44,7 @@
 		</graphs>
 	</hash_04000634b0c55bf7817a313a1d270bd3de6966>
 	<hash_000006d1c4d28267b759c9f40da161bf1c970f>
-		<name>SNMP - Local - Bind9 Statistics</name>
+		<name>SNMP - Local - Bind9 Statistics - totals</name>
 		<graph>
 			<t_title></t_title>
 			<title>|host_description| - Bind9 Statistics</title>
@@ -247,7 +247,7 @@
 		</inputs>
 	</hash_000006d1c4d28267b759c9f40da161bf1c970f>
 	<hash_010006983dcdaa7a98ab90299c6a6a084465e4>
-		<name>SNMP - Local - Bind9 Statistics</name>
+		<name>SNMP - Local - Bind9 Statistics - totals</name>
 		<ds>
 			<t_name></t_name>
 			<name>|host_description| - Bind9 Statistics</name>
