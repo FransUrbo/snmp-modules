@@ -36,4 +36,7 @@ The latest version of these files can be found via anonymous cvs
 (just press the ENTER key when asked for a password):
 
 cvs -d :pserver:anonymous@cvs.bayour.com:/var/cvs login
-cvs -d :pserver:anonymous@cvs.bayour.com:/var/cvs co snmp
+cvs -d :pserver:anonymous@cvs.bayour.com:/var/cvs co bind9-snmp
+
+There's a web to cvs gateway at the URL:
+http://apache.bayour.com/cgi-bin/cvsweb/bind9-snmp/
