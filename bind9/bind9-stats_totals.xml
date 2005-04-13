@@ -25,7 +25,7 @@
 		</b9stCounterName>
 
 		<b9stCounterTotal>
-			<name></name>
+			<name>Total queries</name>
 			<method>walk</method>
 			<source>value</source>
 			<direction>output</direction>
@@ -33,7 +33,7 @@
 		</b9stCounterTotal>
 
 		<b9stCounterForward>
-			<name></name>
+			<name>Total forward queries</name>
 			<method>walk</method>
 			<source>value</source>
 			<direction>output</direction>
@@ -41,7 +41,7 @@
 		</b9stCounterForward>
 
 		<b9stCounterReverse>
-			<name></name>
+			<name>Total reverse queries</name>
 			<method>walk</method>
 			<source>value</source>
 			<direction>output</direction>
