@@ -1,0 +1,75 @@
+<interface>
+	<name>Get Bind9 statistics per domain</name>
+	<description>Queries a NS host for bind9 statistic counters</description>
+	<oid_index>.1.3.6.1.4.1.8767.2.1.4.1.1</oid_index>
+	<oid_num_indexes>.1.3.6.1.4.1.8767.2.1.2.0</oid_num_indexes>
+	<index_order>b9stCounterFailure:b9stCounterRecursion:b9stCounterNXDomain:b9stCounterNXRRSet:b9stCounterReferral:b9stCounterSuccess:b9stDomainName</index_order>
+	<index_order_type>numeric</index_order_type>
+	<index_title_format>|chosen_order_field|</index_title_format>
+
+	<fields>
+		<b9stIndexDomains>
+			<name>Index (domains)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.1.4.1.1</oid>
+		</b9stIndexDomains>
+
+		<b9stDomainName>
+			<name>Domainname</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.1.4.1.2</oid>
+		</b9stDomainName>
+
+		<b9stCounterSuccess>
+			<name>Success counter per domain</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>output</direction>
+			<oid>.1.3.6.1.4.1.8767.2.1.4.1.3</oid>
+		</b9stCounterSuccess>
+
+		<b9stCounterReferral>
+			<name>Referral counter per domain</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>output</direction>
+			<oid>.1.3.6.1.4.1.8767.2.1.4.1.4</oid>
+		</b9stCounterReferral>
+
+		<b9stCounterNXRRSet>
+			<name>NXRRSet counter per domain</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>output</direction>
+			<oid>.1.3.6.1.4.1.8767.2.1.4.1.5</oid>
+		</b9stCounterNXRRSet>
+
+		<b9stCounterNXDomain>
+			<name>NXDomain counter per domain</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>output</direction>
+			<oid>.1.3.6.1.4.1.8767.2.1.4.1.6</oid>
+		</b9stCounterNXDomain>
+
+		<b9stCounterRecursion>
+			<name>Recursion counter per domain</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>output</direction>
+			<oid>.1.3.6.1.4.1.8767.2.1.4.1.7</oid>
+		</b9stCounterRecursion>
+
+		<b9stCounterFailure>
+			<name>Failure counter per domain</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>output</direction>
+			<oid>.1.3.6.1.4.1.8767.2.1.4.1.8</oid>
+		</b9stCounterFailure>
+	</fields>
+</interface>
