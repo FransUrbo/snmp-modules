@@ -36,7 +36,7 @@ tarball: $(INSTDIR)
 	  mkdir -p $(INSTDIR)/tmp; \
 	  cp cacti_data_query_snmp_local_bind9_statistics_*.xml $(INSTDIR)/tmp; \
 	  cd $(INSTDIR); \
-	  tar czf ../bind9-snmp_$$VERSION.tgz .)
+	  tar czf ../bind9-snmp_$$VERSION.tgz `find -type f`)
 
 changes:
 	@(echo "Date: $(DATE)"; \
