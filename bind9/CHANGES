@@ -9,6 +9,7 @@ bind9-snmp 1.2 TO BE ANNOUNCED
 bind9-snmp 1.1 Release (Apr 13 2005)
 	Bug fixes
 	  + Include 'Counter32' not 'Counter'.
+	  + All Graph items should be using GPRINT Type=Exact numbers...
 
 	Misc changes
 	  + The 'b9stTable' was only for total numbers. I'd like information based on
