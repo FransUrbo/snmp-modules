@@ -23,7 +23,8 @@ bind9-stats_totals.xml	Total statistic numbers
 			These are the XML declaration for cacti.
 			Copy to /usr/share/cacti/resource/snmp_queries/
 
-cacti_data_query_snmp_local_bind9_statistics.xml
+cacti_data_query_snmp_local_bind9_statistics_domains.xml
+cacti_data_query_snmp_local_bind9_statistics_totals.xml
 			This is all the templates to import into
 			cacti to retreive Bind9 statistics via
 			a Indexed SNMP query.
