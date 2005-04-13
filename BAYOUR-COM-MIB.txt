@@ -1,11 +1,11 @@
 BAYOUR-COM-MIB DEFINITIONS ::= BEGIN
--- $Id: BAYOUR-COM-MIB.txt,v 1.2 2005-04-12 09:23:42 turbo Exp $
+-- $Id: BAYOUR-COM-MIB.txt,v 1.3 2005-04-13 09:33:59 turbo Exp $
 
 -- This is my very first MIB! A lot of it is taken from the IF-MIB
 -- by the IETF Interfaces MIB Working Group (200006140000).
 
 IMPORTS
-  MODULE-IDENTITY, OBJECT-TYPE, Counter, Integer32, enterprises FROM SNMPv2-SMI
+  MODULE-IDENTITY, OBJECT-TYPE, Counter32, Integer32, enterprises FROM SNMPv2-SMI
   MODULE-COMPLIANCE, OBJECT-GROUP                               FROM SNMPv2-CONF
   TEXTUAL-CONVENTION, DisplayString                             FROM SNMPv2-TC;
 
@@ -44,30 +44,39 @@ bayourCom MODULE-IDENTITY
 
   snmp                                 OBJECT IDENTIFIER ::= { bayourCom 2 }
     bind9Stats	                       OBJECT IDENTIFIER ::= { snmp 1 }
-      b9stNumber                       OBJECT-TYPE
+      -- -----------------------------------------------------------------------------
+      b9stNumberTotals                 OBJECT-TYPE
         SYNTAX                         Integer32
         MAX-ACCESS                     read-only
         STATUS                         current
         DESCRIPTION                    "Number of Bind9 status counters"
         ::= { bind9Stats 1 }
   
-      b9stTable                        OBJECT-TYPE
-        SYNTAX                         SEQUENCE OF B9stEntry
-        MAX-ACCESS                     not-accessible
+      b9stNumberDomains                OBJECT-TYPE
+        SYNTAX                         Integer32
+        MAX-ACCESS                     read-only
         STATUS                         current
-        DESCRIPTION                    "A list of Bind9 statistic counters"
+        DESCRIPTION                    "Number of Bind9 status counters"
         ::= { bind9Stats 2 }
   
-        b9stEntry                      OBJECT-TYPE
-          SYNTAX                       B9stEntry
+      -- -----------------------------------------------------------------------------
+      b9stTotalsTable                  OBJECT-TYPE
+        SYNTAX                         SEQUENCE OF B9stEntryTotals
+        MAX-ACCESS                     not-accessible
+        STATUS                         current
+        DESCRIPTION                    "A list of Bind9 statistic counters (totals)."
+        ::= { bind9Stats 3 }
+  
+        b9stTotalsEntry                OBJECT-TYPE
+          SYNTAX                       B9stEntryTotals
           MAX-ACCESS                   not-accessible
           STATUS                       current
-          DESCRIPTION                  "An entry containing Bind9 statistics"
-          INDEX                        { b9stIndex }
-          ::= { b9stTable 1 }
+          DESCRIPTION                  "An entry containing Bind9 statistics (totals)."
+          INDEX                        { b9stIndexTotals }
+          ::= { b9stTotalsTable 1 }
   
-          B9stEntry ::= SEQUENCE {
-            b9stIndex                  CounterIndex,
+          B9stEntryTotals ::= SEQUENCE {
+            b9stIndexTotals            CounterIndex,
 
             b9stCounterName            DisplayString,
             b9stCounterTotal           Counter32,
@@ -75,12 +84,12 @@ bayourCom MODULE-IDENTITY
             b9stCounterReverse         Counter32
           }
   
-          b9stIndex                    OBJECT-TYPE
+          b9stIndexTotals              OBJECT-TYPE
             SYNTAX                     CounterIndex
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Reference Index for each counter."
-            ::= { b9stEntry 1 }
+            ::= { b9stTotalsEntry 1 }
   
           b9stCounterName              OBJECT-TYPE
             SYNTAX                     DisplayString (SIZE (0..255))
@@ -89,28 +98,115 @@ bayourCom MODULE-IDENTITY
             DESCRIPTION                "A textual string containing information about the
                                         statistics counters. This string should include the
                                         name of the counter."
-            ::= { b9stEntry 2 }
+            ::= { b9stTotalsEntry 2 }
 
           b9stCounterTotal             OBJECT-TYPE
             SYNTAX                     Counter32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Total number of request."
-            ::= { b9stEntry 3 }
+            ::= { b9stTotalsEntry 3 }
 
           b9stCounterForward           OBJECT-TYPE
             SYNTAX                     Counter32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Total number of forward requests."
-            ::= { b9stEntry 4 }
+            ::= { b9stTotalsEntry 4 }
 
           b9stCounterReverse           OBJECT-TYPE
             SYNTAX                     Counter32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Total number of reverse requests."
-            ::= { b9stEntry 5 }
+            ::= { b9stTotalsEntry 5 }
+
+      -- -----------------------------------------------------------------------------
+      b9stDomainsTable                 OBJECT-TYPE
+        SYNTAX                         SEQUENCE OF B9stEntryDomains
+        MAX-ACCESS                     not-accessible
+        STATUS                         current
+        DESCRIPTION                    "A list of Bind9 statistic counters"
+        ::= { bind9Stats 4 }
+  
+        b9stDomainsEntry               OBJECT-TYPE
+          SYNTAX                       B9stEntryDomains
+          MAX-ACCESS                   not-accessible
+          STATUS                       current
+          DESCRIPTION                  "An entry containing Bind9 statistics"
+          INDEX                        { b9stIndexDomains }
+          ::= { b9stDomainsTable 1 }
+  
+          B9stEntryDomains ::= SEQUENCE {
+            b9stIndexDomains           CounterIndex,
+
+            b9stDomainName             DisplayString,
+            b9stCounterSuccess         Counter32,
+            b9stCounterReferral        Counter32,
+            b9stCounterNXRRSet         Counter32,
+            b9stCounterNXDomain        Counter32,
+            b9stCounterRecursion       Counter32,
+            b9stCounterFailure         Counter32
+          }
+  
+          b9stIndexDomains             OBJECT-TYPE
+            SYNTAX                     CounterIndex
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Reference Index for each counter."
+            ::= { b9stDomainsEntry 1 }
+  
+          b9stDomainName               OBJECT-TYPE
+            SYNTAX                     DisplayString (SIZE (0..255))
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "A textual string containing information about the
+                                        statistics counters. This string should include the
+                                        name of the counter."
+            ::= { b9stDomainsEntry 2 }
+
+          b9stCounterSuccess           OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Total number of reverse requests."
+            ::= { b9stDomainsEntry 3 }
+
+          b9stCounterReferral          OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Total number of reverse requests."
+            ::= { b9stDomainsEntry 4 }
+
+          b9stCounterNXRRSet           OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Total number of reverse requests."
+            ::= { b9stDomainsEntry 5 }
+
+          b9stCounterNXDomain          OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Total number of reverse requests."
+            ::= { b9stDomainsEntry 6 }
+
+          b9stCounterRecursion         OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Total number of reverse requests."
+            ::= { b9stDomainsEntry 7 }
+
+          b9stCounterFailure           OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Total number of reverse requests."
+            ::= { b9stDomainsEntry 8 }
+
 
   conformance                          OBJECT IDENTIFIER ::= { snmp 2 }
     b9stCompliance MODULE-COMPLIANCE
@@ -118,15 +214,26 @@ bayourCom MODULE-IDENTITY
       DESCRIPTION                      "The compliance statement for SNMP entities which have
                                         bind9 status counters."
       MODULE  -- this module
-        MANDATORY-GROUPS               { b9stGeneralInformationGroup }
+        MANDATORY-GROUPS               { b9stGroupTotals, b9stGroupDomains }
       ::= { conformance 1 }
 
     b9stGroups                         OBJECT IDENTIFIER ::= { conformance 2 }
-      b9stGeneralInformationGroup      OBJECT-GROUP
-        OBJECTS                        { b9stNumber, b9stCounterName, b9stCounterTotal,
-                                         b9stCounterForward, b9stCounterReverse }
+      -- -----------------------------------------------------------------------------
+      b9stGroupTotals                  OBJECT-GROUP
+        OBJECTS                        { b9stNumberTotals, b9stIndexTotals, b9stCounterName,
+                                         b9stCounterTotal, b9stCounterForward, b9stCounterReverse }
         STATUS                         current
         DESCRIPTION                    "A collection of objects providing information
                                         applicable to B9st statistics."
         ::= { b9stGroups 1 }
+
+      -- -----------------------------------------------------------------------------
+      b9stGroupDomains                 OBJECT-GROUP
+        OBJECTS                        { b9stNumberDomains, b9stIndexDomains, b9stDomainName,
+                                         b9stCounterSuccess, b9stCounterReferral, b9stCounterNXRRSet,
+                                         b9stCounterNXDomain, b9stCounterRecursion, b9stCounterFailure }
+        STATUS                         current
+        DESCRIPTION                    "A collection of objects providing information
+                                        applicable to B9st statistics."
+        ::= { b9stGroups 2 }
 END
