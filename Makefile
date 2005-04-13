@@ -17,11 +17,11 @@ install:
 
 	@scp BAYOUR-COM-MIB.txt root@anton.swe.net:/usr/share/snmp/mibs/
 	@scp bind9-snmp-stats.pl root@anton.swe.net:/etc/snmp/
-	@scp  bind9-stats*.xml root@anton.swe.net:/usr/share/cacti/resource/snmp_queries/
+	@scp bind9-stats*.xml root@anton.swe.net:/usr/share/cacti/resource/snmp_queries/
 
 	@scp BAYOUR-COM-MIB.txt root@alma.swe.net:/usr/share/snmp/mibs/
 	@scp bind9-snmp-stats.pl root@alma.swe.net:/etc/snmp/
-	@scp  bind9-stats*.xml root@alma.swe.net:/usr/share/cacti/resource/snmp_queries/
+	@scp bind9-stats*.xml root@alma.swe.net:/usr/share/cacti/resource/snmp_queries/
 
 test: $(INSTDIR)
 
@@ -33,6 +33,8 @@ tarball: $(INSTDIR)
 	  cp bind9-snmp-stats.pl $(INSTDIR)/etc/snmp/; \
 	  mkdir -p $(INSTDIR)/usr/share/cacti/resource/snmp_queries; \
 	  cp bind9-stats*.xml $(INSTDIR)/usr/share/cacti/resource/snmp_queries/; \
+	  mkdir -p $(INSTDIR)/tmp; \
+	  cp cacti_data_query_snmp_local_bind9_statistics_*.xml $(INSTDIR)/tmp; \
 	  cd $(INSTDIR); \
 	  tar czf ../bind9-snmp_$$VERSION.tgz .)
 
