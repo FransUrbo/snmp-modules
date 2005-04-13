@@ -18,7 +18,9 @@ snmpd.conf.stub		This is part of the snmpd.conf file.
 
 Cacti setup files
 =================
-bind9-stats.xml		This is the XML declaration for cacti.
+bind9-stats_domains.xml	Domain vise statistics
+bind9-stats_totals.xml	Total statistic numbers
+			These are the XML declaration for cacti.
 			Copy to /usr/share/cacti/resource/snmp_queries/
 
 cacti_data_query_snmp_local_bind9_statistics.xml
