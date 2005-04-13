@@ -1,0 +1,12 @@
+SNMB4Bind9 1.1 TO BE ANNOUNCED
+	Bug fixes
+	  + Include 'Counter32' not 'Counter'.
+
+	Misc changes
+	  + The 'b9stTable' was only for total numbers. I'd like information based on
+	    the domain name as well.
+	    - Rename of 'b9stTable' to 'b9stTotalsTable'.
+	    - This affected the whole MIB (b9stNumber, b9stEntry etc etc).
+	    - Added the 'b9stDomainsTable' and all it's object types.
+	    - Renamed 'b9stGeneralInformationGroup' to 'b9stGroupTotals' and added the
+	      'b9stGroupDomains' with the domains table object types.
