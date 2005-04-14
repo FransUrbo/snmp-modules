@@ -62,7 +62,7 @@
 		<name>SNMP - Local - Bind9 Statistics - domains</name>
 		<graph>
 			<t_title></t_title>
-			<title>|host_description| - Bind9 Statistics</title>
+			<title>|host_description| - Bind9 Statistics - |query_b9stDomainName|</title>
 			<t_image_format_id></t_image_format_id>
 			<image_format_id>1</image_format_id>
 			<t_height></t_height>
@@ -92,7 +92,7 @@
 			<t_unit_exponent_value></t_unit_exponent_value>
 			<unit_exponent_value></unit_exponent_value>
 			<t_vertical_label></t_vertical_label>
-			<vertical_label></vertical_label>
+			<vertical_label># Hits</vertical_label>
 		</graph>
 		<items>
 			<hash_100006ba89e5e4486b1d93622a3bbbaf40312d>
@@ -102,7 +102,7 @@
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Success</text_format>
 				<hard_return></hard_return>
 				<sequence>1</sequence>
@@ -114,7 +114,7 @@
 				<consolidation_function_id>4</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Current:</text_format>
 				<hard_return></hard_return>
 				<sequence>2</sequence>
@@ -126,7 +126,7 @@
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Average:</text_format>
 				<hard_return></hard_return>
 				<sequence>3</sequence>
@@ -138,7 +138,7 @@
 				<consolidation_function_id>3</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Maximum:</text_format>
 				<hard_return>on</hard_return>
 				<sequence>4</sequence>
@@ -150,7 +150,7 @@
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Failure</text_format>
 				<hard_return></hard_return>
 				<sequence>5</sequence>
@@ -162,7 +162,7 @@
 				<consolidation_function_id>4</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Current:</text_format>
 				<hard_return></hard_return>
 				<sequence>6</sequence>
@@ -174,7 +174,7 @@
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Average:</text_format>
 				<hard_return></hard_return>
 				<sequence>7</sequence>
@@ -186,7 +186,7 @@
 				<consolidation_function_id>3</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Maximum:</text_format>
 				<hard_return>on</hard_return>
 				<sequence>8</sequence>
@@ -198,7 +198,7 @@
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Referral</text_format>
 				<hard_return></hard_return>
 				<sequence>9</sequence>
@@ -210,7 +210,7 @@
 				<consolidation_function_id>4</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Current:</text_format>
 				<hard_return></hard_return>
 				<sequence>10</sequence>
@@ -222,7 +222,7 @@
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Average:</text_format>
 				<hard_return></hard_return>
 				<sequence>11</sequence>
@@ -234,7 +234,7 @@
 				<consolidation_function_id>3</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Maximum:</text_format>
 				<hard_return>on</hard_return>
 				<sequence>12</sequence>
@@ -246,7 +246,7 @@
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>NXRRSet</text_format>
 				<hard_return></hard_return>
 				<sequence>13</sequence>
@@ -258,7 +258,7 @@
 				<consolidation_function_id>4</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Current:</text_format>
 				<hard_return></hard_return>
 				<sequence>14</sequence>
@@ -270,7 +270,7 @@
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Average:</text_format>
 				<hard_return></hard_return>
 				<sequence>15</sequence>
@@ -282,7 +282,7 @@
 				<consolidation_function_id>3</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Maximum:</text_format>
 				<hard_return>on</hard_return>
 				<sequence>16</sequence>
@@ -294,7 +294,7 @@
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>NXDomain</text_format>
 				<hard_return></hard_return>
 				<sequence>17</sequence>
@@ -306,7 +306,7 @@
 				<consolidation_function_id>4</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Current:</text_format>
 				<hard_return></hard_return>
 				<sequence>18</sequence>
@@ -318,7 +318,7 @@
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Average:</text_format>
 				<hard_return></hard_return>
 				<sequence>19</sequence>
@@ -330,7 +330,7 @@
 				<consolidation_function_id>3</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Maximum:</text_format>
 				<hard_return>on</hard_return>
 				<sequence>20</sequence>
@@ -342,7 +342,7 @@
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Recursion</text_format>
 				<hard_return></hard_return>
 				<sequence>21</sequence>
@@ -354,7 +354,7 @@
 				<consolidation_function_id>4</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Current:</text_format>
 				<hard_return></hard_return>
 				<sequence>22</sequence>
@@ -366,7 +366,7 @@
 				<consolidation_function_id>1</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Average:</text_format>
 				<hard_return></hard_return>
 				<sequence>23</sequence>
@@ -378,7 +378,7 @@
 				<consolidation_function_id>3</consolidation_function_id>
 				<cdef_id>0</cdef_id>
 				<value></value>
-				<gprint_id>hash_06000619414480d6897c8731c7dc6c5310653e</gprint_id>
+				<gprint_id>hash_060006e9c43831e54eca8069317a2ce8c6f751</gprint_id>
 				<text_format>Maximum:</text_format>
 				<hard_return>on</hard_return>
 				<sequence>24</sequence>
