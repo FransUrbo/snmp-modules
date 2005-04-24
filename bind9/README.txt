@@ -1,7 +1,17 @@
-These are some of my SNMP scripts.
-* Paths depend on where your SNMP/Cacti installed!
+This is a pass-through script for SNMP that gives
+all the Bind9 statistics that can be (is) retreived
+with 'rndc status'.
 
-SNMP Setup files
+There's a lot of scripts that can retreive Bind9 stats
+via SNMP but what's making this one special is that
+it's indexed and 'tablified'.
+
+
+Current release is: 1.1
+Tarball:            http://www.bayour.com/bind9-snmp/bind9-snmp_1.1.tgz
+
+
+SNMP Setup files (Paths depend on where your SNMP/Cacti is installed!)
 =================
 BAYOUR-COM-MIB.txt	This is the MIB declaration.
 			Copy to /usr/share/snmp/mibs/
