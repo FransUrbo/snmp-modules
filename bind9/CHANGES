@@ -5,6 +5,7 @@ bind9-snmp 1.2 TO BE ANNOUNCED
 	Misc changes
 	  + Moved/renamed the CVS repository (s/snmp/bind9-snmp) because of a freshmeat
 	    announcement.
+	  + More verbose explanation in README.txt.
 
 bind9-snmp 1.1 Release (Apr 13 2005)
 	Bug fixes
