@@ -1,5 +1,5 @@
 BAYOUR-COM-MIB DEFINITIONS ::= BEGIN
--- $Id: BAYOUR-COM-MIB.txt,v 1.3 2005-04-13 09:33:59 turbo Exp $
+-- $Id: BAYOUR-COM-MIB.txt,v 1.4 2005-04-24 09:25:45 turbo Exp $
 
 -- This is my very first MIB! A lot of it is taken from the IF-MIB
 -- by the IETF Interfaces MIB Working Group (200006140000).
@@ -43,6 +43,7 @@ bayourCom MODULE-IDENTITY
     SYNTAX                              Integer32 (1..18)
 
   snmp                                 OBJECT IDENTIFIER ::= { bayourCom 2 }
+    -- =============================================================================
     bind9Stats	                       OBJECT IDENTIFIER ::= { snmp 1 }
       -- -----------------------------------------------------------------------------
       b9stNumberTotals                 OBJECT-TYPE
@@ -207,33 +208,36 @@ bayourCom MODULE-IDENTITY
             DESCRIPTION                "Total number of reverse requests."
             ::= { b9stDomainsEntry 8 }
 
+    -- =============================================================================
+    qmailStats	                       OBJECT IDENTIFIER ::= { snmp 2 }
 
-  conformance                          OBJECT IDENTIFIER ::= { snmp 2 }
-    b9stCompliance MODULE-COMPLIANCE
-      STATUS                           current
-      DESCRIPTION                      "The compliance statement for SNMP entities which have
-                                        bind9 status counters."
-      MODULE  -- this module
-        MANDATORY-GROUPS               { b9stGroupTotals, b9stGroupDomains }
-      ::= { conformance 1 }
-
-    b9stGroups                         OBJECT IDENTIFIER ::= { conformance 2 }
-      -- -----------------------------------------------------------------------------
-      b9stGroupTotals                  OBJECT-GROUP
-        OBJECTS                        { b9stNumberTotals, b9stIndexTotals, b9stCounterName,
-                                         b9stCounterTotal, b9stCounterForward, b9stCounterReverse }
+    -- =============================================================================
+    conformance                        OBJECT IDENTIFIER ::= { snmp 10 }
+      b9stCompliance MODULE-COMPLIANCE
         STATUS                         current
-        DESCRIPTION                    "A collection of objects providing information
-                                        applicable to B9st statistics."
-        ::= { b9stGroups 1 }
+        DESCRIPTION                    "The compliance statement for SNMP entities which have
+                                        bind9 status counters."
+        MODULE  -- this module
+          MANDATORY-GROUPS             { b9stGroupTotals, b9stGroupDomains }
+        ::= { conformance 1 }
 
-      -- -----------------------------------------------------------------------------
-      b9stGroupDomains                 OBJECT-GROUP
-        OBJECTS                        { b9stNumberDomains, b9stIndexDomains, b9stDomainName,
+      b9stGroups                       OBJECT IDENTIFIER ::= { conformance 2 }
+        -- -----------------------------------------------------------------------------
+        b9stGroupTotals                OBJECT-GROUP
+          OBJECTS                      { b9stNumberTotals, b9stIndexTotals, b9stCounterName,
+                                         b9stCounterTotal, b9stCounterForward, b9stCounterReverse }
+          STATUS                       current
+          DESCRIPTION                  "A collection of objects providing information
+                                        applicable to B9st statistics."
+          ::= { b9stGroups 1 }
+
+        -- -----------------------------------------------------------------------------
+        b9stGroupDomains               OBJECT-GROUP
+          OBJECTS                      { b9stNumberDomains, b9stIndexDomains, b9stDomainName,
                                          b9stCounterSuccess, b9stCounterReferral, b9stCounterNXRRSet,
                                          b9stCounterNXDomain, b9stCounterRecursion, b9stCounterFailure }
-        STATUS                         current
-        DESCRIPTION                    "A collection of objects providing information
+          STATUS                       current
+          DESCRIPTION                  "A collection of objects providing information
                                         applicable to B9st statistics."
-        ::= { b9stGroups 2 }
+          ::= { b9stGroups 2 }
 END
