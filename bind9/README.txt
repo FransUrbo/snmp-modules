@@ -49,4 +49,4 @@ cvs -d :pserver:anonymous@cvs.bayour.com:/var/cvs login
 cvs -d :pserver:anonymous@cvs.bayour.com:/var/cvs co bind9-snmp
 
 There's a web to cvs gateway at the URL:
-http://apache.bayour.com/cgi-bin/cvsweb/bind9-snmp/
+http://apache.bayour.com/cgi-bin/cvsweb/snmp-modules/bind9/
