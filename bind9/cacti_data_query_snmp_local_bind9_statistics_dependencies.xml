@@ -1,0 +1,117 @@
+<cacti>
+	<hash_030006bf566c869ac6443b0c75d1c32b5a350e>
+		<name>Get SNMP Data (Indexed)</name>
+		<type_id>3</type_id>
+		<input_string></input_string>
+		<fields>
+			<hash_070006617cdc8a230615e59f06f361ef6e7728>
+				<name>SNMP IP Address</name>
+				<update_rra></update_rra>
+				<regexp_match></regexp_match>
+				<allow_nulls></allow_nulls>
+				<type_code>hostname</type_code>
+				<input_output>in</input_output>
+				<data_name>management_ip</data_name>
+			</hash_070006617cdc8a230615e59f06f361ef6e7728>
+			<hash_070006acb449d1451e8a2a655c2c99d31142c7>
+				<name>SNMP Community</name>
+				<update_rra></update_rra>
+				<regexp_match></regexp_match>
+				<allow_nulls></allow_nulls>
+				<type_code>snmp_community</type_code>
+				<input_output>in</input_output>
+				<data_name>snmp_community</data_name>
+			</hash_070006acb449d1451e8a2a655c2c99d31142c7>
+			<hash_070006f4facc5e2ca7ebee621f09bc6d9fc792>
+				<name>SNMP Username (v3)</name>
+				<update_rra></update_rra>
+				<regexp_match></regexp_match>
+				<allow_nulls>on</allow_nulls>
+				<type_code>snmp_username</type_code>
+				<input_output>in</input_output>
+				<data_name>snmp_username</data_name>
+			</hash_070006f4facc5e2ca7ebee621f09bc6d9fc792>
+			<hash_0700061cc1493a6781af2c478fa4de971531cf>
+				<name>SNMP Password (v3)</name>
+				<update_rra></update_rra>
+				<regexp_match></regexp_match>
+				<allow_nulls>on</allow_nulls>
+				<type_code>snmp_password</type_code>
+				<input_output>in</input_output>
+				<data_name>snmp_password</data_name>
+			</hash_0700061cc1493a6781af2c478fa4de971531cf>
+			<hash_070006b5c23f246559df38662c255f4aa21d6b>
+				<name>SNMP Version (1, 2, or 3)</name>
+				<update_rra></update_rra>
+				<regexp_match></regexp_match>
+				<allow_nulls></allow_nulls>
+				<type_code>snmp_version</type_code>
+				<input_output>in</input_output>
+				<data_name>snmp_version</data_name>
+			</hash_070006b5c23f246559df38662c255f4aa21d6b>
+			<hash_0700066027a919c7c7731fbe095b6f53ab127b>
+				<name>Index Type</name>
+				<update_rra></update_rra>
+				<regexp_match></regexp_match>
+				<allow_nulls></allow_nulls>
+				<type_code>index_type</type_code>
+				<input_output>in</input_output>
+				<data_name>index_type</data_name>
+			</hash_0700066027a919c7c7731fbe095b6f53ab127b>
+			<hash_070006cbbe5c1ddfb264a6e5d509ce1c78c95f>
+				<name>Index Value</name>
+				<update_rra></update_rra>
+				<regexp_match></regexp_match>
+				<allow_nulls></allow_nulls>
+				<type_code>index_value</type_code>
+				<input_output>in</input_output>
+				<data_name>index_value</data_name>
+			</hash_070006cbbe5c1ddfb264a6e5d509ce1c78c95f>
+			<hash_070006e6deda7be0f391399c5130e7c4a48b28>
+				<name>Output Type ID</name>
+				<update_rra></update_rra>
+				<regexp_match></regexp_match>
+				<allow_nulls></allow_nulls>
+				<type_code>output_type</type_code>
+				<input_output>in</input_output>
+				<data_name>output_type</data_name>
+			</hash_070006e6deda7be0f391399c5130e7c4a48b28>
+		</fields>
+	</hash_030006bf566c869ac6443b0c75d1c32b5a350e>
+	<hash_150006c21df5178e5c955013591239eb0afd46>
+		<name>Daily (5 Minute Average)</name>
+		<x_files_factor>0.5</x_files_factor>
+		<steps>1</steps>
+		<rows>600</rows>
+		<timespan>86400</timespan>
+		<cf_items>1|3</cf_items>
+	</hash_150006c21df5178e5c955013591239eb0afd46>
+	<hash_1500060d9c0af8b8acdc7807943937b3208e29>
+		<name>Weekly (30 Minute Average)</name>
+		<x_files_factor>0.5</x_files_factor>
+		<steps>6</steps>
+		<rows>700</rows>
+		<timespan>604800</timespan>
+		<cf_items>1|3</cf_items>
+	</hash_1500060d9c0af8b8acdc7807943937b3208e29>
+	<hash_1500066fc2d038fb42950138b0ce3e9874cc60>
+		<name>Monthly (2 Hour Average)</name>
+		<x_files_factor>0.5</x_files_factor>
+		<steps>24</steps>
+		<rows>775</rows>
+		<timespan>2678400</timespan>
+		<cf_items>1|3</cf_items>
+	</hash_1500066fc2d038fb42950138b0ce3e9874cc60>
+	<hash_150006e36f3adb9f152adfa5dc50fd2b23337e>
+		<name>Yearly (1 Day Average)</name>
+		<x_files_factor>0.5</x_files_factor>
+		<steps>288</steps>
+		<rows>797</rows>
+		<timespan>33053184</timespan>
+		<cf_items>1|3</cf_items>
+	</hash_150006e36f3adb9f152adfa5dc50fd2b23337e>
+	<hash_060006e9c43831e54eca8069317a2ce8c6f751>
+		<name>Normal</name>
+		<gprint_text>%8.2lf %s</gprint_text>
+	</hash_060006e9c43831e54eca8069317a2ce8c6f751>
+</cacti>
