@@ -75,6 +75,20 @@ foreach (keys %types) {
 
 # man snmpd.conf: string, integer, unsigned, objectid, timeticks, ipaddress, counter, or gauge
 
+# --------------
+# Show usage
+sub help {
+    my $name = `basename $0`; chomp($name);
+
+    print "Usage: $name [option] [oid]\n";
+    print "Options: --debug|-d  Run in debug mode\n";
+    print "         --all|-a    Get all information\n";
+    print "         -n          Get next OID ('oid' required)\n";
+    print "         -g          Get specified OID ('oid' required)\n";
+
+    exit 1;
+}
+
 sub print_b9stNumberTotals {
     my $j = shift;
 
@@ -415,6 +429,11 @@ if($delta) {
 }
 
 close(DUMP); 
+
+unlink($log);
+unlink($delta);
+system "touch /var/lib/named/var/log/dns-stats.log";
+system "chown bind9.bind9 /var/lib/named/var/log/dns-stats.log";
 
 # How many domains?
 my %tmp1;
