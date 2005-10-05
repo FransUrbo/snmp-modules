@@ -43,6 +43,11 @@ bind9_changes:
 	  cat bind9/CHANGES | sed "s@TO BE ANNOUNCED@Release \($(DATE)\)@" > bind9/CHANGES.new; \
 	  mv bind9/CHANGES.new bind9/CHANGES; \
 	  cvs commit -m "New release - $(BIND9_VERSION)" bind9/CHANGES)
+
+check_mib:
+# Bug in the tool - Ignore: 'warning: index element.*should be not-accessible in SMIv2 MIB'
+	smilint BAYOUR-COM-MIB.txt
+
 clean:
 	@(find -name '*~' -o -name '.*~' -o -name '.#*' -o -name '#*' | \
 	  xargs --no-run-if-empty rm)
