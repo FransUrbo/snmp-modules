@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.6 2005-10-05 17:52:18 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.7 2005-10-12 06:34:34 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -89,13 +89,15 @@ sub print_b9stNumberTotals {
     my $j = shift;
 
     if($DEBUG) {
-	&echo(0, "=> OID_BASE.b9stNumberTotals.0\n");
-	&echo(0, "$OID_BASE.1.0	$count_counters\n");
+	&echo(0, "=> OID_BASE.b9stNumberTotals.0\n") if($DEBUG > 1);
+	&echo(0, "$OID_BASE.1.0 $count_counters\n");
     }
 
     &echo(1, "$OID_BASE.1.0\n");
     &echo(1, "integer\n");
     &echo(1, "$count_counters\n");
+
+    &echo(0, "\n") if($DEBUG > 1);
 }
 # }}}
 
@@ -104,13 +106,15 @@ sub print_b9stNumberDomains {
     my $j = shift;
 
     if($DEBUG) {
-	&echo(0, "=> OID_BASE.b9stNumberDomains.0\n");
-	&echo(0, "$OID_BASE.2.0	$count_domains\n");
+	&echo(0, "=> OID_BASE.b9stNumberDomains.0\n") if($DEBUG > 1);
+	&echo(0, "$OID_BASE.2.0 $count_domains\n");
     }
 
     &echo(1, "$OID_BASE.2.0\n");
     &echo(1, "integer\n");
     &echo(1, "$count_domains\n");
+
+    &echo(0, "\n") if($DEBUG > 1);
 }
 # }}}
 
@@ -121,22 +125,24 @@ sub print_b9stTotalsIndex {
     my %cnts;
 
     if($j) {
-	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.$j\n") if($DEBUG);
+	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.$j\n") if($DEBUG > 1);
 	%cnts = ($j => $counters{$j});
     } else {
-	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.x\n") if($DEBUG);
+	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.x\n") if($DEBUG > 1);
 	%cnts = %counters;
     }
 
     foreach $j (keys %cnts) {
 	if($DEBUG) {
-	    &echo(0, "$OID_BASE.3.1.1.$j	$j\n");
+	    &echo(0, "$OID_BASE.3.1.1.$j $j\n");
 	}
 
 	&echo(1, "$OID_BASE.3.1.1.$j\n");
 	&echo(1, "integer\n");
 	&echo(1, "$j\n");
     }
+
+    &echo(0, "\n") if($DEBUG > 1);
 }
 # }}}
 
@@ -147,20 +153,22 @@ sub print_b9stCounterName {
     my %cnts;
 
     if($j) {
-	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.$j\n") if($DEBUG);
+	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.$j\n") if($DEBUG > 1);
 	%cnts = ($j => $counters{$j});
     } else {
-	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.x\n") if($DEBUG);
+	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.x\n") if($DEBUG > 1);
 	%cnts = %counters;
     }
 
     foreach $j (keys %cnts) {
-	&echo(0, "$OID_BASE.3.1.2.$j	".$counters{$j}."\n") if($DEBUG);
+	&echo(0, "$OID_BASE.3.1.2.$j ".$counters{$j}."\n") if($DEBUG);
 
 	&echo(1, "$OID_BASE.3.1.2.$j\n");
 	&echo(1, "string\n");
 	&echo(1, $counters{$j}."\n");
     }
+
+    &echo(0, "\n") if($DEBUG > 1);
 }
 # }}}
 
@@ -189,18 +197,20 @@ sub print_b9stCounterTypeTotal {
     }
 
     my $type_name = ucfirst($types{$type_nr-2});
-    &echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounter$type_name.x\n") if($DEBUG);
+    &echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounter$type_name.x\n") if($DEBUG > 1);
 
     my $counter;
     foreach $nr (keys %cnts) {
 	$counter  = $counters{$nr};
 
-	&echo(0, "$OID_BASE.3.1.$type_nr.$nr	".$DATA{$counter}{$type}."\n") if($DEBUG);
+	&echo(0, "$OID_BASE.3.1.$type_nr.$nr ".$DATA{$counter}{$type}."\n") if($DEBUG);
 
 	&echo(1, "$OID_BASE.3.1.$type_nr.$nr\n");
 	&echo(1, "counter32\n");
 	&echo(1, $DATA{$counter}{$type}."\n");
     }
+
+    &echo(0, "\n") if($DEBUG > 1);
 }
 # }}}
 
@@ -253,18 +263,20 @@ sub print_b9stCounterTypeDomains {
     }
 
     my $type_name = ucfirst($counters{$type_nr-2});
-    &echo(0, "=> OID_BASE.b9stDomainsTable.b9stCounter$type_name.x\n") if($DEBUG);
+    &echo(0, "=> OID_BASE.b9stDomainsTable.b9stCounter$type_name.x\n") if($DEBUG > 1);
 
     foreach my $i (sort keys %cnts) {
 	my ($domain, $value) = split(':', $cnts{$i}{$type});
 
 	$i =~ s/^0//;
-	&echo(0, "$OID_BASE.4.1.$type_nr.$i	$value\n") if($DEBUG);
+	&echo(0, "$OID_BASE.4.1.$type_nr.$i $value\n") if($DEBUG);
 
 	&echo(1, "$OID_BASE.4.1.$type_nr.$i\n");
 	&echo(1, "counter32\n");
 	&echo(1, "$value\n");
     }
+
+    &echo(0, "\n") if($DEBUG > 1);
 }
 # }}}
 
@@ -317,22 +329,24 @@ sub print_b9stDomainsIndex {
     my %cnts;
 
     if($j) {
-	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.$j\n") if($DEBUG);
+	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.$j\n") if($DEBUG > 1);
 	%cnts = ($j => $DOMAINS{$j});
     } else {
-	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.x\n") if($DEBUG);
+	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.x\n") if($DEBUG > 1);
 	%cnts = %DOMAINS;
     }
 
     foreach $j (sort keys %cnts) {
 	$j =~ s/^0//;
 
-	&echo(0, "$OID_BASE.4.1.1.$j	$j\n") if($DEBUG);
+	&echo(0, "$OID_BASE.4.1.1.$j $j\n") if($DEBUG);
 
 	&echo(1, "$OID_BASE.4.1.1.$j\n");
 	&echo(1, "integer\n");
 	&echo(1, "$j\n");
     }
+
+    &echo(0, "\n") if($DEBUG > 1);
 }
 # }}}
 
@@ -342,14 +356,14 @@ sub print_b9stDomainName {
     my %cnts;
 
     if($j) {
-	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.$j\n") if($DEBUG);
+	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.$j\n") if($DEBUG > 1);
 
 	my $i = $j;
 	$j = sprintf("%0.2d", $j);
 
 	%cnts = ($j => $DOMAINS{$j});
     } else {
-	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.x\n") if($DEBUG);
+	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.x\n") if($DEBUG > 1);
 	%cnts = %DOMAINS;
     }
 
@@ -357,12 +371,14 @@ sub print_b9stDomainName {
 	my $domain = (split(':', $cnts{$j}{"success"}))[0];
 
 	$j =~ s/^0//;
-	&echo(0, "$OID_BASE.4.1.2.$j	$domain\n") if($DEBUG);
+	&echo(0, "$OID_BASE.4.1.2.$j $domain\n") if($DEBUG);
 
 	&echo(1, "$OID_BASE.4.1.2.$j\n");
 	&echo(1, "string\n");
 	&echo(1, "$domain\n");
     }
+
+    &echo(0, "\n") if($DEBUG > 1);
 }
 # }}}
 
@@ -376,7 +392,7 @@ sub call_func_total {
     my $func_arg = shift;
     
     my $func = "print_b9st".$prints_total{$func_nr};
-    &echo(0, "=> Calling function '$func($func_arg)'\n") if($DEBUG);
+    &echo(0, "=> Calling function '$func($func_arg)'\n") if($DEBUG > 2);
 
     $func = \&{$func}; # Because of 'use strict' above...
     &$func($func_arg);
@@ -389,7 +405,7 @@ sub call_func_domain {
     my $func_arg = shift;
     
     my $func = "print_b9st".$prints_domain{$func_nr};
-    &echo(0, "=> Calling function '$func($func_arg)'\n") if($DEBUG);
+    &echo(0, "=> Calling function '$func($func_arg)'\n") if($DEBUG > 2);
 
     $func = \&{$func}; # Because of 'use strict' above...
     &$func($func_arg);
@@ -445,13 +461,15 @@ sub echo {
     if($DEBUG || $ENV{'MIBDIRS'}) {
 	if(&open_log()) {
 	    $log_opened = 1;
-	    
 	    open(STDERR, ">&LOG");
 	}
     }
 
-    print LOG &get_timestring()," $string" if($log_opened);
-    print $string if($stdout);
+    if($stdout) {
+	print $string;
+    } elsif($log_opened) {
+	print LOG &get_timestring()," $string";
+    }
 }
 # }}}
 
@@ -574,7 +592,7 @@ while(<>) {
     
     # {{{ Get all run arguments - next/specfic OID
     my $arg = $_; chomp($arg);
-    &echo(0, "=> ARG=$arg\n") if($DEBUG);
+    &echo(0, "=> ARG=$arg\n") if($DEBUG > 2);
     
     # Get next line from STDIN -> OID number.
     # $arg == 'getnext' => Get next OID
@@ -582,9 +600,9 @@ while(<>) {
     $oid = <>; chomp($oid);
     $oid =~ s/$OID_BASE//; # Remove the OID base
     $oid =~ s/^\.//;       # Remove the first dot if it exists - it's in the way!
-    &echo(0, "=> OID=$oid\n") if($DEBUG);
+    &echo(0, "=> OID=$oid\n") if($DEBUG > 2);
     
-    &echo(0, "=> count_counters=$count_counters, count_types=$count_types, count_domains=$count_domains\n") if($DEBUG);
+    &echo(0, "=> count_counters=$count_counters, count_types=$count_types, count_domains=$count_domains\n") if($DEBUG > 2);
 # }}} Get arguments
 
     if(     $oid =~ /^1\./) {
@@ -609,7 +627,7 @@ while(<>) {
 	$oid =~ s/^1\.//;
 
 	my @tmp = split('\.', $oid);
-	&output_extra_debugging("=> .3.1: ", @tmp) if($DEBUG);
+	&output_extra_debugging("=> .3.1: ", @tmp) if($DEBUG > 2);
 
 	if($arg eq 'getnext') {
 	    if(!$tmp[0] && !$tmp[1]) {
@@ -620,14 +638,14 @@ while(<>) {
 		my $x = $tmp[1] + 1;
 		
 		if($x > $count_counters) {
-		    &echo(0, "=> $x > $count_counters\n");
+		    &echo(0, "=> $x > $count_counters\n") if($DEBUG > 2);
 		    if($prints_total{$tmp[0]+1}) {
 			&call_func_total($tmp[0]+1, 1);
 		    } else {
 			&call_func_domain(1, 1);
 		    }
 		} else {
-		    &echo(0, "=> !($x > $count_counters) => call_func_total(".$tmp[0].", ".($tmp[1]+1).")\n");
+		    &echo(0, "=> !($x > $count_counters) => call_func_total(".$tmp[0].", ".($tmp[1]+1).")\n") if($DEBUG > 2);
 		    &call_func_total($tmp[0], $tmp[1]+1);
 		}
 	    }
@@ -648,7 +666,7 @@ while(<>) {
 	$oid =~ s/^1\.//;
 
 	my @tmp = split('\.', $oid);
-	&output_extra_debugging("=> .4.1: ", @tmp) if($DEBUG);
+	&output_extra_debugging("=> .4.1: ", @tmp) if($DEBUG > 2);
 	
 	if($arg eq 'getnext') {
 	    if(!$tmp[0] && !$tmp[1]) {
