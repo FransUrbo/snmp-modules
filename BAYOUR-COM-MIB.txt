@@ -1,16 +1,19 @@
 BAYOUR-COM-MIB DEFINITIONS ::= BEGIN
--- $Id: BAYOUR-COM-MIB.txt,v 1.5 2005-10-05 11:53:00 turbo Exp $
+-- $Id: BAYOUR-COM-MIB.txt,v 1.6 2005-10-12 06:30:25 turbo Exp $
 
 -- This is my very first MIB! A lot of it is taken from the IF-MIB
 -- by the IETF Interfaces MIB Working Group (200006140000).
 
+-- {{{ Imports
 IMPORTS
   MODULE-IDENTITY, OBJECT-TYPE, Counter32, Integer32, enterprises FROM SNMPv2-SMI
   MODULE-COMPLIANCE, OBJECT-GROUP                                 FROM SNMPv2-CONF
-  TEXTUAL-CONVENTION, DisplayString                               FROM SNMPv2-TC;
+  TEXTUAL-CONVENTION, DisplayString, TimeStamp                    FROM SNMPv2-TC;
+-- }}}
 
+-- {{{ bayourCom Module identity
 bayourCom MODULE-IDENTITY
-  LAST-UPDATED                         "200510051348Z"  -- October 5, 2005
+  LAST-UPDATED                         "200510120724Z"  -- October 12, 2005
   ORGANIZATION                         "Bayour.COM"
   CONTACT-INFO                         "Postal:      Turbo Fredriksson
                                                      Naverlursgatan 8
@@ -21,7 +24,28 @@ bayourCom MODULE-IDENTITY
                                         E-Mail:      turbo@bayour.com"
   DESCRIPTION                          "The MIB module defines the Bayour.COM Bind9 and Bacula statistics."
 
-  REVISION                             "200509300948Z" -- October 5, 2005 - 13:48
+  REVISION                             "200510120724Z"  -- October 12, 2005 - 07:24
+  DESCRIPTION                          "* Add folding tags (for/in Emacs) to ease readability.
+                                        * Include the TimeStamp text convention from SNMPv2-TC and change the
+                                          baculaDate{Start,End} to that instead of DisplayString.
+                                        * Move the conformance branch to .0 instead of .10. Might need the room
+                                          above 'baculaStats' (.3).
+                                        * Make sure all the indexes have access 'not-accessible' instead of
+                                          'read-only' - the're indexes.
+                                        * Rename the 'baculaClientsTotals' branch to 'baculaTotalClients'.
+                                        * Put back 'baculaTotalTypes' and 'baculaTotalStats' which was removed
+                                          at a previous commit. Need it after all.
+                                        * Modify the description of the 'baculaTotalClients' slightly.
+                                        * Instead of ONE table, put the Bacula statistics in two, 'linked' tables.
+                                          The new table is: 'baculaStatsTable' which contain the actuall statistic
+                                          counters previosly found in the 'baculaClientsTable' table. That table
+                                          now only contain the client name(s) and job name(s)."
+
+  REVISION                             "200510061645Z" -- October 6, 2005 - 16:45
+  DESCRIPTION                          "Subdivide the 'conformance' branch (branch between that and
+                                        'b9st{Compliance,Groups}'; same for the bacula conformance."
+
+  REVISION                             "200510051348Z" -- October 5, 2005 - 13:48
   DESCRIPTION                          "Added the bacula statistics definitions."
 
   REVISION                             "200504011437Z" -- April 1, 2005 - 14:37
@@ -46,9 +70,77 @@ bayourCom MODULE-IDENTITY
     SYNTAX                              Integer32 (1..18)
 
   snmp                                 OBJECT IDENTIFIER ::= { bayourCom 2 }
-    -- =============================================================================
+-- }}}
+
+    -- {{{ .1.3.6.1.4.1.8767.2.0 conformance
+    conformance                        OBJECT IDENTIFIER ::= { snmp 0 }
+      -- {{{ .1.3.6.1.4.1.8767.2.0.1 b9stCompliance
+      bind9Conformance                 OBJECT IDENTIFIER ::= { conformance 1 }
+        -- =============================================================================
+        b9stCompliance                 MODULE-COMPLIANCE
+          STATUS                       current
+          DESCRIPTION                  "The compliance statement for SNMP entities which have
+                                        bind9 status counters."
+          MODULE  -- this module
+          MANDATORY-GROUPS             { b9stGroupTotals, b9stGroupDomains }
+          ::= { bind9Conformance 1 }
+
+        -- {{{ .1.3.6.1.4.1.8767.2.0.2 b9stGroups
+        b9stGroups                     OBJECT IDENTIFIER ::= { bind9Conformance 2 }
+          b9stGroupTotals              OBJECT-GROUP
+            OBJECTS                    { b9stNumberTotals, b9stCounterName, b9stCounterTotal,
+                                         b9stCounterForward, b9stCounterReverse }
+            STATUS                     current
+            DESCRIPTION                "A collection of objects providing information
+                                        applicable to B9st statistics."
+            ::= { b9stGroups 1 }
+
+          b9stGroupDomains             OBJECT-GROUP
+            OBJECTS                    { b9stNumberDomains, b9stDomainName, b9stCounterSuccess,
+                                         b9stCounterReferral, b9stCounterNXRRSet, b9stCounterNXDomain,
+                                         b9stCounterRecursion, b9stCounterFailure }
+            STATUS                     current
+            DESCRIPTION                "A collection of objects providing information
+                                        applicable to B9st statistics."
+            ::= { b9stGroups 2 }
+-- }}}
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.0.2 baculaConformance
+      baculaConformance                OBJECT IDENTIFIER ::= { conformance 2 }
+        baculaCompliance               MODULE-COMPLIANCE
+          STATUS                       current
+          DESCRIPTION                  "The compliance statement for SNMP entities which have
+                                        bind9 status counters."
+          MODULE                       -- this module
+          MANDATORY-GROUPS             { baculaGroupClients, baculaGroupStats }
+          ::= { baculaConformance 1 }
+
+        -- {{{ .1.3.6.1.4.1.8767.2.0.2.1 baculaGroups
+        baculaGroups                   OBJECT IDENTIFIER ::= { baculaConformance 2 }
+          baculaGroupClients           OBJECT-GROUP
+            OBJECTS                    { baculaTotalClients, baculaClientName, baculaJobName }
+            STATUS                     current
+            DESCRIPTION                "A collection of objects providing information
+                                        applicable to Bacula statistics."
+            ::= { baculaGroups 1 }
+
+          baculaGroupStats             OBJECT-GROUP
+            OBJECTS                    { baculaTotalStats, baculaTotalTypes, baculaCounterName,
+                                         baculaJobID, baculaDateStart, baculaDateEnd,
+                                         baculaCompletionDuration, baculaCompletionFiles,
+                                         baculaCompletionBytes }
+            STATUS                     current
+            DESCRIPTION                "A collection of objects providing information
+                                        applicable to Bacula statistics."
+            ::= { baculaGroups 2 }
+-- }}}
+-- }}}
+-- }}}
+
+    -- {{{ .1.3.6.1.4.1.8767.2.1 bind9Stats
     bind9Stats                         OBJECT IDENTIFIER ::= { snmp 1 }
-      -- -----------------------------------------------------------------------------
+      -- {{{ .1.3.6.1.4.1.8767.2.1.x b9stNumber{Totals,Domains}
       b9stNumberTotals                 OBJECT-TYPE
         SYNTAX                         Integer32
         MAX-ACCESS                     read-only
@@ -62,8 +154,9 @@ bayourCom MODULE-IDENTITY
         STATUS                         current
         DESCRIPTION                    "Number of Bind9 status counters"
         ::= { bind9Stats 2 }
+-- }}}
   
-      -- -----------------------------------------------------------------------------
+      -- {{{ .1.3.6.1.4.1.8767.2.1.3 b9stTotalsTable
       b9stTotalsTable                  OBJECT-TYPE
         SYNTAX                         SEQUENCE OF B9stEntryTotals
         MAX-ACCESS                     not-accessible
@@ -90,7 +183,7 @@ bayourCom MODULE-IDENTITY
   
           b9stIndexTotals              OBJECT-TYPE
             SYNTAX                     CounterIndex
-            MAX-ACCESS                 read-only
+            MAX-ACCESS                 not-accessible
             STATUS                     current
             DESCRIPTION                "Reference Index for each counter."
             ::= { b9stTotalsEntry 1 }
@@ -124,8 +217,9 @@ bayourCom MODULE-IDENTITY
             STATUS                     current
             DESCRIPTION                "Total number of reverse requests."
             ::= { b9stTotalsEntry 5 }
+-- }}}
 
-      -- -----------------------------------------------------------------------------
+      -- {{{ .1.3.6.1.4.1.8767.2.1.4 b9stDomainsTable
       b9stDomainsTable                 OBJECT-TYPE
         SYNTAX                         SEQUENCE OF B9stEntryDomains
         MAX-ACCESS                     not-accessible
@@ -155,7 +249,7 @@ bayourCom MODULE-IDENTITY
   
           b9stIndexDomains             OBJECT-TYPE
             SYNTAX                     CounterIndex
-            MAX-ACCESS                 read-only
+            MAX-ACCESS                 not-accessible
             STATUS                     current
             DESCRIPTION                "Reference Index for each counter."
             ::= { b9stDomainsEntry 1 }
@@ -210,27 +304,45 @@ bayourCom MODULE-IDENTITY
             STATUS                     current
             DESCRIPTION                "Total number of reverse requests."
             ::= { b9stDomainsEntry 8 }
+-- }}}
+-- }}}
 
-    -- =============================================================================
+    -- {{{ .1.3.6.1.4.1.8767.2.2 qmailStats
     qmailStats                         OBJECT IDENTIFIER ::= { snmp 2 }
+-- }}}
 
-    -- =============================================================================
+    -- {{{ .1.3.6.1.4.1.8767.2.3 baculaStats
     baculaStats                        OBJECT IDENTIFIER ::= { snmp 3 }
-      -- -----------------------------------------------------------------------------
-      baculaClientsTotals              OBJECT-TYPE
+      -- {{{ .1.3.6.1.4.1.8767.2.3.x baculaTotal{Clients,Types,Stats}
+      baculaTotalClients               OBJECT-TYPE
         SYNTAX                         Integer32
         MAX-ACCESS                     read-only
         STATUS                         current
-        DESCRIPTION                    "Number of Bacula status counters"
+        DESCRIPTION                    "Total number of Bacula clients."
         ::= { baculaStats 1 }
 
-      -- -----------------------------------------------------------------------------
+      baculaTotalTypes                 OBJECT-TYPE
+        SYNTAX                         Integer32
+        MAX-ACCESS                     read-only
+        STATUS                         current
+        DESCRIPTION                    "Total number of Bacula statistic counter types."
+        ::= { baculaStats 2 }
+
+      baculaTotalStats                 OBJECT-TYPE
+        SYNTAX                         Integer32
+        MAX-ACCESS                     read-only
+        STATUS                         current
+        DESCRIPTION                    "Total number of Bacula statistics."
+        ::= { baculaStats 3 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.3.4 baculaClientsTable
       baculaClientsTable               OBJECT-TYPE
         SYNTAX                         SEQUENCE OF BaculaEntryClients
         MAX-ACCESS                     not-accessible
         STATUS                         current
         DESCRIPTION                    "A list of bacula statistic counters"
-        ::= { baculaStats 2 }
+        ::= { baculaStats 4 }
   
         baculaClientsEntry             OBJECT-TYPE
           SYNTAX                       BaculaEntryClients
@@ -244,18 +356,12 @@ bayourCom MODULE-IDENTITY
             baculaIndexClients         CounterIndex,
 
             baculaClientName           DisplayString,
-            baculaJobName              DisplayString,
-            baculaJobID                DisplayString,
-            baculaDateStart            DateAndTime,
-            baculaDateEnd              DateAndTime,
-            baculaCompletionDuration   Integer32,
-            baculaCompletionFiles      Integer32,
-            baculaCompletionBytes      Integer32
+            baculaJobName              DisplayString
           }
   
           baculaIndexClients           OBJECT-TYPE
             SYNTAX                     CounterIndex
-            MAX-ACCESS                 read-only
+            MAX-ACCESS                 not-accessible
             STATUS                     current
             DESCRIPTION                "Reference Index for each counter."
             ::= { baculaClientsEntry 1 }
@@ -275,99 +381,94 @@ bayourCom MODULE-IDENTITY
             STATUS                     current
             DESCRIPTION                "A textual string containing information about the job."
             ::= { baculaClientsEntry 3 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.3.5 baculaStatsTable
+      baculaStatsTable                 OBJECT-TYPE
+        SYNTAX                         SEQUENCE OF BaculaEntryStats
+        MAX-ACCESS                     not-accessible
+        STATUS                         current
+        DESCRIPTION                    "A list of bacula statistic counters"
+        ::= { baculaStats 5 }
+  
+        baculaStatsEntry               OBJECT-TYPE
+          SYNTAX                       BaculaEntryStats
+          MAX-ACCESS                   not-accessible
+          STATUS                       current
+          DESCRIPTION                  "An entry containing bacula statistics"
+          INDEX                        { baculaIndexClients, baculaIndexStats }
+          ::= { baculaStatsTable 1 }
+  
+          BaculaEntryStats             ::= SEQUENCE {
+            baculaIndexStats           CounterIndex,
+            baculaCounterName          DisplayString,
+            baculaJobID                DisplayString,
+            baculaDateStart            TimeStamp,
+            baculaDateEnd              TimeStamp,
+            baculaCompletionDuration   Integer32,
+            baculaCompletionFiles      Integer32,
+            baculaCompletionBytes      Integer32
+          }
+  
+          baculaIndexStats             OBJECT-TYPE
+            SYNTAX                     CounterIndex
+            MAX-ACCESS                 not-accessible
+            STATUS                     current
+            DESCRIPTION                "Reference Index for each counter."
+            ::= { baculaStatsEntry 1 }
+  
+          baculaCounterName            OBJECT-TYPE
+            SYNTAX                     DisplayString (SIZE (0..255))
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "A textual string containing information about the
+                                        statistics counters. This string should include the
+                                        name of the counter."
+            ::= { baculaStatsEntry 2 }
 
           baculaJobID                  OBJECT-TYPE
             SYNTAX                     DisplayString (SIZE (0..255))
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Full ID name of a job."
-            ::= { baculaClientsEntry 4 }
+            ::= { baculaStatsEntry 3 }
+
+          -- The following statistic counters is really BELOW the baculaJobID!
 
           baculaDateStart              OBJECT-TYPE
-            SYNTAX                     DisplayString (SIZE (0..20))
+            SYNTAX                     TimeStamp
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Date and time of job start."
-            ::= { baculaClientsEntry 5 }
+            ::= { baculaStatsEntry 4 }
 
           baculaDateEnd                OBJECT-TYPE
-            SYNTAX                     DisplayString (SIZE (0..20))
+            SYNTAX                     TimeStamp
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Date and time of job completion."
-            ::= { baculaClientsEntry 6 }
+            ::= { baculaStatsEntry 5 }
 
           baculaCompletionDuration     OBJECT-TYPE
             SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Duration of job."
-            ::= { baculaClientsEntry 7 }
+            ::= { baculaStatsEntry 6 }
 
           baculaCompletionFiles        OBJECT-TYPE
             SYNTAX                     Integer32 (1..2147483647)
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Files backed up in the job."
-            ::= { baculaClientsEntry 8 }
+            ::= { baculaStatsEntry 7 }
 
           baculaCompletionBytes        OBJECT-TYPE
             SYNTAX                     Integer32 (1..2147483647)
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Bytes backed up in the job."
-            ::= { baculaClientsEntry 9 }
-
-    -- =============================================================================
-    conformance                        OBJECT IDENTIFIER ::= { snmp 10 }
-      -- =============================================================================
-      b9stCompliance                   MODULE-COMPLIANCE
-        STATUS                         current
-        DESCRIPTION                    "The compliance statement for SNMP entities which have
-                                        bind9 status counters."
-        MODULE  -- this module
-          MANDATORY-GROUPS             { b9stGroupTotals, b9stGroupDomains }
-        ::= { conformance 1 }
-
-      -- =============================================================================
-      b9stGroups                       OBJECT IDENTIFIER ::= { conformance 2 }
-        -- -----------------------------------------------------------------------------
-        b9stGroupTotals                OBJECT-GROUP
-          OBJECTS                      { b9stNumberTotals, b9stIndexTotals, b9stCounterName,
-                                         b9stCounterTotal, b9stCounterForward, b9stCounterReverse }
-          STATUS                       current
-          DESCRIPTION                  "A collection of objects providing information
-                                        applicable to B9st statistics."
-          ::= { b9stGroups 1 }
-
-        -- -----------------------------------------------------------------------------
-        b9stGroupDomains               OBJECT-GROUP
-          OBJECTS                      { b9stNumberDomains, b9stIndexDomains, b9stDomainName,
-                                         b9stCounterSuccess, b9stCounterReferral, b9stCounterNXRRSet,
-                                         b9stCounterNXDomain, b9stCounterRecursion, b9stCounterFailure }
-          STATUS                       current
-          DESCRIPTION                  "A collection of objects providing information
-                                        applicable to B9st statistics."
-          ::= { b9stGroups 2 }
-
-      -- =============================================================================
-      baculaCompliance                 MODULE-COMPLIANCE
-        STATUS                         current
-        DESCRIPTION                    "The compliance statement for SNMP entities which have
-                                        bind9 status counters."
-        MODULE  -- this module
-          MANDATORY-GROUPS             { baculaGroupClients }
-        ::= { conformance 3 }
-
-      baculaGroups                     OBJECT IDENTIFIER ::= { conformance 4 }
-        -- -----------------------------------------------------------------------------
-        baculaGroupClients             OBJECT-GROUP
-          OBJECTS                      { baculaClientsTotals, baculaIndexClients, baculaClientName,
-                                         baculaJobName, baculaJobID, baculaDateStart, baculaDateEnd,
-                                         baculaCompletionDuration, baculaCompletionFiles,
-                                         baculaCompletionBytes }
-          STATUS                       current
-          DESCRIPTION                  "A collection of objects providing information
-                                        applicable to Bacula statistics."
-          ::= { baculaGroups 1 }
+            ::= { baculaStatsEntry 8 }
+-- }}}
+-- }}}
 END
