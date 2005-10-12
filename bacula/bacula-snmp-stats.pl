@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bacula-snmp-stats.pl,v 1.7 2005-10-12 07:04:48 turbo Exp $
+# {{{ $Id: bacula-snmp-stats.pl,v 1.8 2005-10-12 07:38:17 turbo Exp $
 # Extract job statistics for a bacula backup server.
 # Only tested with a MySQL backend, but is general
 # enough to work with the PostgreSQL backend as well.
@@ -567,7 +567,13 @@ sub print_jobs_status {
 	my($client_no, $client_name) = split(';', $CLIENTS[$CLIENT_NO]);
 
 	# Get the key name from the key number (which is a global variable).
-	my $key_name = $keys{$STATUS_TYPE};
+	my $key_name;
+	if(!$keys{$STATUS_TYPE}) {
+	    &echo(0, "=> No value in this object\n") if($DEBUG > 1);
+	    return 0;
+	} else {
+	    $key_name = $keys{$STATUS_TYPE};
+	}
 
 	my $i=1; # Job Name
 	foreach my $job_name (sort keys %{ $JOBS{$client_name} }) {
