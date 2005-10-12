@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bacula-snmp-stats.pl,v 1.8 2005-10-12 07:38:17 turbo Exp $
+# {{{ $Id: bacula-snmp-stats.pl,v 1.9 2005-10-12 08:27:49 turbo Exp $
 # Extract job statistics for a bacula backup server.
 # Only tested with a MySQL backend, but is general
 # enough to work with the PostgreSQL backend as well.
@@ -475,7 +475,7 @@ sub print_types_index {
     if(defined($key_nr)) {
 	# {{{ One specific status index number
 	if(!$keys{$key_nr}) {
-	    &echo(0, "=> No such status typ ($key_nr)\n") if($DEBUG > 1);
+	    &echo(0, "=> No such status type ($key_nr)\n") if($DEBUG > 1);
 	    return 0;
 	}
 
@@ -518,7 +518,7 @@ sub print_types_names {
     if(defined($key_nr)) {
 	# {{{ One specific type name
 	if(!$keys{$key_nr}) {
-	    &echo(0, "=> No such status typ ($key_nr)\n") if($DEBUG > 1);
+	    &echo(0, "=> No such status type ($key_nr)\n") if($DEBUG > 1);
 	    return 0;
 	}
 
@@ -902,6 +902,7 @@ if($ALL) {
 	} elsif(($tmp[0] >= 1) && ($tmp[0] <= 3)) {
 	    # {{{ ------------------------------------- OID_BASE.[1-3] 
 	    if($arg eq 'getnext') {
+		# {{{ Get _next_ OID
 		if(!defined($tmp[1])) {
 		    &call_func($OID_BASE.".".$tmp[0]);
 		} else {
@@ -913,13 +914,18 @@ if($ALL) {
 			&call_func($OID_BASE.".".$new);
 		    }
 		}
+# }}} # Get next OID
 	    } else {
+		# {{{ Get _this_ OID
 		if(!defined($tmp[1])) {
 		    &echo(0, "=> No value in this object - exiting!\n") if($DEBUG > 1);
+
+		    &echo(1, "NONE\n");
 		    next;
 		} else {
 		    &call_func($OID_BASE.".".$tmp[0]);
 		}
+# }}} # Get this OID
 	    }
 # }}} # OID_BASE.[1-3]
 	} elsif(($tmp[0] >= 4) && ($tmp[0] <= 5)) {
@@ -978,7 +984,6 @@ if($ALL) {
 
 		# How to call call_func()
 		my($next1, $next2, $next3) = get_next_oid(@tmp);
-
 # }}} # Get the next value
 		
 		# {{{ Call functions, recursivly
@@ -1081,9 +1086,15 @@ if($ALL) {
 		   (($tmp[0] == 5) && (!defined($tmp[1]) || !defined($tmp[2]))))
 		{
 		    &echo(0, "=> No value in this object - exiting!\n") if($DEBUG > 1);
+
+		    &echo(1, "NONE\n");
 		    next;
 		} else {
-		    &call_func($OID_BASE.".".$tmp[0].".".$tmp[1]);
+		    # How to call call_func()
+		    my($next1, $next2, $next3) = get_next_oid(@tmp);
+
+		    &echo(0, "=> Get this OID: $next1$next2.$next3\n") if($DEBUG > 2);
+		    &call_func($next1, $next3);
 		}
 # }}} # Get _this_ OID
 	    }
