@@ -1,0 +1,15 @@
+If upgrading from 1.1:
+* The script is now a pass-through PERSISTS instead of a
+  simple pass-through. This because I noticed that SNMPd
+  calls the script ONCE FOR EACH OID requested. For a walk,
+  that's a lot of calls!
+  Every time the script is/was called, it dumped the Bind9
+  statistics, THEN processed and returned the information...
+  Lead to a LOT of dumping of statistics!
+
+  Instead use a 'pass_persist' in the snmpd.conf file, so
+  that the script is called only ONCE. The SNMPd will kill
+  the script if not used 'for a couple of minutes'. Don't
+  know how long, but IF the script is keept running for
+  more than five minutes, it will issue a reload/redump
+  of the Bind9 statistics by itself...
