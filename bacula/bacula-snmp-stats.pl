@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bacula-snmp-stats.pl,v 1.9 2005-10-12 08:27:49 turbo Exp $
+# {{{ $Id: bacula-snmp-stats.pl,v 1.10 2005-10-13 09:46:10 turbo Exp $
 # Extract job statistics for a bacula backup server.
 # Only tested with a MySQL backend, but is general
 # enough to work with the PostgreSQL backend as well.
@@ -46,12 +46,15 @@ if($ENV{'MIBDIRS'}) {
 my %functions  = ($OID_BASE.".1"	=> "amount_clients",
 		  $OID_BASE.".2"	=> "amount_types",
 		  $OID_BASE.".3"	=> "amount_stats",
+
 		  $OID_BASE.".4.1.1"	=> "clients_index",
 		  $OID_BASE.".4.1.2"	=> "clients_name",
 		  $OID_BASE.".4.1.3"	=> "jobs_name",
+
 		  $OID_BASE.".5.1.1"	=> "types_index",
 		  $OID_BASE.".5.1.2"	=> "types_names",
-		  $OID_BASE.".5.1.3"	=> "jobs_status");
+		  $OID_BASE.".5.1.3"	=> "jobs_ids",
+		  $OID_BASE.".5.1.4"	=> "jobs_status"); # $OID_BASE.".5.1.[4-(4+9)]
 
 # MIB tree 'flow' below the '$OID_BASE.5.3' branch.
 my %keys       = ("1" => "start_date",
@@ -61,7 +64,7 @@ my %keys       = ("1" => "start_date",
 		  "5" => "bytes");
 
 # Some global data variables
-my($oid, @Jobs, %JOBS, %STATUS, %Status, @CLIENTS);
+my($oid, @Jobs, %STATUS, %Status, @CLIENTS);
 
 # Total numbers
 my($TYPES, $CLIENTS, $JOBS, $STATUS);
@@ -244,30 +247,43 @@ sub get_next_oid {
     my($next1, $next2, $next3);
 
     $next1 = $OID_BASE.".".$tmp[0].".".$tmp[1].".".$tmp[2]; # Base value.
-    if(defined($tmp[6])) {
-	$next2 = ".".$tmp[3].".".$tmp[4].".".$tmp[5];
-	$next3 = $tmp[6];
-    } elsif(defined($tmp[5])) {
+    if(defined($tmp[5])) {
 	$next2 = ".".$tmp[3].".".$tmp[4];
 	$next3 = $tmp[5];
     } elsif(defined($tmp[4])) {
 	$next2 = ".".$tmp[3];
 	$next3 = $tmp[4];
     } else {
-	$next2 = ".";
+	$next2 = "";
 	$next3 = $tmp[3];
     }
 
     # Global variables for the print function(s).
-    if(($tmp[0] == 5) && ($tmp[2] == 3)) {
-	$STATUS_TYPE = $tmp[3];
-	$CLIENT_NO   = $tmp[4];
-	$JOB_NO      = $tmp[5];
+    if($tmp[0] == 5) {
+	if($tmp[2] <= 3) {
+	    # StatsIndex, StatsTypesName and JobID list
+	    $STATUS_TYPE = $tmp[2];
+	    $CLIENT_NO   = $tmp[3];
+	    $JOB_NO      = $tmp[4];
+	} elsif($tmp[2] >= 4) {
+	    # Statistic counters
+	    $STATUS_TYPE = $tmp[2] - 3; # Offset three because of index etc.
+	    $CLIENT_NO   = $tmp[3];
+	    $JOB_NO      = $tmp[4];
+	}
     } else {
 	$CLIENT_NO   = $tmp[3];
 	$STATUS_TYPE = $tmp[4];
     }
 
+    my $string;
+    $string  = "STATUS_TYPE=$STATUS_TYPE" if(defined($STATUS_TYPE));
+    $string .= ", " if($string);
+    $string .= "CLIENT_NO=$CLIENT_NO" if(defined($CLIENT_NO));
+    $string .= ", " if($string);
+    $string .= "JOB_NO=$JOB_NO" if(defined($JOB_NO));
+
+    &echo(0, "=> get_next_oid(): $string\n") if($DEBUG > 2);
     return($next1, $next2, $next3);
 }
 # }}}
@@ -287,7 +303,6 @@ sub print_amount_clients {
     &echo(1, "integer\n");
     &echo(1, "$CLIENTS\n");
 
-    &echo(0, "\n") if($DEBUG > 1);
     return 1;
 }
 # }}}
@@ -303,7 +318,6 @@ sub print_amount_types {
     &echo(1, "integer\n");
     &echo(1, "$TYPES\n");
 
-    &echo(0, "\n") if($DEBUG > 1);
     return 1;
 }
 # }}}
@@ -319,7 +333,6 @@ sub print_amount_stats {
     &echo(1, "integer\n");
     &echo(1, "$STATUS\n");
 
-    &echo(0, "\n") if($DEBUG > 1);
     return 1;
 }
 # }}}
@@ -361,7 +374,6 @@ sub print_clients_index {
     }
 # }}}
 
-    &echo(0, "\n") if($DEBUG > 1);
     return $success;
 }
 # }}}
@@ -401,7 +413,6 @@ sub print_clients_name {
     }
 # }}}
 
-    &echo(0, "\n") if($DEBUG > 1);
     return 1;
 }
 # }}}
@@ -422,44 +433,42 @@ sub print_jobs_name {
 	# Get client name from the client number.
 	my ($client_no, $client_name) = split(';', $CLIENTS[$CLIENT_NO]);
 
-	my $j=1;
-	foreach my $job (sort keys %{ $JOBS{$client_name} }) {
-	    if($j == $jobnr) {
-		&echo(0, "$OID_BASE.4.1.3.$client_no.$j $job\n") if($DEBUG);
+	my $job_num = 1;
+	foreach my $job_name (sort keys %{ $STATUS{$client_name} }) {
+	    if($job_num == $jobnr) {
+		&echo(0, "$OID_BASE.4.1.3.$client_no.$job_num $job_name\n") if($DEBUG);
 
-		&echo(1, "$OID_BASE.4.1.3.$client_no.$j\n");
+		&echo(1, "$OID_BASE.4.1.3.$client_no.$job_num\n");
 		&echo(1, "string\n");
-		&echo(1, "$job\n");
+		&echo(1, "$job_name\n");
 
 		$success = 1;
 	    }
 	    
-	    $j++;
+	    $job_num++;
 	}
 # }}}
     } else {
 	# {{{ ALL clients job names
-	foreach my $client (@CLIENTS) {
-	    next if(!$client);
+	my $client_num  = 1;
+	foreach my $client_name (keys %STATUS) {
+	    my $job_num = 1;
+	    foreach my $job_name (sort keys %{ $STATUS{$client_name} }) {
+		&echo(0, "$OID_BASE.4.1.3.$client_num.$job_num $job_name\n") if($DEBUG);
 
-	    my ($client_no, $client_name) = split(';', $client);
-
-	    my $j=1;
-	    foreach my $job (sort keys %{ $JOBS{$client_name} }) {
-		&echo(0, "$OID_BASE.4.1.3.$client_no.$j $job\n") if($DEBUG);
-
-		&echo(1, "$OID_BASE.4.1.3.$client_no.$j\n");
+		&echo(1, "$OID_BASE.4.1.3.$client_num.$job_num\n");
 		&echo(1, "string\n");
-		&echo(1, "$job\n");
+		&echo(1, "$job_name\n");
 		
 		$success = 1;
-		$j++;
+		$job_num++;
 	    }
+
+	    $client_num++;
 	}
 # }}}
     }
 
-    &echo(0, "\n") if($DEBUG > 1);
     return $success;
 }
 # }}}
@@ -503,7 +512,6 @@ sub print_types_index {
     }
 # }}}
 
-    &echo(0, "\n") if($DEBUG > 1);
     return $success;
 }
 # }}}
@@ -546,12 +554,86 @@ sub print_types_names {
     }
 # }}}
 
-    &echo(0, "\n") if($DEBUG > 1);
     return $success;
 }
 # }}}
 
-# {{{ OID_BASE.5.1.3.a.x.y.z	Output job status
+# {{{ OID_BASE.5.1.3.x.y.z	Output the job ID's
+sub print_jobs_ids {
+    my $job_name_nr = shift;
+    my $success = 0;
+
+    if(defined($CLIENT_NO)) {
+	# {{{ Job ID for a specific client and a specific job name
+	if(!$CLIENTS[$CLIENT_NO]) {
+	    &echo(0, "=> No value in this object\n") if($DEBUG > 1);
+	    return 0;
+	}
+
+	&echo(0, "=> OID_BASE.statsTable.statsEntry.clientID.jobID\n") if($DEBUG > 1);
+
+	# Get client name from the client number (which is a global variable).
+	my($client_no, $client_name) = split(';', $CLIENTS[$CLIENT_NO]);
+
+	# Get the job name requested
+	my $job_name_num = 1;
+	foreach my $job_name (sort keys %{ $STATUS{$client_name} }) {
+	    if($job_name_num == $JOB_NO) {
+		my $job_id_num = 1;
+		foreach my $job_id (sort keys %{ $STATUS{$client_name}{$job_name} }) {
+		    if($job_id_num == $job_name_nr) {
+			&echo(0, "$OID_BASE.5.1.3.$client_no.$job_name_num.$job_id_num $job_id\n") if($DEBUG);
+			
+			&echo(1, "$OID_BASE.5.1.3.$client_no.$job_name_num.$job_id_num\n");
+			&echo(1, "string\n");
+			&echo(1, "$job_id\n");
+			
+			$success = 1;
+		    }
+		    
+		    $job_id_num++;
+		}
+	    }
+
+	    $job_name_num++;
+	}
+# }}}
+    } else {
+	# {{{ ALL clients, all job status
+	my $client_name_num = 1;
+	&echo(0, "=> OID_BASE.statsTable.statsEntry.clientID.jobID\n") if($DEBUG > 1);
+	foreach my $client_name (keys %STATUS) {
+	    my $job_name_num = 1;
+	    &echo(0, "=> Client name: '$client_name'\n") if($DEBUG > 3);
+	    foreach my $job_name (sort keys %{ $STATUS{$client_name} }) {
+		my $job_id_num = 1;
+		&echo(0, "=>   Job name: '$job_name'\n") if($DEBUG > 3);
+		foreach my $job_id (sort keys %{ $STATUS{$client_name}{$job_name} }) {
+		    &echo(0, "=>     Job ID: '$job_id'\n") if($DEBUG > 3);
+
+		    &echo(0, "$OID_BASE.5.1.3.$client_name_num.$job_name_num.$job_id_num $job_id\n") if($DEBUG);
+		    
+		    &echo(1, "$OID_BASE.5.1.3.$client_name_num.$job_name_num.$job_id_num\n");
+		    &echo(1, "string\n");
+		    &echo(1, "$job_id\n");
+		    
+		    $success = 1;
+		    $job_id_num++;
+		}
+
+		$job_name_num++;
+	    }
+
+	    $client_name_num++;
+	}
+# }}}
+    }
+
+    return $success;
+}
+# }}}
+
+# {{{ OID_BASE.5.1.a.x.y.z	Output job status
 sub print_jobs_status {
     my $job_status_nr = shift;
     my $success = 0;
@@ -574,18 +656,19 @@ sub print_jobs_status {
 	} else {
 	    $key_name = $keys{$STATUS_TYPE};
 	}
+	my $type = $STATUS_TYPE + 3; # Offset three because of index etc.
 
 	my $i=1; # Job Name
-	foreach my $job_name (sort keys %{ $JOBS{$client_name} }) {
+	foreach my $job_name (sort keys %{ $STATUS{$client_name} }) {
 	    if($i == $JOB_NO) {
 		my $j=1; # Job ID
 
 		&echo(0, "=> OID_BASE.statsTable.statsEntry.$key_name.clientId.jobNr\n") if($DEBUG > 1);
 		foreach my $job_id (sort keys %{ $STATUS{$client_name}{$job_name} }) {
 		    if($j == $job_status_nr) {
-			&echo(0, "$OID_BASE.5.1.3.$STATUS_TYPE.$client_no.$i.$j ".$STATUS{$client_name}{$job_name}{$job_id}{$key_name}."\n") if($DEBUG);
+			&echo(0, "$OID_BASE.5.1.$type.$client_no.$i.$j ".$STATUS{$client_name}{$job_name}{$job_id}{$key_name}."\n") if($DEBUG);
 
-			&echo(1, "$OID_BASE.5.1.3.$STATUS_TYPE.$client_no.$i.$j\n");
+			&echo(1, "$OID_BASE.5.1.$type.$client_no.$i.$j\n");
 			if(($key_name eq 'start_date') || ($key_name eq 'end_date')) {
 			    &echo(1, "string\n");
 			} else {
@@ -607,19 +690,18 @@ sub print_jobs_status {
 	# {{{ ALL clients, all job status
 	foreach my $key_nr (sort keys %keys) {
 	    my $key_name = $keys{$key_nr};
-	    
+	    my $type_nr = $key_nr + 3; # Offset three because of index etc.
 	    &echo(0, "=> OID_BASE.statsTable.statsEntry.$key_name.clientId.jobNr\n") if($DEBUG > 1);
-	    foreach my $client (@CLIENTS) {
-		next if(!$client);
-		my($client_no, $client_name) = split(';', $client);
-		
-		my $i=1; # Job Name
-		foreach my $job_name (keys %{ $JOBS{$client_name} }) {
-		    my $j=1; # Job ID
-		    foreach my $job_id (sort keys %{ $STATUS{$client_name}{$job_name} }) {
-			&echo(0, "$OID_BASE.5.1.3.$key_nr.$client_no.$i.$j ".$STATUS{$client_name}{$job_name}{$job_id}{$key_name}."\n") if($DEBUG);
 
-			&echo(1, "$OID_BASE.5.1.3.$key_nr.$client_no.$i.$j\n");
+	    my $client_num = 1;
+	    foreach my $client_name (keys %STATUS) {
+		my $job_name_num = 1;
+		foreach my $job_name (sort keys %{ $STATUS{$client_name} }) {
+		    my $job_id_num = 1;
+		    foreach my $job_id (sort keys %{ $STATUS{$client_name}{$job_name} }) {
+			&echo(0, "$OID_BASE.5.1.$type_nr.$client_num.$job_name_num.$job_id_num ".$STATUS{$client_name}{$job_name}{$job_id}{$key_name}."\n") if($DEBUG);
+
+			&echo(1, "$OID_BASE.5.1.$type_nr.$client_num.$job_name_num.$job_id_num\n");
 			if(($key_name eq 'start_date') || ($key_name eq 'end_date')) {
 			    &echo(1, "string\n");
 			} else {
@@ -628,14 +710,14 @@ sub print_jobs_status {
 			&echo(1, $STATUS{$client_name}{$job_name}{$job_id}{$key_name}."\n");
 			
 			$success = 1;
-			$j++;
+			$job_id_num++;
 		    }
 
-		    $i++;
+		    $job_name_num++;
 		}
-	    }
 
-	    &echo(0, "\n") if($DEBUG > 1);
+		$client_num++;
+	    }
 	}
 # }}}
     }
@@ -757,7 +839,7 @@ sub echo {
     if($DEBUG) {
 	if(&open_log()) {
 	    $log_opened = 1;
-	    open(STDERR, ">&LOG");
+	    open(STDERR, ">&LOG") if(($DEBUG <= 2) || $ENV{'MIBDIRS'});
 	}
     }
 
@@ -783,7 +865,7 @@ sub load_information {
     &sql_connect();
     # }}}
 
-    # {{{ Get names of all clients.
+    # {{{ Get names of all clients (in alphabetical order).
     ($CLIENTS, @CLIENTS) = &get_clients("%");
     # }}}
 
@@ -799,7 +881,6 @@ sub load_information {
 	# finished/executed jobs.
 	my $job;
 	foreach $job (@Jobs) {
-	    $JOBS{$client_name}{$job} = $job;
 	    $JOBS++; # Increase number of job counters
 	    
 	    %Status = &get_status($client_nr, $job);
@@ -828,6 +909,15 @@ sub load_information {
 	}
     }
     # }}}
+
+    # {{{ Rearrange the CLIENTS array, so they come in the same order as the STATUS array
+    undef @CLIENTS;
+    my $i = 1;
+    foreach my $client_name (keys %STATUS) {
+	$CLIENTS[$i] = $i.";".$client_name;
+	$i++;
+    }
+# }}}
 
     # Schedule an alarm once every hour to re-read information.
     alarm(60*60);
@@ -871,6 +961,16 @@ if($ALL) {
     }
 # }}}
 } else {
+    # {{{ Add the '%keys' array to the '%functions' array
+    # First one is already there, so start with the second with value '5'...
+    # We do that here instead of at the very top so that output of ALL
+    # works without calling print_jobs_status() FIVE times...
+    my($i, $j) = (2, 5);
+    for(; $keys{$i}; $i++, $j++) {
+	$functions{$OID_BASE.".5.1.$j"} = "jobs_status";
+    }
+# }}}
+
     # {{{ Go through the commands sent on STDIN
     while(<>) {
 	if (m!^PING!){
@@ -881,7 +981,7 @@ if($ALL) {
 	# {{{ Get all run arguments - next/specfic OID
 	my $arg = $_; chomp($arg);
 	&echo(0, "=> ARG=$arg\n") if($DEBUG > 1);
-	
+
 	# Get next line from STDIN -> OID number.
 	# $arg == 'getnext' => Get next OID
 	# $arg == 'get' (?) => Get specified OID
@@ -921,6 +1021,7 @@ if($ALL) {
 		    &echo(0, "=> No value in this object - exiting!\n") if($DEBUG > 1);
 
 		    &echo(1, "NONE\n");
+		    &echo(0, "\n") if($DEBUG > 1);
 		    next;
 		} else {
 		    &call_func($OID_BASE.".".$tmp[0]);
@@ -932,19 +1033,18 @@ if($ALL) {
 	    # {{{ ------------------------------------- OID_BASE.[4-5] 
 	    if($arg eq 'getnext') {
 		# {{{ Get _next_ OID
-
 		# {{{ Figure out the NEXT value from the input
-		# $tmp[x]: 0 1 2 3 4 5 6
-		# ======================
+		# $tmp[x]: 0 1 2 3 4 5
+		# ====================
 		# OID_BASE.4.1.1.x
 		# OID_BASE.4.1.2.x
 		# OID_BASE.4.1.3.x.y
 		#
 		# OID_BASE.5.1.1.a
 		# OID_BASE.5.1.2.a
-		# OID_BASE.5.1.3.a.x.y.z
+		# OID_BASE.5.1.a.x.y.z
 		# ======================
-		# $tmp[x]: 0 1 2 3 4 5 6
+		# $tmp[x]: 0 1 2 3 4 5
 		if(!defined($tmp[1])) {
 		    $tmp[1] = 1;
 		    $tmp[2] = 1;
@@ -965,18 +1065,18 @@ if($ALL) {
 					if(!defined($tmp[5])) {
 					    $tmp[5] = 1;
 					} else {
-					    if(!defined($tmp[6])) {
-						$tmp[6] = 1;
-					    } else {
-						$tmp[6] += 1;
-					    }
+					    $tmp[5] += 1;
 					}
 				    } else {
 					$tmp[4] += 1;
 				    }
 				}
 			    } else {
-				$tmp[3] += 1;
+				if(($tmp[0] == 5) && ($tmp[2] >= 4)) {
+				    $tmp[5] += 1;
+				} else {
+				    $tmp[3] += 1;
+				}
 			    }
 			}
 		    }
@@ -990,7 +1090,7 @@ if($ALL) {
 		&echo(0, "=> Get next OID: $next1$next2.$next3\n") if($DEBUG > 2);
 		if(!&call_func($next1, $next3)) {
 		    # {{{ Figure out the NEXT value from the input
-		    if($tmp[2] == 3) {
+		    if($tmp[2] >= 3) {
 			if($tmp[0] == 4) {
 			    # OID_BASE.4
 			    $tmp[3]++;
@@ -1004,12 +1104,15 @@ if($ALL) {
 				if(!defined($tmp[5])) {
 				    $tmp[5] = 1;
 				} else {
-				    $tmp[5]++;
-				    $tmp[6] = 1;
+				    if($tmp[2] >= 3) {
+					$tmp[4]++;
+					$tmp[5] = 1;
+				    } else {
+					$tmp[5]++;
+				    }
 				}
 			    }
 			}
-		
 		    } else {
 			$tmp[2]++;
 			$tmp[3]  = 1;
@@ -1042,11 +1145,13 @@ if($ALL) {
 			    $tmp[1] = 1;
 			    $tmp[2] = 1;
 			    $tmp[3] = 1;
-			} elsif($tmp[2] == 3) {
-			    # OID_BASE.5
+			} elsif($tmp[2] >= 3) {
+			    $tmp[3]++;
+			    $tmp[4] = 1;
+			    $tmp[5] = 1;
+			} else {
 			    $tmp[4]++;
 			    $tmp[5] = 1;
-			    $tmp[6] = 1;
 			}
 
 			# How to call call_func()
@@ -1055,19 +1160,22 @@ if($ALL) {
 
 			&echo(0, "=> No OID at that level (-2) - get next branch OID: $next1$next2.$next3\n") if($DEBUG > 2);
 			if(!&call_func($next1, $next3)) {
+			    # {{{ Figure out the NEXT value from the input
 			    # This should be quite simple. It is only (?) called in the
 			    # OID_BASE.5.1.3 branch which is two extra oid levels 'deep'.
-			    # Input: OID_BASE.5.1.3.1.4.1.14
-			    #     1: OID_BASE.5.1.3.1.4.1.15
-			    #    -1: OID_BASE.5.1.3.1.4.2.1
-			    #    -2: OID_BASE.5.1.3.1.5.1.1
-			    #    -3: OID_BASE.5.1.3.2.1.1.1 <- here
-
-			    # {{{ Figure out the NEXT value from the input
-			    $tmp[3]++;
+			    # Input: OID_BASE.5.1.3.4.9.2
+			    #     1: OID_BASE.5.1.3.4.9.3
+			    #    -1: OID_BASE.5.1.3.4.10.3
+			    #    -2: OID_BASE.5.1.3.5.1.1
+			    #    -3: OID_BASE.5.1.4.1.1.1 <- here
+			    if($tmp[2] >= 3) {
+				$tmp[2]++;
+				$tmp[3] = 1 if(defined($tmp[3]));
+			    } else {
+				$tmp[3]++;
+			    }
 			    $tmp[4] = 1 if(defined($tmp[4]));
 			    $tmp[5] = 1 if(defined($tmp[5]));
-			    $tmp[6] = 1 if(defined($tmp[6]));
 
 			    # How to call call_func()
 			    my($next1, $next2, $next3) = get_next_oid(@tmp);
@@ -1088,6 +1196,7 @@ if($ALL) {
 		    &echo(0, "=> No value in this object - exiting!\n") if($DEBUG > 1);
 
 		    &echo(1, "NONE\n");
+		    &echo(0, "\n") if($DEBUG > 1);
 		    next;
 		} else {
 		    # How to call call_func()
@@ -1102,9 +1211,12 @@ if($ALL) {
 	} else {
 	    # {{{ ------------------------------------- Unknown OID 
 	    &echo(0, "Error: No such OID '$OID_BASE' . '$oid'.\n") if($DEBUG);
+	    &echo(0, "\n") if($DEBUG > 1);
 	    next;
 # }}} # No such OID
 	}
+
+	&echo(0, "\n") if($DEBUG > 1);
     }
 # }}}
 }
