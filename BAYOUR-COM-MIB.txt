@@ -1,5 +1,5 @@
 BAYOUR-COM-MIB DEFINITIONS ::= BEGIN
--- $Id: BAYOUR-COM-MIB.txt,v 1.6 2005-10-12 06:30:25 turbo Exp $
+-- $Id: BAYOUR-COM-MIB.txt,v 1.7 2005-10-14 04:23:28 turbo Exp $
 
 -- This is my very first MIB! A lot of it is taken from the IF-MIB
 -- by the IETF Interfaces MIB Working Group (200006140000).
@@ -13,7 +13,7 @@ IMPORTS
 
 -- {{{ bayourCom Module identity
 bayourCom MODULE-IDENTITY
-  LAST-UPDATED                         "200510120724Z"  -- October 12, 2005
+  LAST-UPDATED                         "200510132053Z"  -- October 13, 2005
   ORGANIZATION                         "Bayour.COM"
   CONTACT-INFO                         "Postal:      Turbo Fredriksson
                                                      Naverlursgatan 8
@@ -23,6 +23,22 @@ bayourCom MODULE-IDENTITY
                                         Tel:         +46 704-697645
                                         E-Mail:      turbo@bayour.com"
   DESCRIPTION                          "The MIB module defines the Bayour.COM Bind9 and Bacula statistics."
+
+  REVISION                             "200510132053Z"  -- October 13, 2005 - 20:53
+  DESCRIPTION                          "* Remove the 0..255 size for DisplayString - it's the default value anyway.
+                                        * Rewrite the bacula{Clients,Stats}Table again. Let's see if we can get it
+                                          to work this time around...
+                                          - The clients table does now ONLY contain information about the client
+                                          - A couple on new columns in the stats table
+                                        * Add the baculaPools and baculaMedia tables (with 20 and 26 columns respectivly)
+                                          with information (writable) about the pools and media library in Bacula.
+                                          - Create some textual conventions that ease the setup of some of the Pools
+                                            and Media table columns.
+                                          - Add baculaGroupPools and baculaGroupMedia used for these two new tables.
+                                          - Add two new counters for these tables - baculaTotalPools and baculaTotalMedia.
+                                        * Change all entry sequences; put the word 'Entry' right after the table base
+                                          instead of at the end - 'B9stEntryTotals' to 'B9stTotalsEntry' makes it
+                                          follow the table name ('b9stTotalsTable'). Recomended by SMIv2."
 
   REVISION                             "200510120724Z"  -- October 12, 2005 - 07:24
   DESCRIPTION                          "* Add folding tags (for/in Emacs) to ease readability.
@@ -72,6 +88,101 @@ bayourCom MODULE-IDENTITY
   snmp                                 OBJECT IDENTIFIER ::= { bayourCom 2 }
 -- }}}
 
+    -- {{{ Textual conventions
+    TrueFalse                          ::= TEXTUAL-CONVENTION
+      STATUS                           current
+      DESCRIPTION                      "True or False values:
+
+                                          false - 0
+                                          true  - 1"
+      SYNTAX                           INTEGER {
+                                         false(0),
+                                         true(1)
+                                       }
+
+    Status                             ::= TEXTUAL-CONVENTION
+      STATUS                           current
+      DESCRIPTION                      "Job status values:
+                                          a - 
+                                          r - 
+                                          t - 
+                                          f - "
+      SYNTAX                           INTEGER {
+                                         a(1),
+                                         r(2),
+                                         t(3),
+                                         f(4)
+                                       }
+
+    Level                              ::= TEXTUAL-CONVENTION
+      STATUS                           current
+      DESCRIPTION                      "Job level values:
+                                          d - 
+                                          f - Full backup
+                                          i - Incremental backup"
+      SYNTAX                           INTEGER {
+                                         d(0),
+                                         f(2),
+                                         i(3)
+                                       }
+
+    JobType                            ::= TEXTUAL-CONVENTION
+      STATUS                           current
+      DESCRIPTION                      "Job type values:
+                                          b - 
+                                          r - "
+      SYNTAX                           INTEGER {
+                                         b(1),
+                                         r(2)
+                                       }
+
+    PoolType                           ::= TEXTUAL-CONVENTION
+      STATUS                           current
+      DESCRIPTION                      "Pool type values:
+                                          Backup    - 
+                                          Copy      - 
+                                          Cloned    - 
+                                          Archive   - 
+                                          Migration - 
+                                          Scratch   - "
+      SYNTAX                           INTEGER {
+                                         backup(1),
+                                         copy(2),
+                                         cloned(3),
+                                         archive(4),
+                                         migration(5),
+                                         scratch(6)
+                                       }
+
+    VolumeStatus                       ::= TEXTUAL-CONVENTION
+      STATUS                           current
+      DESCRIPTION                      "Volume status values:
+                                          Full        - 
+                                          Archive     - 
+                                          Append      - 
+                                          Recycle     - 
+                                          Purged      - 
+                                          Read-Only   - 
+                                          Disabled    - 
+                                          Error       - 
+                                          Busy        - 
+                                          Used        - 
+                                          Cleaning    - "
+      SYNTAX                           INTEGER {
+                                         full(1),
+                                         archive(2),
+                                         append(3),
+                                         recycle(4),
+                                         purged(5),
+                                         readonly(6),
+                                         disabled(7),
+                                         error(8),
+                                         busy(9),
+                                         used(10),
+                                         cleaning(11)
+                                       }
+-- }}}
+
     -- {{{ .1.3.6.1.4.1.8767.2.0 conformance
     conformance                        OBJECT IDENTIFIER ::= { snmp 0 }
       -- {{{ .1.3.6.1.4.1.8767.2.0.1 b9stCompliance
@@ -113,27 +224,61 @@ bayourCom MODULE-IDENTITY
           DESCRIPTION                  "The compliance statement for SNMP entities which have
                                         bind9 status counters."
           MODULE                       -- this module
-          MANDATORY-GROUPS             { baculaGroupClients, baculaGroupStats }
+          MANDATORY-GROUPS             { baculaGroupClients, baculaGroupStats, baculaGroupPools,
+                                         baculaGroupMedia }
           ::= { baculaConformance 1 }
 
         -- {{{ .1.3.6.1.4.1.8767.2.0.2.1 baculaGroups
         baculaGroups                   OBJECT IDENTIFIER ::= { baculaConformance 2 }
           baculaGroupClients           OBJECT-GROUP
-            OBJECTS                    { baculaTotalClients, baculaClientName, baculaJobName }
+            OBJECTS                    { baculaTotalClients, baculaClientName, baculaClientUname,
+                                         baculaClientAutoPrune, baculaClientRetentionFile,
+                                         baculaClientRetentionJob }
             STATUS                     current
             DESCRIPTION                "A collection of objects providing information
                                         applicable to Bacula statistics."
             ::= { baculaGroups 1 }
 
           baculaGroupStats             OBJECT-GROUP
-            OBJECTS                    { baculaTotalStats, baculaTotalTypes, baculaCounterName,
-                                         baculaJobID, baculaDateStart, baculaDateEnd,
-                                         baculaCompletionDuration, baculaCompletionFiles,
-                                         baculaCompletionBytes }
+            OBJECTS                    { baculaTotalStats, baculaTotalTypes, baculaStatsCounter,
+                                         baculaStatsJobNr, baculaStatsClient, baculaStatsJobName,
+                                         baculaStatsJobID, baculaStatsStart, baculaStatsEnd,
+                                         baculaStatsDuration, baculaStatsFiles, baculaStatsBytes,
+                                         baculaStatsType, baculaStatsStatus, baculaStatsLevel,
+                                         baculaStatsErrors, baculaStatsMissingFiles }
             STATUS                     current
             DESCRIPTION                "A collection of objects providing information
                                         applicable to Bacula statistics."
             ::= { baculaGroups 2 }
+
+          baculaGroupPools             OBJECT-GROUP
+            OBJECTS                    { baculaTotalPools, baculaPoolsName, baculaPoolsNum,
+                                         baculaPoolsMax, baculaPoolsUseOnce, baculaPoolsUseCatalog,
+                                         baculaPoolsAcceptAnyVolume, baculaPoolsRetention,
+                                         baculaPoolsDuration, baculaPoolsMaxJobs, baculaPoolsMaxFiles,
+                                         baculaPoolsMaxBytes, baculaPoolsAutoPrune, baculaPoolsRecycle,
+                                         baculaPoolsType, baculaPoolsLabelFormat, baculaPoolsEnabled,
+                                         baculaPoolsScratchPoolID, baculaPoolsRecyclePoolID }
+            STATUS                     current
+            DESCRIPTION                "A collection of objects providing information
+                                        applicable to Bacula statistics."
+            ::= { baculaGroups 3 }
+
+          baculaGroupMedia             OBJECT-GROUP
+            OBJECTS                    { baculaTotalMedia, baculaMediaName, baculaMediaSlot,
+                                         baculaMediaWrittenFirst, baculaMediaWrittenLast,
+                                         baculaMediaJobs, baculaMediaFiles, baculaMediaBlocks,
+                                         baculaMediaMounts, baculaMediaBytes, baculaMediaErrors,
+                                         baculaMediaWrites, baculaMediaCapacity, baculaMediaStatus,
+                                         baculaMediaRecycle, baculaMediaRetention, baculaMediaDuration,
+                                         baculaMediaMaxJobs, baculaMediaMaxFiles, baculaMediaMaxBytes,
+                                         baculaMediaInChanger, baculaMediaMediaAddressing,
+                                         baculaMediaReadTime, baculaMediaWriteTime, baculaMediaEndFile,
+                                         baculaMediaEndBlock }
+            STATUS                     current
+            DESCRIPTION                "A collection of objects providing information
+                                        applicable to Bacula statistics."
+            ::= { baculaGroups 4 }
 -- }}}
 -- }}}
 -- }}}
@@ -158,21 +303,21 @@ bayourCom MODULE-IDENTITY
   
       -- {{{ .1.3.6.1.4.1.8767.2.1.3 b9stTotalsTable
       b9stTotalsTable                  OBJECT-TYPE
-        SYNTAX                         SEQUENCE OF B9stEntryTotals
+        SYNTAX                         SEQUENCE OF B9stTotalsEntry
         MAX-ACCESS                     not-accessible
         STATUS                         current
         DESCRIPTION                    "A list of Bind9 statistic counters (totals)."
         ::= { bind9Stats 3 }
   
         b9stTotalsEntry                OBJECT-TYPE
-          SYNTAX                       B9stEntryTotals
+          SYNTAX                       B9stTotalsEntry
           MAX-ACCESS                   not-accessible
           STATUS                       current
           DESCRIPTION                  "An entry containing Bind9 statistics (totals)."
           INDEX                        { b9stIndexTotals }
           ::= { b9stTotalsTable 1 }
   
-          B9stEntryTotals ::= SEQUENCE {
+          B9stTotalsEntry              ::= SEQUENCE {
             b9stIndexTotals            CounterIndex,
 
             b9stCounterName            DisplayString,
@@ -189,7 +334,7 @@ bayourCom MODULE-IDENTITY
             ::= { b9stTotalsEntry 1 }
   
           b9stCounterName              OBJECT-TYPE
-            SYNTAX                     DisplayString (SIZE (0..255))
+            SYNTAX                     DisplayString
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "A textual string containing information about the
@@ -221,21 +366,21 @@ bayourCom MODULE-IDENTITY
 
       -- {{{ .1.3.6.1.4.1.8767.2.1.4 b9stDomainsTable
       b9stDomainsTable                 OBJECT-TYPE
-        SYNTAX                         SEQUENCE OF B9stEntryDomains
+        SYNTAX                         SEQUENCE OF B9stDomainsEntry
         MAX-ACCESS                     not-accessible
         STATUS                         current
         DESCRIPTION                    "A list of Bind9 statistic counters"
         ::= { bind9Stats 4 }
   
         b9stDomainsEntry               OBJECT-TYPE
-          SYNTAX                       B9stEntryDomains
+          SYNTAX                       B9stDomainsEntry
           MAX-ACCESS                   not-accessible
           STATUS                       current
           DESCRIPTION                  "An entry containing Bind9 statistics"
           INDEX                        { b9stIndexDomains }
           ::= { b9stDomainsTable 1 }
   
-          B9stEntryDomains             ::= SEQUENCE {
+          B9stDomainsEntry             ::= SEQUENCE {
             b9stIndexDomains           CounterIndex,
 
             b9stDomainName             DisplayString,
@@ -255,7 +400,7 @@ bayourCom MODULE-IDENTITY
             ::= { b9stDomainsEntry 1 }
   
           b9stDomainName               OBJECT-TYPE
-            SYNTAX                     DisplayString (SIZE (0..255))
+            SYNTAX                     DisplayString
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "A textual string containing information about the
@@ -313,7 +458,7 @@ bayourCom MODULE-IDENTITY
 
     -- {{{ .1.3.6.1.4.1.8767.2.3 baculaStats
     baculaStats                        OBJECT IDENTIFIER ::= { snmp 3 }
-      -- {{{ .1.3.6.1.4.1.8767.2.3.x baculaTotal{Clients,Types,Stats}
+      -- {{{ .1.3.6.1.4.1.8767.2.3.x baculaTotal{Clients,Types,Stats,Pools,Media}
       baculaTotalClients               OBJECT-TYPE
         SYNTAX                         Integer32
         MAX-ACCESS                     read-only
@@ -334,32 +479,49 @@ bayourCom MODULE-IDENTITY
         STATUS                         current
         DESCRIPTION                    "Total number of Bacula statistics."
         ::= { baculaStats 3 }
+
+      baculaTotalPools                 OBJECT-TYPE
+        SYNTAX                         Integer32
+        MAX-ACCESS                     read-only
+        STATUS                         current
+        DESCRIPTION                    "Total number of Bacula pool entries."
+        ::= { baculaStats 4 }
+
+      baculaTotalMedia                 OBJECT-TYPE
+        SYNTAX                         Integer32
+        MAX-ACCESS                     read-only
+        STATUS                         current
+        DESCRIPTION                    "Total number of Bacula media entries."
+        ::= { baculaStats 5 }
 -- }}}
 
-      -- {{{ .1.3.6.1.4.1.8767.2.3.4 baculaClientsTable
+      -- {{{ .1.3.6.1.4.1.8767.2.3.6 baculaClientsTable
       baculaClientsTable               OBJECT-TYPE
-        SYNTAX                         SEQUENCE OF BaculaEntryClients
+        SYNTAX                         SEQUENCE OF BaculaClientsEntry
         MAX-ACCESS                     not-accessible
         STATUS                         current
         DESCRIPTION                    "A list of bacula statistic counters"
-        ::= { baculaStats 4 }
+        ::= { baculaStats 6 }
   
         baculaClientsEntry             OBJECT-TYPE
-          SYNTAX                       BaculaEntryClients
+          SYNTAX                       BaculaClientsEntry
           MAX-ACCESS                   not-accessible
           STATUS                       current
           DESCRIPTION                  "An entry containing bacula statistics"
-          INDEX                        { baculaIndexClients }
+          INDEX                        { baculaClientsIndex }
           ::= { baculaClientsTable 1 }
   
-          BaculaEntryClients           ::= SEQUENCE {
-            baculaIndexClients         CounterIndex,
+          BaculaClientsEntry           ::= SEQUENCE {
+            baculaClientsIndex         CounterIndex,
 
             baculaClientName           DisplayString,
-            baculaJobName              DisplayString
+            baculaClientUname          DisplayString,
+            baculaClientAutoPrune      DisplayString,
+            baculaClientRetentionFile  DisplayString,
+            baculaClientRetentionJob   DisplayString
           }
   
-          baculaIndexClients           OBJECT-TYPE
+          baculaClientsIndex           OBJECT-TYPE
             SYNTAX                     CounterIndex
             MAX-ACCESS                 not-accessible
             STATUS                     current
@@ -367,7 +529,7 @@ bayourCom MODULE-IDENTITY
             ::= { baculaClientsEntry 1 }
   
           baculaClientName             OBJECT-TYPE
-            SYNTAX                     DisplayString (SIZE (0..255))
+            SYNTAX                     DisplayString
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "A textual string containing information about the
@@ -375,50 +537,81 @@ bayourCom MODULE-IDENTITY
                                         name of the counter."
             ::= { baculaClientsEntry 2 }
 
-          baculaJobName                OBJECT-TYPE
-            SYNTAX                     DisplayString (SIZE (0..255))
+          baculaClientUname            OBJECT-TYPE
+            SYNTAX                     DisplayString
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "A textual string containing information about the job."
             ::= { baculaClientsEntry 3 }
+
+          baculaClientAutoPrune        OBJECT-TYPE
+            SYNTAX                     DisplayString
+            MAX-ACCESS                 read-write
+            STATUS                     current
+            DESCRIPTION                "A textual string containing information about the job."
+            ::= { baculaClientsEntry 4 }
+
+          baculaClientRetentionFile    OBJECT-TYPE
+            SYNTAX                     DisplayString
+            MAX-ACCESS                 read-write
+            STATUS                     current
+            DESCRIPTION                "A textual string containing information about the job."
+            ::= { baculaClientsEntry 5 }
+
+          baculaClientRetentionJob     OBJECT-TYPE
+            SYNTAX                     DisplayString
+            MAX-ACCESS                 read-write
+            STATUS                     current
+            DESCRIPTION                "A textual string containing information about the job."
+            ::= { baculaClientsEntry 6 }
+
 -- }}}
 
-      -- {{{ .1.3.6.1.4.1.8767.2.3.5 baculaStatsTable
+      -- {{{ .1.3.6.1.4.1.8767.2.3.7 baculaStatsTable
       baculaStatsTable                 OBJECT-TYPE
-        SYNTAX                         SEQUENCE OF BaculaEntryStats
+        SYNTAX                         SEQUENCE OF BaculaStatsEntry
         MAX-ACCESS                     not-accessible
         STATUS                         current
         DESCRIPTION                    "A list of bacula statistic counters"
-        ::= { baculaStats 5 }
+        ::= { baculaStats 7 }
   
         baculaStatsEntry               OBJECT-TYPE
-          SYNTAX                       BaculaEntryStats
+          SYNTAX                       BaculaStatsEntry
           MAX-ACCESS                   not-accessible
           STATUS                       current
           DESCRIPTION                  "An entry containing bacula statistics"
-          INDEX                        { baculaIndexClients, baculaIndexStats }
+          INDEX                        { baculaClientsIndex, baculaStatsIndex }
           ::= { baculaStatsTable 1 }
   
-          BaculaEntryStats             ::= SEQUENCE {
-            baculaIndexStats           CounterIndex,
-            baculaCounterName          DisplayString,
-            baculaJobID                DisplayString,
-            baculaDateStart            TimeStamp,
-            baculaDateEnd              TimeStamp,
-            baculaCompletionDuration   Integer32,
-            baculaCompletionFiles      Integer32,
-            baculaCompletionBytes      Integer32
+          BaculaStatsEntry             ::= SEQUENCE {
+            baculaStatsIndex           CounterIndex,
+
+            baculaStatsCounter         DisplayString,
+            baculaStatsJobNr           Integer32,
+            baculaStatsClient          DisplayString,
+            baculaStatsJobName         DisplayString,
+            baculaStatsJobID           DisplayString,
+            baculaStatsStart           TimeStamp,
+            baculaStatsEnd             TimeStamp,
+            baculaStatsDuration        Integer32,
+            baculaStatsFiles           Integer32,
+            baculaStatsBytes           Integer32,
+            baculaStatsType            JobType,
+            baculaStatsStatus          Status,
+            baculaStatsLevel           Level,
+            baculaStatsErrors          Integer32,
+            baculaStatsMissingFiles    Integer32
           }
   
-          baculaIndexStats             OBJECT-TYPE
+          baculaStatsIndex             OBJECT-TYPE
             SYNTAX                     CounterIndex
             MAX-ACCESS                 not-accessible
             STATUS                     current
             DESCRIPTION                "Reference Index for each counter."
             ::= { baculaStatsEntry 1 }
   
-          baculaCounterName            OBJECT-TYPE
-            SYNTAX                     DisplayString (SIZE (0..255))
+          baculaStatsCounter           OBJECT-TYPE
+            SYNTAX                     DisplayString
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "A textual string containing information about the
@@ -426,49 +619,513 @@ bayourCom MODULE-IDENTITY
                                         name of the counter."
             ::= { baculaStatsEntry 2 }
 
-          baculaJobID                  OBJECT-TYPE
-            SYNTAX                     DisplayString (SIZE (0..255))
+          baculaStatsJobNr             OBJECT-TYPE
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Full ID name of a job."
             ::= { baculaStatsEntry 3 }
 
-          -- The following statistic counters is really BELOW the baculaJobID!
+          baculaStatsClient            OBJECT-TYPE
+            SYNTAX                     DisplayString
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Full ID name of a job."
+            ::= { baculaStatsEntry 4 }
 
-          baculaDateStart              OBJECT-TYPE
+
+          baculaStatsJobName           OBJECT-TYPE
+            SYNTAX                     DisplayString
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Full ID name of a job."
+            ::= { baculaStatsEntry 5 }
+
+          baculaStatsJobID             OBJECT-TYPE
+            SYNTAX                     DisplayString
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Full ID name of a job."
+            ::= { baculaStatsEntry 6 }
+
+          baculaStatsStart             OBJECT-TYPE
             SYNTAX                     TimeStamp
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Date and time of job start."
-            ::= { baculaStatsEntry 4 }
+            ::= { baculaStatsEntry 7 }
 
-          baculaDateEnd                OBJECT-TYPE
+          baculaStatsEnd               OBJECT-TYPE
             SYNTAX                     TimeStamp
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Date and time of job completion."
-            ::= { baculaStatsEntry 5 }
+            ::= { baculaStatsEntry 8 }
 
-          baculaCompletionDuration     OBJECT-TYPE
+          baculaStatsDuration          OBJECT-TYPE
             SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Duration of job."
-            ::= { baculaStatsEntry 6 }
+            ::= { baculaStatsEntry 9 }
 
-          baculaCompletionFiles        OBJECT-TYPE
+          baculaStatsFiles             OBJECT-TYPE
             SYNTAX                     Integer32 (1..2147483647)
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Files backed up in the job."
-            ::= { baculaStatsEntry 7 }
+            ::= { baculaStatsEntry 10 }
 
-          baculaCompletionBytes        OBJECT-TYPE
+          baculaStatsBytes        OBJECT-TYPE
             SYNTAX                     Integer32 (1..2147483647)
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Bytes backed up in the job."
-            ::= { baculaStatsEntry 8 }
+            ::= { baculaStatsEntry 11 }
+
+          baculaStatsType              OBJECT-TYPE
+            SYNTAX                     JobType
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Files backed up in the job."
+            ::= { baculaStatsEntry 12 }
+
+          baculaStatsStatus            OBJECT-TYPE
+            SYNTAX                     Status
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Files backed up in the job."
+            ::= { baculaStatsEntry 13 }
+
+          baculaStatsLevel             OBJECT-TYPE
+            SYNTAX                     Level
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Files backed up in the job."
+            ::= { baculaStatsEntry 14 }
+
+          baculaStatsErrors            OBJECT-TYPE
+            SYNTAX                     Integer32 (1..2147483647)
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Files backed up in the job."
+            ::= { baculaStatsEntry 15 }
+
+          baculaStatsMissingFiles      OBJECT-TYPE
+            SYNTAX                     Integer32 (1..2147483647)
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Files backed up in the job."
+            ::= { baculaStatsEntry 16 }
+
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.3.8 baculaPoolsTable
+      baculaPoolsTable                 OBJECT-TYPE
+        SYNTAX                         SEQUENCE OF BaculaPoolsEntry
+        MAX-ACCESS                     not-accessible
+        STATUS                         current
+        DESCRIPTION                    "A list of bacula pool information."
+        ::= { baculaStats 8 }
+  
+        baculaPoolsEntry               OBJECT-TYPE
+          SYNTAX                       BaculaPoolsEntry
+          MAX-ACCESS                   not-accessible
+          STATUS                       current
+          DESCRIPTION                  "An entry containing bacula statistics"
+          INDEX                        { baculaPoolsIndex }
+          ::= { baculaPoolsTable 1 }
+  
+          BaculaPoolsEntry             ::= SEQUENCE {
+            baculaPoolsIndex           CounterIndex,
+
+            baculaPoolsName            DisplayString,
+            baculaPoolsNum             Integer32,
+            baculaPoolsMax             Integer32,
+            baculaPoolsUseOnce         TrueFalse,
+            baculaPoolsUseCatalog      TrueFalse,
+            baculaPoolsAcceptAnyVolume TrueFalse,
+            baculaPoolsRetention       Integer32,
+            baculaPoolsDuration        Integer32,
+            baculaPoolsMaxJobs         Integer32,
+            baculaPoolsMaxFiles        Integer32,
+            baculaPoolsMaxBytes        Integer32,
+            baculaPoolsAutoPrune       TrueFalse,
+            baculaPoolsRecycle         TrueFalse,
+            baculaPoolsType            PoolType,
+            baculaPoolsLabelFormat     DisplayString,
+            baculaPoolsEnabled         TrueFalse,
+            baculaPoolsScratchPoolID   Integer32,
+            baculaPoolsRecyclePoolID   Integer32
+          }
+  
+          baculaPoolsIndex             OBJECT-TYPE
+            SYNTAX                     CounterIndex
+            MAX-ACCESS                 not-accessible
+            STATUS                     current
+            DESCRIPTION                "Reference Index for each counter."
+            ::= { baculaPoolsEntry 1 }
+  
+          baculaPoolsName              OBJECT-TYPE
+            SYNTAX                     DisplayString
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Name of Bacula pool."
+            ::= { baculaPoolsEntry 2 }
+
+          baculaPoolsNum               OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Number of volumes in pool."
+            ::= { baculaPoolsEntry 3 }
+
+          baculaPoolsMax               OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Maximum number of volumes in pool."
+            ::= { baculaPoolsEntry 4 }
+
+          baculaPoolsUseOnce           OBJECT-TYPE
+            SYNTAX                     TrueFalse
+            MAX-ACCESS                 read-write
+            STATUS                     current
+            DESCRIPTION                "Use pool only once."
+            ::= { baculaPoolsEntry 5 }
+
+          baculaPoolsUseCatalog        OBJECT-TYPE
+            SYNTAX                     TrueFalse
+            MAX-ACCESS                 read-write
+            STATUS                     current
+            DESCRIPTION                "Use catalog."
+            ::= { baculaPoolsEntry 6 }
+
+          baculaPoolsAcceptAnyVolume   OBJECT-TYPE
+            SYNTAX                     TrueFalse
+            MAX-ACCESS                 read-write
+            STATUS                     current
+            DESCRIPTION                "Accept any volume into pool."
+            ::= { baculaPoolsEntry 7 }
+
+          baculaPoolsRetention         OBJECT-TYPE
+            SYNTAX                     Integer32 (0..20)
+            MAX-ACCESS                 read-write
+            STATUS                     current
+            DESCRIPTION                "Pool retention period (sec)."
+            ::= { baculaPoolsEntry 8 }
+
+          baculaPoolsDuration          OBJECT-TYPE
+            SYNTAX                     Integer32 (0..20)
+            MAX-ACCESS                 read-write
+            STATUS                     current
+            DESCRIPTION                "Pool duration period (sec)."
+            ::= { baculaPoolsEntry 9 }
+
+          baculaPoolsMaxJobs           OBJECT-TYPE
+            SYNTAX                     Integer32 (0..10)
+            MAX-ACCESS                 read-write
+            STATUS                     current
+            DESCRIPTION                "Maximum jobs that can use pool."
+            ::= { baculaPoolsEntry 10 }
+
+          baculaPoolsMaxFiles          OBJECT-TYPE
+            SYNTAX                     Integer32 (0..10)
+            MAX-ACCESS                 read-write
+            STATUS                     current
+            DESCRIPTION                "Maximum files in pool."
+            ::= { baculaPoolsEntry 11 }
+
+          baculaPoolsMaxBytes          OBJECT-TYPE
+            SYNTAX                     Integer32 (0..20)
+            MAX-ACCESS                 read-write
+            STATUS                     current
+            DESCRIPTION                "Maximum bytes in pool."
+            ::= { baculaPoolsEntry 12 }
+
+          baculaPoolsAutoPrune         OBJECT-TYPE
+            SYNTAX                     TrueFalse
+            MAX-ACCESS                 read-write
+            STATUS                     current
+            DESCRIPTION                "Auto prune volumes in pool."
+            ::= { baculaPoolsEntry 13 }
+
+          baculaPoolsRecycle           OBJECT-TYPE
+            SYNTAX                     TrueFalse
+            MAX-ACCESS                 read-write
+            STATUS                     current
+            DESCRIPTION                "Recycle volumes in pool."
+            ::= { baculaPoolsEntry 14 }
+
+          baculaPoolsType              OBJECT-TYPE
+            SYNTAX                     PoolType
+            MAX-ACCESS                 read-write
+            STATUS                     current
+            DESCRIPTION                "Type of pool."
+            ::= { baculaPoolsEntry 15 }
+
+          baculaPoolsLabelFormat       OBJECT-TYPE
+            SYNTAX                     DisplayString
+            MAX-ACCESS                 read-write
+            STATUS                     current
+            DESCRIPTION                "Pool label format."
+            ::= { baculaPoolsEntry 16 }
+
+          baculaPoolsEnabled           OBJECT-TYPE
+            SYNTAX                     TrueFalse
+            MAX-ACCESS                 read-write
+            STATUS                     current
+            DESCRIPTION                "Enable pool."
+            ::= { baculaPoolsEntry 17 }
+
+          baculaPoolsScratchPoolID     OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Scratch pool ID."
+            ::= { baculaPoolsEntry 18 }
+
+          baculaPoolsRecyclePoolID     OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Recycle pool ID."
+            ::= { baculaPoolsEntry 19 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.3.9 baculaMediaTable
+      baculaMediaTable                 OBJECT-TYPE
+        SYNTAX                         SEQUENCE OF BaculaMediaEntry
+        MAX-ACCESS                     not-accessible
+        STATUS                         current
+        DESCRIPTION                    "A list of bacula media information."
+        ::= { baculaStats 9 }
+  
+        baculaMediaEntry               OBJECT-TYPE
+          SYNTAX                       BaculaMediaEntry
+          MAX-ACCESS                   not-accessible
+          STATUS                       current
+          DESCRIPTION                  "An entry containing bacula statistics"
+          INDEX                        { baculaMediaIndex }
+          ::= { baculaMediaTable 1 }
+  
+          BaculaMediaEntry             ::= SEQUENCE {
+            baculaMediaIndex           CounterIndex,
+
+            baculaMediaName            DisplayString,
+            baculaMediaSlot            Integer32,
+            baculaMediaWrittenFirst    TimeStamp,
+            baculaMediaWrittenLast     TimeStamp,
+            baculaMediaJobs            Integer32,
+            baculaMediaFiles           Integer32,
+            baculaMediaBlocks          Integer32,
+            baculaMediaMounts          Integer32,
+            baculaMediaBytes           Integer32,
+            baculaMediaErrors          Integer32,
+            baculaMediaWrites          Integer32,
+            baculaMediaCapacity        Integer32,
+            baculaMediaStatus          VolumeStatus,
+            baculaMediaRecycle         TrueFalse,
+            baculaMediaRetention       Integer32,
+            baculaMediaDuration        Integer32,
+            baculaMediaMaxJobs         Integer32,
+            baculaMediaMaxFiles        Integer32,
+            baculaMediaMaxBytes        Integer32,
+            baculaMediaInChanger       TrueFalse,
+            baculaMediaMediaAddressing TrueFalse,
+            baculaMediaReadTime        Integer32,
+            baculaMediaWriteTime       Integer32,
+            baculaMediaEndFile         Integer32,
+            baculaMediaEndBlock        Integer32
+          }
+  
+          baculaMediaIndex             OBJECT-TYPE
+            SYNTAX                     CounterIndex
+            MAX-ACCESS                 not-accessible
+            STATUS                     current
+            DESCRIPTION                "Reference Index for each counter."
+            ::= { baculaMediaEntry 1 }
+  
+          baculaMediaName              OBJECT-TYPE
+            SYNTAX                     DisplayString
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Name of Bacula pool."
+            ::= { baculaMediaEntry 2 }
+
+          baculaMediaSlot              OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 3 }
+
+          baculaMediaWrittenFirst      OBJECT-TYPE
+            SYNTAX                     TimeStamp
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 4 }
+
+          baculaMediaWrittenLast       OBJECT-TYPE
+            SYNTAX                     TimeStamp
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 5 }
+
+          baculaMediaJobs              OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 6 }
+
+          baculaMediaFiles             OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 7 }
+
+          baculaMediaBlocks            OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 8 }
+
+          baculaMediaMounts            OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 9 }
+
+          baculaMediaBytes             OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 10 }
+
+          baculaMediaErrors             OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 11 }
+
+          baculaMediaWrites            OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 12 }
+
+          baculaMediaCapacity          OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 13 }
+
+          baculaMediaStatus            OBJECT-TYPE
+            SYNTAX                     VolumeStatus
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 14 }
+
+          baculaMediaRecycle           OBJECT-TYPE
+            SYNTAX                     TrueFalse
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 15 }
+
+          baculaMediaRetention         OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 16 }
+
+          baculaMediaDuration          OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 17 }
+
+          baculaMediaMaxJobs           OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 18 }
+
+          baculaMediaMaxFiles          OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 19 }
+
+          baculaMediaMaxBytes          OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 20 }
+
+          baculaMediaInChanger         OBJECT-TYPE
+            SYNTAX                     TrueFalse
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 21 }
+
+          baculaMediaMediaAddressing   OBJECT-TYPE
+            SYNTAX                     TrueFalse
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 22 }
+
+          baculaMediaReadTime          OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 23 }
+
+          baculaMediaWriteTime         OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 24 }
+
+          baculaMediaEndFile           OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 25 }
+
+          baculaMediaEndBlock          OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { baculaMediaEntry 26 }
 -- }}}
 -- }}}
 END
+
+-- Local variables:
+-- mode: text
+-- mode: folding
+-- mode: font-lock
+-- indent-tabs-mode: nil
