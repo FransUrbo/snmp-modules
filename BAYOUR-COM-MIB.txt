@@ -1,5 +1,5 @@
 BAYOUR-COM-MIB DEFINITIONS ::= BEGIN
--- $Id: BAYOUR-COM-MIB.txt,v 1.7 2005-10-14 04:23:28 turbo Exp $
+-- $Id: BAYOUR-COM-MIB.txt,v 1.8 2005-10-14 09:17:02 turbo Exp $
 
 -- This is my very first MIB! A lot of it is taken from the IF-MIB
 -- by the IETF Interfaces MIB Working Group (200006140000).
@@ -13,7 +13,7 @@ IMPORTS
 
 -- {{{ bayourCom Module identity
 bayourCom MODULE-IDENTITY
-  LAST-UPDATED                         "200510132053Z"  -- October 13, 2005
+  LAST-UPDATED                         "200510141115Z"  -- October 14, 2005
   ORGANIZATION                         "Bayour.COM"
   CONTACT-INFO                         "Postal:      Turbo Fredriksson
                                                      Naverlursgatan 8
@@ -23,6 +23,9 @@ bayourCom MODULE-IDENTITY
                                         Tel:         +46 704-697645
                                         E-Mail:      turbo@bayour.com"
   DESCRIPTION                          "The MIB module defines the Bayour.COM Bind9 and Bacula statistics."
+
+  REVISION                             "200510141115Z"  -- October 14, 2005 - 11:15
+  DESCRIPTION                          "Missing 'baculaClientCounter' column in the 'BaculaClientsTable' added."
 
   REVISION                             "200510132053Z"  -- October 13, 2005 - 20:53
   DESCRIPTION                          "* Remove the 0..255 size for DisplayString - it's the default value anyway.
@@ -231,9 +234,9 @@ bayourCom MODULE-IDENTITY
         -- {{{ .1.3.6.1.4.1.8767.2.0.2.1 baculaGroups
         baculaGroups                   OBJECT IDENTIFIER ::= { baculaConformance 2 }
           baculaGroupClients           OBJECT-GROUP
-            OBJECTS                    { baculaTotalClients, baculaClientName, baculaClientUname,
-                                         baculaClientAutoPrune, baculaClientRetentionFile,
-                                         baculaClientRetentionJob }
+            OBJECTS                    { baculaTotalClients, baculaClientCounter, baculaClientName,
+                                         baculaClientUname, baculaClientAutoPrune,
+                                         baculaClientRetentionFile, baculaClientRetentionJob }
             STATUS                     current
             DESCRIPTION                "A collection of objects providing information
                                         applicable to Bacula statistics."
@@ -514,6 +517,7 @@ bayourCom MODULE-IDENTITY
           BaculaClientsEntry           ::= SEQUENCE {
             baculaClientsIndex         CounterIndex,
 
+            baculaClientCounter        DisplayString,
             baculaClientName           DisplayString,
             baculaClientUname          DisplayString,
             baculaClientAutoPrune      DisplayString,
@@ -528,7 +532,7 @@ bayourCom MODULE-IDENTITY
             DESCRIPTION                "Reference Index for each counter."
             ::= { baculaClientsEntry 1 }
   
-          baculaClientName             OBJECT-TYPE
+          baculaClientCounter          OBJECT-TYPE
             SYNTAX                     DisplayString
             MAX-ACCESS                 read-only
             STATUS                     current
@@ -537,33 +541,42 @@ bayourCom MODULE-IDENTITY
                                         name of the counter."
             ::= { baculaClientsEntry 2 }
 
+          baculaClientName             OBJECT-TYPE
+            SYNTAX                     DisplayString
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "A textual string containing information about the
+                                        statistics counters. This string should include the
+                                        name of the counter."
+            ::= { baculaClientsEntry 3 }
+
           baculaClientUname            OBJECT-TYPE
             SYNTAX                     DisplayString
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "A textual string containing information about the job."
-            ::= { baculaClientsEntry 3 }
+            ::= { baculaClientsEntry 4 }
 
           baculaClientAutoPrune        OBJECT-TYPE
             SYNTAX                     DisplayString
             MAX-ACCESS                 read-write
             STATUS                     current
             DESCRIPTION                "A textual string containing information about the job."
-            ::= { baculaClientsEntry 4 }
+            ::= { baculaClientsEntry 5 }
 
           baculaClientRetentionFile    OBJECT-TYPE
             SYNTAX                     DisplayString
             MAX-ACCESS                 read-write
             STATUS                     current
             DESCRIPTION                "A textual string containing information about the job."
-            ::= { baculaClientsEntry 5 }
+            ::= { baculaClientsEntry 6 }
 
           baculaClientRetentionJob     OBJECT-TYPE
             SYNTAX                     DisplayString
             MAX-ACCESS                 read-write
             STATUS                     current
             DESCRIPTION                "A textual string containing information about the job."
-            ::= { baculaClientsEntry 6 }
+            ::= { baculaClientsEntry 7 }
 
 -- }}}
 
