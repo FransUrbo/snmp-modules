@@ -1,5 +1,5 @@
 BAYOUR-COM-MIB DEFINITIONS ::= BEGIN
--- $Id: BAYOUR-COM-MIB.txt,v 1.9 2005-10-17 16:23:23 turbo Exp $
+-- $Id: BAYOUR-COM-MIB.txt,v 1.10 2005-10-18 10:42:41 turbo Exp $
 
 -- This is my very first MIB! A lot of it is taken from the IF-MIB
 -- by the IETF Interfaces MIB Working Group (200006140000).
@@ -239,11 +239,10 @@ bayourCom MODULE-IDENTITY
             ::= { baculaGroups 3 }
 
           baculaGroupStats             OBJECT-GROUP
-            OBJECTS                    { baculaTotalStats, baculaTotalTypes, baculaStatsCounter,
-                                         baculaStatsStart, baculaStatsEnd, baculaStatsDuration,
-                                         baculaStatsFiles, baculaStatsBytes, baculaStatsType,
-                                         baculaStatsStatus, baculaStatsLevel, baculaStatsErrors,
-                                         baculaStatsMissingFiles }
+            OBJECTS                    { baculaTotalStats, baculaStatsCounter, baculaStatsStart,
+                                         baculaStatsEnd, baculaStatsDuration, baculaStatsFiles,
+                                         baculaStatsBytes, baculaStatsType, baculaStatsStatus,
+                                         baculaStatsLevel, baculaStatsErrors, baculaStatsMissingFiles }
             STATUS                     current
             DESCRIPTION                "A collection of objects providing information
                                         applicable to Bacula statistics."
@@ -456,7 +455,7 @@ bayourCom MODULE-IDENTITY
 
     -- {{{ .1.3.6.1.4.1.8767.2.3 baculaStats
     baculaStats                        OBJECT IDENTIFIER ::= { snmp 3 }
-      -- {{{ .1.3.6.1.4.1.8767.2.3.x  baculaTotal{Clients,Types,Stats,Pools,Media}
+      -- {{{ .1.3.6.1.4.1.8767.2.3.x  baculaTotal{Clients,Stats,Pools,Media}
       baculaTotalClients               OBJECT-TYPE
         SYNTAX                         Integer32
         MAX-ACCESS                     read-only
@@ -464,42 +463,35 @@ bayourCom MODULE-IDENTITY
         DESCRIPTION                    "Total number of Bacula clients."
         ::= { baculaStats 1 }
 
-      baculaTotalTypes                 OBJECT-TYPE
-        SYNTAX                         Integer32
-        MAX-ACCESS                     read-only
-        STATUS                         current
-        DESCRIPTION                    "Total number of Bacula statistic counter types."
-        ::= { baculaStats 2 }
-
       baculaTotalStats                 OBJECT-TYPE
         SYNTAX                         Integer32
         MAX-ACCESS                     read-only
         STATUS                         current
         DESCRIPTION                    "Total number of Bacula statistics."
-        ::= { baculaStats 3 }
+        ::= { baculaStats 2 }
 
       baculaTotalPools                 OBJECT-TYPE
         SYNTAX                         Integer32
         MAX-ACCESS                     read-only
         STATUS                         current
         DESCRIPTION                    "Total number of Bacula pool entries."
-        ::= { baculaStats 4 }
+        ::= { baculaStats 3 }
 
       baculaTotalMedia                 OBJECT-TYPE
         SYNTAX                         Integer32
         MAX-ACCESS                     read-only
         STATUS                         current
         DESCRIPTION                    "Total number of Bacula media entries."
-        ::= { baculaStats 5 }
+        ::= { baculaStats 4 }
 -- }}}
 
-      -- {{{ .1.3.6.1.4.1.8767.2.3.6  baculaClientsTable
+      -- {{{ .1.3.6.1.4.1.8767.2.3.5  baculaClientsTable
       baculaClientsTable               OBJECT-TYPE
         SYNTAX                         SEQUENCE OF BaculaClientsEntry
         MAX-ACCESS                     not-accessible
         STATUS                         current
         DESCRIPTION                    "A list of bacula statistic counters"
-        ::= { baculaStats 6 }
+        ::= { baculaStats 5 }
   
         baculaClientsEntry             OBJECT-TYPE
           SYNTAX                       BaculaClientsEntry
@@ -565,13 +557,13 @@ bayourCom MODULE-IDENTITY
 
 -- }}}
 
-      -- {{{ .1.3.6.1.4.1.8767.2.3.7  baculaJobsNameTable
+      -- {{{ .1.3.6.1.4.1.8767.2.3.6  baculaJobsNameTable
       baculaJobsNameTable              OBJECT-TYPE
         SYNTAX                         SEQUENCE OF BaculaJobsNameEntry
         MAX-ACCESS                     not-accessible
         STATUS                         current
         DESCRIPTION                    "A list of bacula statistic counters"
-        ::= { baculaStats 7 }
+        ::= { baculaStats 6 }
   
         baculaJobsNameEntry            OBJECT-TYPE
           SYNTAX                       BaculaJobsNameEntry
@@ -626,13 +618,13 @@ bayourCom MODULE-IDENTITY
             ::= { baculaJobsNameEntry 5 }
 -- }}}
 
-      -- {{{ .1.3.6.1.4.1.8767.2.3.8  baculaJobsIDTable
+      -- {{{ .1.3.6.1.4.1.8767.2.3.7  baculaJobsIDTable
       baculaJobsIDTable                OBJECT-TYPE
         SYNTAX                         SEQUENCE OF BaculaJobsIDEntry
         MAX-ACCESS                     not-accessible
         STATUS                         current
         DESCRIPTION                    "A list of bacula statistic counters"
-        ::= { baculaStats 8 }
+        ::= { baculaStats 7 }
   
         baculaJobsIDEntry              OBJECT-TYPE
           SYNTAX                       BaculaJobsIDEntry
@@ -663,13 +655,13 @@ bayourCom MODULE-IDENTITY
             ::= { baculaJobsIDEntry 2 }
 -- }}}
 
-      -- {{{ .1.3.6.1.4.1.8767.2.3.9  baculaStatsTable
+      -- {{{ .1.3.6.1.4.1.8767.2.3.8  baculaStatsTable
       baculaStatsTable                 OBJECT-TYPE
         SYNTAX                         SEQUENCE OF BaculaStatsEntry
         MAX-ACCESS                     not-accessible
         STATUS                         current
         DESCRIPTION                    "A list of bacula statistic counters"
-        ::= { baculaStats 9 }
+        ::= { baculaStats 8 }
   
         baculaStatsEntry               OBJECT-TYPE
           SYNTAX                       BaculaStatsEntry
@@ -781,13 +773,13 @@ bayourCom MODULE-IDENTITY
 
 -- }}}
 
-      -- {{{ .1.3.6.1.4.1.8767.2.3.10 baculaPoolsTable
+      -- {{{ .1.3.6.1.4.1.8767.2.3.9  baculaPoolsTable
       baculaPoolsTable                 OBJECT-TYPE
         SYNTAX                         SEQUENCE OF BaculaPoolsEntry
         MAX-ACCESS                     not-accessible
         STATUS                         current
         DESCRIPTION                    "A list of bacula pool information."
-        ::= { baculaStats 10 }
+        ::= { baculaStats 9 }
   
         baculaPoolsEntry               OBJECT-TYPE
           SYNTAX                       BaculaPoolsEntry
@@ -954,13 +946,13 @@ bayourCom MODULE-IDENTITY
             ::= { baculaPoolsEntry 19 }
 -- }}}
 
-      -- {{{ .1.3.6.1.4.1.8767.2.3.11 baculaMediaTable
+      -- {{{ .1.3.6.1.4.1.8767.2.3.10 baculaMediaTable
       baculaMediaTable                 OBJECT-TYPE
         SYNTAX                         SEQUENCE OF BaculaMediaEntry
         MAX-ACCESS                     not-accessible
         STATUS                         current
         DESCRIPTION                    "A list of bacula media information."
-        ::= { baculaStats 11 }
+        ::= { baculaStats 10 }
   
         baculaMediaEntry               OBJECT-TYPE
           SYNTAX                       BaculaMediaEntry
