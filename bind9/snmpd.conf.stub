@@ -2,4 +2,6 @@
 # snmpwalk -On -c public localhost .1.3.6.1.4.1.8767.2.1
 # snmpwalk -On -c public localhost .1.3.6.1.4.1.8767.2.1.4.1.2
 # snmpwalk -On -c public localhost .iso.org.dod.internet.private.enterprises.bayourCom.snmp.bind9Stats.4.1.1
+# snmptable -c public localhost b9stTotalsTable
+# snmptable -c public localhost b9stDomainsTable
 pass_persist .1.3.6.1.4.1.8767.2.1   /etc/snmp/bind9-snmp-stats.pl
