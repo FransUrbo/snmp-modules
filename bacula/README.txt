@@ -1,6 +1,6 @@
 1. Add in 'Data Templates':
    a) Primary values:
-      Data Template Name:		SNMP - Local - Bacula Statistics
+      Data Template Name:		SNMP - Local - Bacula Statistics - DATA
       Data Source Name:			|host_description| - Bacula Statistics
       Data Input Method:		Get SNMP Data (Indexed)
       Internal Data Source Name:	bytes
@@ -20,7 +20,7 @@
 
 2. Add in 'Graph Templates':
    a) Primary values:
-      Name:				SNMP - Local - Bacula Statistics
+      Name:				SNMP - Local - Bacula Statistics - GRAPH
       Title:				|query_baculaClientName| - Bacula Statistics
       Upper Limit:			100000000
       Vertical Label:			Client name
@@ -102,10 +102,13 @@
 	  Data Source [missing]    
 
 3. Add in 'Data Queries':
-   a) Name:				SNMP - Local - Bacula Statistics
+   a) Name:				SNMP - Local - Bacula Statistics - QUERY
    b) Description:			Bacula statistics
    c) XML Path:				<path_cacti>/resource/snmp_queries/bacula-stats.xml
    d) Data Input Method:		Get SNMP Data (Indexed)
    e) Add 'Associated Graph Templates'
       a) Name:				SNMP - Local - Bacula Statistics
       b) Graph Template:		SNMP - Local - Bacula Statistics
+
+
+=> To get all these as one file, export the 'Data Query->SNMP - Local - Bacula Statistics - QUERY'.
