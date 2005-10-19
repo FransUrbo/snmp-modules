@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.7 2005-10-12 06:34:34 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.8 2005-10-19 19:54:24 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -19,7 +19,13 @@ use strict;
 use POSIX qw(strftime);
 
 $ENV{PATH}   = "/bin:/usr/bin:/usr/sbin";
-my $OID_BASE = ".1.3.6.1.4.1.8767.2.1";	# .iso.org.dod.internet.private.enterprises.bayourcom.snmp.bind9stats
+
+my $OID_BASE;
+$OID_BASE = "OID_BASE"; # When debugging, it's easier to type this than the full OID
+if($ENV{'MIBDIRS'}) {
+    # ALWAYS override this if we're running through the SNMP daemon!
+    $OID_BASE = ".1.3.6.1.4.1.8767.2.1"; # .iso.org.dod.internet.private.enterprises.bayourcom.snmp.bind9stats
+}
 
 my $log      = "/var/lib/named/var/log/dns-stats.log";
 my $rndc     = "/usr/sbin/rndc"; 
@@ -128,15 +134,15 @@ sub print_b9stTotalsIndex {
 	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.$j\n") if($DEBUG > 1);
 	%cnts = ($j => $counters{$j});
     } else {
-	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.x\n") if($DEBUG > 1);
-	%cnts = %counters;
+	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.1\n") if($DEBUG > 1);
+	%cnts = ("1" => $counters{"1"});
     }
 
     foreach $j (keys %cnts) {
 	if($DEBUG) {
 	    &echo(0, "$OID_BASE.3.1.1.$j $j\n");
 	}
-
+	
 	&echo(1, "$OID_BASE.3.1.1.$j\n");
 	&echo(1, "integer\n");
 	&echo(1, "$j\n");
@@ -156,8 +162,8 @@ sub print_b9stCounterName {
 	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.$j\n") if($DEBUG > 1);
 	%cnts = ($j => $counters{$j});
     } else {
-	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.x\n") if($DEBUG > 1);
-	%cnts = %counters;
+	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.1\n") if($DEBUG > 1);
+	%cnts = ("1" => $counters{"1"});
     }
 
     foreach $j (keys %cnts) {
@@ -181,7 +187,7 @@ sub print_b9stCounterTypeTotal {
     if($j) {
 	%cnts = ($j => $counters{$j});
     } else {
-	%cnts = %counters;
+	%cnts = ("1" => $counters{"1"});
     }
 
     my $nr = 0;
@@ -243,11 +249,11 @@ sub print_b9stCounterTypeDomains {
     my %cnts;
     if($j) {
 	my $i = $j;
-	$j = sprintf("%0.2d", $j);
+	$j = sprintf("%02d", $j);
 
 	%cnts = ($i => $DOMAINS{$j});
     } else {
-	%cnts = %DOMAINS;
+	%cnts = ("1" => $DOMAINS{"1"});
     }
 
     my $nr = 0;
@@ -332,8 +338,8 @@ sub print_b9stDomainsIndex {
 	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.$j\n") if($DEBUG > 1);
 	%cnts = ($j => $DOMAINS{$j});
     } else {
-	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.x\n") if($DEBUG > 1);
-	%cnts = %DOMAINS;
+	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.1\n") if($DEBUG > 1);
+	%cnts = ("1" => $DOMAINS{"1"});
     }
 
     foreach $j (sort keys %cnts) {
@@ -359,12 +365,12 @@ sub print_b9stDomainName {
 	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.$j\n") if($DEBUG > 1);
 
 	my $i = $j;
-	$j = sprintf("%0.2d", $j);
+	$j = sprintf("%02d", $j);
 
 	%cnts = ($j => $DOMAINS{$j});
     } else {
-	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.x\n") if($DEBUG > 1);
-	%cnts = %DOMAINS;
+	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.1\n") if($DEBUG > 1);
+	%cnts = ("1" => $DOMAINS{"1"});
     }
 
     foreach my $j (sort keys %cnts) {
@@ -392,6 +398,7 @@ sub call_func_total {
     my $func_arg = shift;
     
     my $func = "print_b9st".$prints_total{$func_nr};
+    $func_arg = '' if(!defined($func_arg));
     &echo(0, "=> Calling function '$func($func_arg)'\n") if($DEBUG > 2);
 
     $func = \&{$func}; # Because of 'use strict' above...
@@ -405,6 +412,7 @@ sub call_func_domain {
     my $func_arg = shift;
     
     my $func = "print_b9st".$prints_domain{$func_nr};
+    $func_arg = '' if(!defined($func_arg));
     &echo(0, "=> Calling function '$func($func_arg)'\n") if($DEBUG > 2);
 
     $func = \&{$func}; # Because of 'use strict' above...
@@ -415,11 +423,9 @@ sub call_func_domain {
 
 # {{{ Output some extra debugging
 sub output_extra_debugging {
-    my $prefix = shift;
     my @tmp = @_;
-    my $string;
 
-    $string = $prefix;
+    my $string = "=> ";
     for(my $i=0; defined($tmp[$i]); $i++) {
 	$string .= "tmp[$i]=".$tmp[$i];
 	$string .= ", " if(defined($tmp[$i+1]));
@@ -443,7 +449,7 @@ sub get_timestring {
 # {{{ Open logfile for debugging
 sub open_log {
     if(!open(LOG, ">> /var/log/bind9-snmp-stats.log")) {
-	&echo(1, "Can't open logfile '/var/log/bind9-snmp-stats.log', $!\n") if($DEBUG);
+	&echo(0, "Can't open logfile '/var/log/bind9-snmp-stats.log', $!\n") if($DEBUG);
 	return 0;
     } else {
 	return 1;
@@ -458,18 +464,28 @@ sub echo {
     my $log_opened = 0;
 
     # Open logfile if debugging OR running from snmpd.
-    if($DEBUG || $ENV{'MIBDIRS'}) {
+    if($DEBUG) {
 	if(&open_log()) {
 	    $log_opened = 1;
-	    open(STDERR, ">&LOG");
+	    open(STDERR, ">&LOG") if(($DEBUG <= 2) || $ENV{'MIBDIRS'});
 	}
     }
 
     if($stdout) {
 	print $string;
     } elsif($log_opened) {
-	print LOG &get_timestring()," $string";
+	print LOG &get_timestring()," " if($DEBUG > 2);
+	print LOG $string;
     }
+}
+# }}}
+
+# {{{ Return 'no such value'
+sub no_value {
+    &echo(0, "=> No value in this object - exiting!\n") if($DEBUG > 1);
+    
+    &echo(1, "NONE\n");
+    &echo(0, "\n") if($DEBUG > 1);
 }
 # }}}
 
@@ -537,7 +553,7 @@ sub load_information {
 	    
 	    foreach my $nr (keys %counters) {
 		my $what = $counters{$nr};
-		my $cnt  = sprintf("%0.2d", $count_domains);
+		my $cnt  = sprintf("%02d", $count_domains);
 		
 		$tmp2{$cnt}{$what} = $domain.":".$DOMAINS{$domain}{$what};
 	    }
@@ -561,154 +577,177 @@ sub load_information {
 &load_information();
 
 # {{{ Go through the argument(s) passed to the program
+my $ALL = 0;
 for(my $i=0; $ARGV[$i]; $i++) {
     if($ARGV[$i] eq '--help' || $ARGV[$i] eq '-h' || $ARGV[$i] eq '?' ) {
 	&help();
     } elsif($ARGV[$i] eq '--debug' || $ARGV[$i] eq '-d') {
 	$DEBUG++;
     } elsif($ARGV[$i] eq '--all' || $ARGV[$i] eq '-a') {
-	&print_b9stNumberTotals(0);
-	&print_b9stNumberDomains(0);
-
-	foreach my $j (keys %prints_total) {
-	    &call_func_total($j, 0);
-	}
-
-	foreach my $j (keys %prints_domain) {
-	    &call_func_domain($j, 0);
-	}
-
-	exit 0;
+	$ALL = 1;
     }
 }
 # }}}
 
-# {{{ Go through the commands sent on STDIN
-while(<>) {
-    if (m!^PING!){
-	print "PONG\n";
-	next;
+if($ALL) {
+    # {{{ Output the whole MIB tree - used mainly/only for debugging purposes
+    &print_b9stNumberTotals(0);
+    &print_b9stNumberDomains(0);
+    
+    foreach my $j (keys %prints_total) {
+	&call_func_total($j, 0);
     }
     
-    # {{{ Get all run arguments - next/specfic OID
-    my $arg = $_; chomp($arg);
-    &echo(0, "=> ARG=$arg\n") if($DEBUG > 2);
-    
-    # Get next line from STDIN -> OID number.
-    # $arg == 'getnext' => Get next OID
-    # $arg == 'get' (?) => Get specified OID
-    $oid = <>; chomp($oid);
-    $oid =~ s/$OID_BASE//; # Remove the OID base
-    $oid =~ s/^\.//;       # Remove the first dot if it exists - it's in the way!
-    &echo(0, "=> OID=$oid\n") if($DEBUG > 2);
-    
-    &echo(0, "=> count_counters=$count_counters, count_types=$count_types, count_domains=$count_domains\n") if($DEBUG > 2);
-# }}} Get arguments
-
-    if(     $oid =~ /^1\./) {
-	# {{{ ------------------------------------- OID_BASE.1		(b9stNumberTotals)  
-	if($arg eq 'getnext') {
-	    &print_b9stNumberDomains(0);
-	} else {
-	    &print_b9stNumberTotals(0);
+    foreach my $j (keys %prints_domain) {
+	&call_func_domain($j, 0);
+    }
+# }}} 
+} else {
+    # {{{ Go through the commands sent on STDIN
+    while(<>) {
+	if (m!^PING!){
+	    print "PONG\n";
+	    next;
 	}
-# }}} # OID_BASE.1
-    } elsif($oid =~ /^2\./) {
-	# {{{ ------------------------------------- OID_BASE.2		(b9stNumberDomains) 
-	if($arg eq 'getnext') {
-	    &call_func_total(1, 1);
-	} else {
-	    &print_b9stNumberDomains(0);
-	}
-# }}} # OID_BASE.2
-    } elsif($oid =~ /^3\./) {
-	# {{{ ------------------------------------- OID_BASE.3		(b9stTotalsTable)   
-	$oid =~ s/^3\.//;
-	$oid =~ s/^1\.//;
-
+	
+	# {{{ Get all run arguments - next/specfic OID
+	my $arg = $_; chomp($arg);
+	&echo(0, "=> ARG=$arg\n") if($DEBUG > 2);
+	
+	# Get next line from STDIN -> OID number.
+	# $arg == 'getnext' => Get next OID
+	# $arg == 'get' (?) => Get specified OID
+	$oid = <>; chomp($oid);
+	$oid =~ s/$OID_BASE//; # Remove the OID base
+	$oid =~ s/OID_BASE//;  # Remove the OID base (if we're debugging)
+	$oid =~ s/^\.//;       # Remove the first dot if it exists - it's in the way!
+	&echo(0, "=> OID=$OID_BASE.$oid\n") if($DEBUG > 2);
+	
 	my @tmp = split('\.', $oid);
-	&output_extra_debugging("=> .3.1: ", @tmp) if($DEBUG > 2);
-
-	if($arg eq 'getnext') {
-	    if(!$tmp[0] && !$tmp[1]) {
-		&call_func_total(1, 1);
-	    } elsif(!$tmp[1]) {
-		&call_func_total($tmp[0], 1);
+	&output_extra_debugging(@tmp) if($DEBUG > 2);
+	
+	&echo(0, "=> count_counters=$count_counters, count_types=$count_types, count_domains=$count_domains\n") if($DEBUG > 2);
+# }}} Get arguments
+	
+	if(!defined($tmp[0])) {
+	    # {{{ ------------------------------------- OID_BASE                                    
+	    if($arg eq 'getnext') {
+		&print_b9stNumberTotals(0);
 	    } else {
-		my $x = $tmp[1] + 1;
-		
-		if($x > $count_counters) {
-		    &echo(0, "=> $x > $count_counters\n") if($DEBUG > 2);
-		    if($prints_total{$tmp[0]+1}) {
-			&call_func_total($tmp[0]+1, 1);
+		&no_value(); next;
+	    }
+# }}} # OID_BASE
+
+	} elsif($tmp[0] == 1) {
+	    # {{{ ------------------------------------- OID_BASE.1		(b9stNumberTotals)  
+	    if($arg eq 'getnext') {
+		if(!defined($tmp[1])) {
+		    &print_b9stNumberTotals(0);
+		} else {
+		    &print_b9stNumberDomains(0);
+		}
+	    } elsif($arg eq 'get') {
+		if(defined($tmp[1])) {
+		    &print_b9stNumberTotals(0);
+		} else {
+		    &no_value(); next;
+		}
+	    }
+# }}} # OID_BASE.1
+
+	} elsif($tmp[0] == 2) {
+	    # {{{ ------------------------------------- OID_BASE.2		(b9stNumberDomains) 
+	    if($arg eq 'getnext') {
+		if(!defined($tmp[1])) {
+		    &print_b9stNumberDomains(0);
+		} else {
+		    &call_func_total(1, 1);
+		}
+	    } else {
+		if(defined($tmp[1])) {
+		    &print_b9stNumberDomains(0);
+		} else {
+		    &no_value(); next;
+		}
+	    }
+# }}} # OID_BASE.2
+
+	} elsif($tmp[0] == 3) {
+	    # {{{ ------------------------------------- OID_BASE.3		(b9stTotalsTable)   
+	    if($arg eq 'getnext') {
+		if(!$tmp[2] && !$tmp[3]) {
+		    &call_func_total(1, 1);
+		} elsif(!$tmp[3]) {
+		    if($tmp[2] < $count_counters) {
+			&call_func_total($tmp[2], 1);
 		    } else {
 			&call_func_domain(1, 1);
 		    }
 		} else {
-		    &echo(0, "=> !($x > $count_counters) => call_func_total(".$tmp[0].", ".($tmp[1]+1).")\n") if($DEBUG > 2);
-		    &call_func_total($tmp[0], $tmp[1]+1);
-		}
-	    }
-	} elsif($oid && $prints_total{$tmp[0]}) {
-	    &call_func_total($tmp[0], $tmp[1]);
-	} elsif($oid && $prints_domain{$tmp[0]}) {
-	    &call_func_domain($tmp[0], $tmp[1]);
-	} else {
-	    &echo(0, "No value in this object - exiting!\n") if($DEBUG);
-
-	    &echo(1, "NONE\n");
-	    next;
-	}
-# }}} # OID_BASE.3
-    } elsif($oid =~ /^4\./) {
-	# {{{ ------------------------------------- OID_BASE.4		(b9stDomainsTable)  
-	$oid =~ s/^4\.//;
-	$oid =~ s/^1\.//;
-
-	my @tmp = split('\.', $oid);
-	&output_extra_debugging("=> .4.1: ", @tmp) if($DEBUG > 2);
-	
-	if($arg eq 'getnext') {
-	    if(!$tmp[0] && !$tmp[1]) {
-		&call_func_domain(1, 1);
-	    } elsif(!$tmp[1]) {
-		&call_func_domain($tmp[0], 1);
-	    } else {
-		my $x = $tmp[1] + 1;
-		
-		if($x > $count_domains) {
-		    if($prints_domain{$tmp[0]+1}) {
-			&call_func_domain($tmp[0]+1, 1);
+		    my $x = $tmp[3] + 1;
+		    
+		    if($x > $count_counters) {
+			&echo(0, "=> $x > $count_counters\n") if($DEBUG > 2);
+			if($prints_total{$tmp[2]+1}) {
+			    &call_func_total($tmp[2]+1, 1);
+			} else {
+			    &call_func_domain(1, 1);
+			}
 		    } else {
-			&echo(0, "No more values\n") if($DEBUG);
-
-			&echo(1, "NONE\n");
-			next;
+			&echo(0, "=> !($x > $count_counters) => call_func_total(".$tmp[2].", ".($tmp[3]+1).")\n") if($DEBUG > 2);
+			&call_func_total($tmp[2], $tmp[3]+1);
 		    }
-		} else {
-		    &call_func_domain($tmp[0], $tmp[1]+1);
 		}
+	    } elsif($tmp[2] && $prints_total{$tmp[2]}) {
+		&call_func_total($tmp[2], $tmp[3]);
+	    } elsif($tmp[2] && $prints_domain{$tmp[2]}) {
+		&call_func_domain($tmp[2], $tmp[3]);
+	    } else {
+		&echo(0, "No value in this object - exiting!\n") if($DEBUG);
+		
+		&echo(1, "NONE\n");
+		next;
 	    }
-	} elsif($oid && $prints_domain{$tmp[0]}) {
-	    &call_func_domain($tmp[0], $tmp[1]);
-	} else {
-	    &echo(0, "No more values - exiting!\n") if($DEBUG);
+# }}} # OID_BASE.3
 
-	    &echo(1, "NONE\n");
-	    next;
-	}
+	} elsif($tmp[0] == 4) {
+	    # {{{ ------------------------------------- OID_BASE.4		(b9stDomainsTable)  
+	    if($arg eq 'getnext') {
+		if(!$tmp[2] && !$tmp[3]) {
+		    &call_func_domain(1, 1);
+		} elsif(!$tmp[3]) {
+		    &call_func_domain($tmp[2], 1);
+		} else {
+		    my $x = $tmp[3] + 1;
+		    
+		    if($x > $count_domains) {
+			if($prints_domain{$tmp[2]+1}) {
+			    &call_func_domain($tmp[2]+1, 1);
+			} else {
+			    &echo(0, "No more values\n") if($DEBUG);
+			    
+			    &echo(1, "NONE\n");
+			    next;
+			}
+		    } else {
+			&call_func_domain($tmp[2], $tmp[3]+1);
+		    }
+		}
+	    } elsif($tmp[2] && $prints_domain{$tmp[2]}) {
+		&call_func_domain($tmp[2], $tmp[3]);
+	    } else {
+		&echo(0, "No more values - exiting!\n") if($DEBUG);
+		
+		&echo(1, "NONE\n");
+		next;
+	    }
 # }}} # OID_BASE.4
-    } else {
-	# {{{ ------------------------------------- OID_BASE
-	if($arg eq 'getnext') {
-	    &print_b9stNumberTotals(0);
-	} else {
-	    &echo(0, "No value in this object - exiting!\n") if($DEBUG);
 
-	    &echo(1, "NONE\n");
-	    next;
+	} else {
+	    # {{{ ------------------------------------- OID_BASE.?              (Unknown OID)       
+	    &no_value(); next;
+# }}}
 	}
-# }}} # OID_BASE
     }
-}
 # }}} # Go through commands
+}
