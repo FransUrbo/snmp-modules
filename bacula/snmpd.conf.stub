@@ -1,0 +1,8 @@
+# http://forums.cacti.net/about302-0-asc-15.html
+# snmpwalk -On -c public localhost .1.3.6.1.4.1.8767.2.3
+# snmpwalk -On -c public localhost baculaClientsTable
+# snmptable -c public localhost baculaJobsNameTable
+# snmptable -c public localhost baculaStatsTable
+# snmptable -c public localhost baculaPoolsTable
+# snmptable -c public localhost baculaMediaTable
+pass_persist .1.3.6.1.4.1.8767.2.3   /etc/snmp/bacula-snmp-stats.pl
