@@ -1,11 +1,25 @@
-bind9-snmp 1.2 TO BE ANNOUNCED
+bind9-snmp 1.2 Release (Oct 20 2005)
 	Bug fixes
 	  + Missing hard-return in a graph item.
+	  + Cleanup the 'process args and get next OID/value'. Can now do bulk queries.
 
 	Misc changes
 	  + Moved/renamed the CVS repository (s/snmp/bind9-snmp) because of a freshmeat
 	    announcement.
 	  + More verbose explanation in README.txt.
+	  + Rewrite as a persistent pass-through instead of a 'simple' pass-through.
+	    In practise this means that the script will stay running (for a couple of
+	    minutes, determined by the snmpd) instead of closing every time. This lead
+	    to HUGE speed increases and statistic stability. The script dumps the
+	    information _every time it starts_, which meant that in the previous way
+	    of running, a full walk of the MIB tree required HUNDREDS (depending on
+	    number of domains naturally) of information dumps!!!
+	  + Fix so that the script can be running with debugging even on a live system
+	    (ie, from the SNMP system).
+	    - Quite extensive debug output cleanup was also done in the process.
+	  + Move around some function for ease of readability.
+	  + To avoid the bind9 information logfile to grow to humongus sizes, remove
+	    it (and the delta file) after each dump.
 
 bind9-snmp 1.1 Release (Apr 13 2005)
 	Bug fixes

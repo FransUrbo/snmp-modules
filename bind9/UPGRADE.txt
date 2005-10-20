@@ -13,3 +13,7 @@ If upgrading from 1.1:
   know how long, but IF the script is keept running for
   more than five minutes, it will issue a reload/redump
   of the Bind9 statistics by itself...
+* The script now removes the information dump file (dns-stats.log)
+  after each dump. This to keep the file in reasonable sizes.
+  The file grows with a couple of kilobytes _every five minutes_
+  and over time (not MUCH time!), it's over 2Gb in size!
