@@ -1,5 +1,5 @@
 BAYOUR-COM-MIB DEFINITIONS ::= BEGIN
--- $Id: BAYOUR-COM-MIB.txt,v 1.11 2005-10-19 11:45:14 turbo Exp $
+-- $Id: BAYOUR-COM-MIB.txt,v 1.12 2005-10-20 08:27:19 turbo Exp $
 
 -- This is my very first MIB! A lot of it is taken from the IF-MIB
 -- by the IETF Interfaces MIB Working Group (200006140000).
@@ -93,7 +93,7 @@ bayourCom MODULE-IDENTITY
                                         constant at least from one re-initialization of the
                                         entity's network management system to the next
                                         re-initialization."
-    SYNTAX                              Integer32 (1..18)
+    SYNTAX                              Integer32
 
   snmp                                 OBJECT IDENTIFIER ::= { bayourCom 2 }
 -- }}}
