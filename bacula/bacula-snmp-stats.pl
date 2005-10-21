@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bacula-snmp-stats.pl,v 1.13 2005-10-19 12:33:15 turbo Exp $
+# {{{ $Id: bacula-snmp-stats.pl,v 1.14 2005-10-21 13:03:25 turbo Exp $
 # Extract job statistics for a bacula backup server.
 # Only tested with a MySQL backend, but is general
 # enough to work with the PostgreSQL backend as well.
@@ -61,18 +61,21 @@ my %functions  = (# baculaTotal*	Total counters
 		  $OID_BASE.".07.1.1"	=> "jobs_ids_index",
 		  $OID_BASE.".07.1.2"	=> "jobs_ids",
 
+		  # baculaStatsCountersTable
+		  $OID_BASE.".08.1.1"   => "jobs_status_counters_index",
+		  $OID_BASE.".08.1.2"   => "jobs_status_counters",
+
 		  # baculaStatsTable	The status information
-		  $OID_BASE.".08.1.1"	=> "types_index",
-		  $OID_BASE.".08.1.2"	=> "types_names",
-		  $OID_BASE.".08.1.3"	=> "jobs_status",
+		  $OID_BASE.".09.1.1"	=> "jobs_status_index",
+		  $OID_BASE.".09.1.2"	=> "jobs_status",
 
 		  # baculaPoolsTable	The pool information
-		  $OID_BASE.".09.1.1"	=> "pool_index",
-		  $OID_BASE.".09.1.2"	=> "pool_names",
+		  $OID_BASE.".10.1.1"	=> "pool_index",
+		  $OID_BASE.".10.1.2"	=> "pool_names",
 
 		  # baculaMediaTable	The media information
-		  $OID_BASE.".10.1.1"	=> "media_index",
-		  $OID_BASE.".10.1.2"	=> "media_names");
+		  $OID_BASE.".11.1.1"	=> "media_index",
+		  $OID_BASE.".11.1.2"	=> "media_names");
 
 # MIB tree 'flow' below the '$OID_BASE.9.3' branch.
 my %keys_stats  = (#01  => index
@@ -80,7 +83,12 @@ my %keys_stats  = (#01  => index
 		   "03" => "end_date",
 		   "04" => "duration",
 		   "05" => "files",
-		   "06" => "bytes");
+		   "06" => "bytes",
+		   "07" => "type",
+		   "08" => "status",
+		   "09" => "level",
+		   "10" => "errors",
+		   "11" => "missing");
 
 my %keys_jobs   = (#01  => index
 		   "02" => "filesetname",
@@ -197,8 +205,8 @@ $SIG{'ALRM'} = \&load_information;
 #    |     +-- r-n DisplayString baculaClientName(2)
 #    |     +-- r-n DisplayString baculaClientUname(3)
 #    |     +-- rwn TrueFalse     baculaClientAutoPrune(4)
-#    |     +-- rwn Counter64     baculaClientRetentionFile(5)
-#    |     +-- rwn Counter64     baculaClientRetentionJob(6)
+#    |     +-- rwn Counter32     baculaClientRetentionFile(5)
+#    |     +-- rwn Counter32     baculaClientRetentionJob(6)
 #    |
 #    +--baculaJobsNameTable(6)
 #    |  |
@@ -217,24 +225,30 @@ $SIG{'ALRM'} = \&load_information;
 #    |     +-- --- CounterIndex  baculaJobsIDIndex(1)
 #    |     +-- r-n DisplayString baculaJobsID(2)
 #    |
-#    +--baculaStatsTable(8)
+#    +--baculaStatsCountersTable(8)
+#    |  |
+#    |  +--baculaStatsCountersEntry(1) [baculaStatsCountersIndex]
+#    |     |
+#    |     +-- --- CounterIndex  baculaStatsCountersIndex(1)
+#    |     +-- r-n DisplayString baculaStatsCounterName(2)
+#    |
+#    +--baculaStatsTable(9)
 #    |  |
 #    |  +--baculaStatsEntry(1) [baculaClientsIndex,baculaJobsNameIndex,baculaJobsIDIndex,baculaStatsIndex]
 #    |     |
 #    |     +-- --- CounterIndex  baculaStatsIndex(1)
-#    |     +-- r-n DisplayString baculaStatsCounter(2)
-#    |     +-- r-n DisplayString baculaStatsStart(3)
-#    |     +-- r-n DisplayString baculaStatsEnd(4)
-#    |     +-- r-n Integer32     baculaStatsDuration(5)
-#    |     +-- r-n Integer32     baculaStatsFiles(6)
-#    |     +-- r-n Counter64     baculaStatsBytes(7)
-#    |     +-- r-n JobType       baculaStatsType(8)
-#    |     +-- r-n Status        baculaStatsStatus(9)
-#    |     +-- r-n Level         baculaStatsLevel(10)
-#    |     +-- r-n Integer32     baculaStatsErrors(11)
-#    |     +-- r-n Integer32     baculaStatsMissingFiles(12)
+#    |     +-- r-n DisplayString baculaStatsStart(2)
+#    |     +-- r-n DisplayString baculaStatsEnd(3)
+#    |     +-- r-n Integer32     baculaStatsDuration(4)
+#    |     +-- r-n Integer32     baculaStatsFiles(5)
+#    |     +-- r-n Counter32     baculaStatsBytes(6)
+#    |     +-- r-n DisplayString baculaStatsType(7)
+#    |     +-- r-n Status        baculaStatsStatus(8)
+#    |     +-- r-n Level         baculaStatsLevel(9)
+#    |     +-- r-n Integer32     baculaStatsErrors(10)
+#    |     +-- r-n Integer32     baculaStatsMissingFiles(11)
 #    |
-#    +--baculaPoolsTable(9)
+#    +--baculaPoolsTable(10)
 #    |  |
 #    |  +--baculaPoolsEntry(1) [baculaPoolsIndex]
 #    |     |
@@ -245,11 +259,11 @@ $SIG{'ALRM'} = \&load_information;
 #    |     +-- rwn TrueFalse     baculaPoolsUseOnce(5)
 #    |     +-- rwn TrueFalse     baculaPoolsUseCatalog(6)
 #    |     +-- rwn TrueFalse     baculaPoolsAcceptAnyVolume(7)
-#    |     +-- rwn Counter64     baculaPoolsRetention(8)
-#    |     +-- rwn Counter64     baculaPoolsDuration(9)
+#    |     +-- rwn Counter32     baculaPoolsRetention(8)
+#    |     +-- rwn Counter32     baculaPoolsDuration(9)
 #    |     +-- rwn Integer32     baculaPoolsMaxJobs(10)
 #    |     +-- rwn Integer32     baculaPoolsMaxFiles(11)
-#    |     +-- rwn Counter64     baculaPoolsMaxBytes(12)
+#    |     +-- rwn Counter32     baculaPoolsMaxBytes(12)
 #    |     +-- rwn TrueFalse     baculaPoolsAutoPrune(13)
 #    |     +-- rwn TrueFalse     baculaPoolsRecycle(14)
 #    |     +-- rwn DisplayString baculaPoolsType(15)
@@ -258,7 +272,7 @@ $SIG{'ALRM'} = \&load_information;
 #    |     +-- r-n Integer32     baculaPoolsScratchPoolID(18)
 #    |     +-- r-n Integer32     baculaPoolsRecyclePoolID(19)
 #    |
-#    +--baculaMediaTable(10)
+#    +--baculaMediaTable(11)
 #       |
 #       +--baculaMediaEntry(1) [baculaMediaIndex]
 #          |
@@ -274,21 +288,21 @@ $SIG{'ALRM'} = \&load_information;
 #          +-- r-n Integer32     baculaMediaFiles(10)
 #          +-- r-n Integer32     baculaMediaBlocks(11)
 #          +-- r-n Integer32     baculaMediaMounts(12)
-#          +-- r-n Counter64     baculaMediaBytes(13)
+#          +-- r-n Counter32     baculaMediaBytes(13)
 #          +-- r-n Integer32     baculaMediaErrors(14)
 #          +-- r-n Integer32     baculaMediaWrites(15)
-#          +-- r-n Counter64     baculaMediaCapacity(16)
+#          +-- r-n Counter32     baculaMediaCapacity(16)
 #          +-- r-n VolumeStatus  baculaMediaStatus(17)
 #          +-- r-n TrueFalse     baculaMediaRecycle(18)
-#          +-- r-n Counter64     baculaMediaRetention(19)
-#          +-- r-n Counter64     baculaMediaDuration(20)
+#          +-- r-n Counter32     baculaMediaRetention(19)
+#          +-- r-n Counter32     baculaMediaDuration(20)
 #          +-- r-n Integer32     baculaMediaMaxJobs(21)
 #          +-- r-n Integer32     baculaMediaMaxFiles(22)
-#          +-- r-n Counter64     baculaMediaMaxBytes(23)
+#          +-- r-n Counter32     baculaMediaMaxBytes(23)
 #          +-- r-n TrueFalse     baculaMediaInChanger(24)
 #          +-- r-n TrueFalse     baculaMediaMediaAddressing(25)
-#          +-- r-n Counter64     baculaMediaReadTime(26)
-#          +-- r-n Counter64     baculaMediaWriteTime(27)
+#          +-- r-n Counter32     baculaMediaReadTime(26)
+#          +-- r-n Counter32     baculaMediaWriteTime(27)
 #          +-- r-n Integer32     baculaMediaEndFile(28)
 #          +-- r-n Integer32     baculaMediaEndBlock(29)
 # }}}
@@ -353,8 +367,8 @@ sub get_info_client {
 	$client{$row[1]}{"id"}			= $row[1];
 	$client{$row[1]}{"uname"}		= $row[2];
 	$client{$row[1]}{"auto_prune"}		= $row[3];
-	$client{$row[1]}{"file_retention"}	= $row[4];
-	$client{$row[1]}{"job_retention"}	= $row[5];
+	$client{$row[1]}{"file_retention"}	= $row[4] / 1024;
+	$client{$row[1]}{"job_retention"}	= $row[5] / 1024;
 # }}}
 
 	# Increase number of status counters
@@ -382,11 +396,11 @@ sub get_info_pool {
 	$pool{$row[1]}{"use_once"}		= $row[4];
 	$pool{$row[1]}{"use_catalog"}		= $row[5];
 	$pool{$row[1]}{"accept_any_vol"}	= $row[6];
-	$pool{$row[1]}{"vol_retention"}		= $row[7];
-	$pool{$row[1]}{"vol_use_duration"}	= $row[8];
+	$pool{$row[1]}{"vol_retention"}		= $row[7] / 1024;
+	$pool{$row[1]}{"vol_use_duration"}	= $row[8] / 1024;
 	$pool{$row[1]}{"max_jobs"}		= $row[9];
 	$pool{$row[1]}{"max_files"}		= $row[10];
-	$pool{$row[1]}{"max_bytes"}		= $row[11];
+	$pool{$row[1]}{"max_bytes"}		= $row[11] / 1024;
 	$pool{$row[1]}{"auto_prune"}		= $row[12];
 	$pool{$row[1]}{"recycle"}		= $row[13];
 	$pool{$row[1]}{"type"}			= $row[14];
@@ -456,21 +470,21 @@ sub get_info_media {
 	$media{$row[1]}{"files"}		= $row[9];
 	$media{$row[1]}{"blocks"}		= $row[10];
 	$media{$row[1]}{"mounts"}		= $row[11];
-	$media{$row[1]}{"bytes"}		= $row[12];
+	$media{$row[1]}{"bytes"}		= $row[12] / 1024;
 	$media{$row[1]}{"errors"}		= $row[13];
 	$media{$row[1]}{"writes"}		= $row[14];
-	$media{$row[1]}{"capacity"}		= $row[15];
+	$media{$row[1]}{"capacity"}		= $row[15] / 1024;
 	$media{$row[1]}{"status"}		= $row[16];
 	$media{$row[1]}{"recycle"}		= $row[17];
-	$media{$row[1]}{"retention"}		= $row[18];
-	$media{$row[1]}{"use_duration"}		= $row[19];
+	$media{$row[1]}{"retention"}		= $row[18] / 1024;
+	$media{$row[1]}{"use_duration"}		= $row[19] / 1024;
 	$media{$row[1]}{"max_jobs"}		= $row[20];
 	$media{$row[1]}{"max_files"}		= $row[21];
-	$media{$row[1]}{"max_bytes"}		= $row[22];
+	$media{$row[1]}{"max_bytes"}		= $row[22] / 1024;
 	$media{$row[1]}{"in_changer"}		= $row[23];
 	$media{$row[1]}{"media_addressing"}	= $row[24];
-	$media{$row[1]}{"read_time"}		= $row[25];
-	$media{$row[1]}{"write_time"}		= $row[26];
+	$media{$row[1]}{"read_time"}		= $row[25] / 1024;
+	$media{$row[1]}{"write_time"}		= $row[26] / 1024;
 	$media{$row[1]}{"end_file"}		= $row[27];
 	$media{$row[1]}{"end_block"}		= $row[28];
 # }}}
@@ -486,11 +500,12 @@ sub get_info_media {
 # {{{ Get job statistics
 sub get_info_stats {
     my($QUERY, $status, %status);
+    $status = 0;
 
     # {{{ Setup and execute the SQL query
-    $QUERY  = 'SELECT Job.JobId AS JobNr, Client.Name AS ClientName, Job.Name AS JobName, Job.FileSetId AS FileSet, Job.Job AS JobID, ';
-    $QUERY .= 'Job.JobStatus AS Status, Job.Level AS Level, Job.StartTime AS StartTime, Job.EndTime AS EndTime, Job.JobFiles AS Files, ';
-    $QUERY .= 'Job.JobBytes AS Bytes, Job.JobErrors AS Errors, Job.JobMissingFiles AS MissingFiles FROM Client,Job ';
+    $QUERY  = 'SELECT Job.JobId AS JobNr, Client.Name AS ClientName, Job.Name AS JobName, Job.Type AS Type, Job.FileSetId AS FileSet, ';
+    $QUERY .= 'Job.Job AS JobID, Job.JobStatus AS Status, Job.Level AS Level, Job.StartTime AS StartTime, Job.EndTime AS EndTime, ';
+    $QUERY .= 'Job.JobFiles AS Files, Job.JobBytes AS Bytes, Job.JobErrors AS Errors, Job.JobMissingFiles AS MissingFiles FROM Client,Job ';
     $QUERY .= 'WHERE Job.JobErrors=0 AND Client.ClientId=Job.ClientId AND Job.Type="B" ORDER BY ClientName, JobName, JobID, JobNr';
     my $sth = $dbh->prepare($QUERY) || die("Could not prepare SQL query: $dbh->errstr\n");
     $sth->execute || die("Could not execute query: $sth->errstr\n");
@@ -500,20 +515,29 @@ sub get_info_stats {
 	# row[0]:  JobNr	1512
 	# row[1]:  ClientName	aurora.bayour.com-fd
 	# row[2]:  JobName	Aurora_System
-	# row[3]:  FileSet	10
-	# row[4]:  JobID	Aurora_System.2005-09-22_03.00.01
-	# row[5]:  Status	T					=> A, R, T or f
-	# row[6]:  Level	I					=> D, F or I
-	# row[7]:  StartTime	2005-09-22 09:39:04
-	# row[8]:  EndTime	2005-09-22 10:12:10
-	# row[9]:  Files	1133
-	# row[10]: Bytes	349069751
-	# row[11]: Errors	0
-	# row[12]: MissingFiles	0
+	# row[3]:  Type		B
+	# row[4]:  FileSet	10
+	# row[5]:  JobID	Aurora_System.2005-09-22_03.00.01
+	# row[6]:  Status	T					=> A, R, T or f
+	# row[7]:  Level	I					=> D, F or I
+	# row[8]:  StartTime	2005-09-22 09:39:04
+	# row[9]:  EndTime	2005-09-22 10:12:10
+	# row[10]: Files	1133
+	# row[11]: Bytes	349069751
+	# row[12]: Errors	0
+	# row[13]: MissingFiles	0
+
+	if($CFG{'DEBUG'} >= 4) {
+	    my $tmp = join(':', @row);
+	    &echo(0, "ROW[$status]: '$tmp'\n");
+	}
 
 	# {{{ Extract date and time
-	my ($start_date, $start_time) = split(' ', $row[7]);
-	my ($end_date,   $end_time)   = split(' ', $row[8]);
+	my ($start_date, $start_time) = split(' ', $row[8]);
+	my ($end_date,   $end_time)   = split(' ', $row[9]);
+
+	$row[8] = '' if($row[7] eq '0000-00-00 00:00:00');
+	$row[9] = '' if($row[8] eq '0000-00-00 00:00:00');
 # }}}
 
 	# Calculate how long the job took
@@ -528,22 +552,24 @@ sub get_info_stats {
 # }}}
 		
 	# {{{ Put toghether the status array.
-	$status{$row[1]}{$row[2]}{$row[4]}{"jobnr"}	 = $row[0];
-	$status{$row[1]}{$row[2]}{$row[4]}{"fileset"}	 = $row[3];
-	$status{$row[1]}{$row[2]}{$row[4]}{"status"}	 = $row[5];
-	$status{$row[1]}{$row[2]}{$row[4]}{"level"}	 = $row[6];
-	$status{$row[1]}{$row[2]}{$row[4]}{"start_date"} = $start;
-	$status{$row[1]}{$row[2]}{$row[4]}{"end_date"}   = $end;
-	$status{$row[1]}{$row[2]}{$row[4]}{"files"}      = $row[9];
-	$status{$row[1]}{$row[2]}{$row[4]}{"bytes"}      = $row[10];
-	$status{$row[1]}{$row[2]}{$row[4]}{"errors"}	 = $row[11];
-	$status{$row[1]}{$row[2]}{$row[4]}{"missing"}	 = $row[12];
-	$status{$row[1]}{$row[2]}{$row[4]}{"duration"}   = $duration;
+	$status{$row[1]}{$row[2]}{$row[5]}{"jobnr"}	 = $row[0];
+	$status{$row[1]}{$row[2]}{$row[5]}{"type"}	 = $row[3];
+	$status{$row[1]}{$row[2]}{$row[5]}{"fileset"}	 = $row[4];
+	$status{$row[1]}{$row[2]}{$row[5]}{"status"}	 = $row[6];
+	$status{$row[1]}{$row[2]}{$row[5]}{"level"}	 = $row[7];
+	$status{$row[1]}{$row[2]}{$row[5]}{"start_date"} = $row[8];
+	$status{$row[1]}{$row[2]}{$row[5]}{"end_date"}   = $row[9];
+	$status{$row[1]}{$row[2]}{$row[5]}{"files"}      = $row[10];
+	$status{$row[1]}{$row[2]}{$row[5]}{"bytes"}      = $row[11] / 1024;
+	$status{$row[1]}{$row[2]}{$row[5]}{"errors"}	 = $row[12];
+	$status{$row[1]}{$row[2]}{$row[5]}{"missing"}	 = $row[13];
+	$status{$row[1]}{$row[2]}{$row[5]}{"duration"}   = $duration;
 # }}}
 
 	$status++; # Increase number of status counters
     }
 
+    &echo(0, "Number of status counters: $status\n") if($CFG{'DEBUG'} >= 4);
     return($status, %status);
 }
 # }}}
@@ -599,67 +625,6 @@ sub get_info_jobs {
 # }}}
 
     return($jobs, %jobs);
-}
-# }}}
-
-# {{{ Get next value from a set of input
-sub get_next_oid {
-    my @tmp = @_;
-
-    &output_extra_debugging(@tmp) if($CFG{'DEBUG'} > 3);
-
-    # next1 => Base OID to use in call
-    # next2 => next1.next2 => Full OID to retreive
-    # next3 => Client number (OID_BASE.4) or Job ID (OID_BASE.9)
-    my($next1, $next2, $next3);
-
-    $next1 = $OID_BASE.".".$tmp[0].".".$tmp[1].".".$tmp[2]; # Base value.
-    if(defined($tmp[5])) {
-	$next2 = ".".$tmp[3].".".$tmp[4];
-	$next3 = $tmp[5];
-    } elsif(defined($tmp[4])) {
-	$next2 = ".".$tmp[3];
-	$next3 = $tmp[4];
-    } else {
-	$next2 = "";
-	$next3 = $tmp[3];
-    }
-
-    # Global variables for the print function(s).
-    if($tmp[0] == 5) {
-	# {{{ ------------------------------------- OID_BASE.5       
-	$TYPE_STATUS = $tmp[2];
-	$CLIENT_NO   = $tmp[3];
-# }}} # OID_BASE.5
-    } elsif(($tmp[0] >= 6) && ($tmp[0] <= 8)) {
-	# {{{ ------------------------------------- OID_BASE.[6-8]   
-	# StatsIndex, StatsTypesName and JobID list
-	$TYPE_STATUS = $tmp[2];
-	$CLIENT_NO   = $tmp[3];
-	$JOB_NO      = $tmp[4];
-# }}} # OID_BASE.[5-8]
-    } elsif(($tmp[0] >= 9) && ($tmp[0] <= 10)) {
-	# {{{ ------------------------------------- OID_BASE.[9-10] 
-	$TYPE_STATUS = $tmp[2];
-	$CLIENT_NO   = $tmp[3];
-# }}} # OID_BASE.[9-10]
-    } else {
-	$CLIENT_NO   = $tmp[3];
-	$TYPE_STATUS = $tmp[4];
-    }
-
-    if($CFG{'DEBUG'} > 2) {
-	my $string;
-	$string  = "TYPE_STATUS=$TYPE_STATUS" if(defined($TYPE_STATUS));
-	$string .= ", " if($string);
-	$string .= "CLIENT_NO=$CLIENT_NO" if(defined($CLIENT_NO));
-	$string .= ", " if($string);
-	$string .= "JOB_NO=$JOB_NO" if(defined($JOB_NO));
-	
-	&echo(0, "=> get_next_oid(): $string\n");
-    }
-
-    return($next1, $next2, $next3);
 }
 # }}}
 
@@ -1143,51 +1108,8 @@ sub print_jobs_ids {
 # }}}
 
 
-# {{{ OID_BASE.8.1.1.#		Output job status index
-sub print_types_index {
-    my $key_nr = shift;
-    my $success = 0;
-    my($i, $max);
-
-    &echo(0, "=> OID_BASE.statsTable.statsEntry.IndexStats\n") if($CFG{'DEBUG'} > 1);
-
-    if(defined($key_nr)) {
-	# {{{ One specific status index number
-	my $value = sprintf("%02d", $key_nr+1); # This is the index - offset one!
-	if(!$keys_stats{$value}) {
-	    &echo(0, "=> No such status type ($key_nr)\n") if($CFG{'DEBUG'} > 1);
-	    return 0;
-	}
-
-	$i = $key_nr;
-	$max = $key_nr;
-# }}}
-    } else {
-	# {{{ ALL status indexes
-	$i = 1;
-	$max = $TYPES_STATS;
-# }}}
-    }
-
-    # {{{ Output index
-    for(; $i <= $max; $i++) {
-	&echo(0, "$OID_BASE.8.1.1.$i = $i\n") if($CFG{'DEBUG'});
-	
-	&echo(1, "$OID_BASE.8.1.1.$i\n");
-	&echo(1, "integer\n");
-	&echo(1, "$i\n");
-	
-	$success = 1;
-    }
-# }}}
-
-    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
-    return $success;
-}
-# }}}
-
-# {{{ OID_BASE.8.1.2.a.x.y.z.#	Output the types
-sub print_types_names {
+# {{{ OID_BASE.8.1.1.#		Output the job status counters index
+sub print_jobs_status_counters_index {
     my $key_nr = shift;
     my $success = 0;
     my($i, $max);
@@ -1214,14 +1136,12 @@ sub print_types_names {
 
     # {{{ Output index
     for(; $i <= $max; $i++) {
-	my $key_name = $keys_stats{$i};
-	
-	&echo(0, "$OID_BASE.8.1.2.$i = $key_name\n") if($CFG{'DEBUG'});
-	
-	&echo(1, "$OID_BASE.8.1.2.$i\n");
-	&echo(1, "string\n");
-	&echo(1, "$key_name\n");
-	
+	&echo(0, "$OID_BASE.8.1.1.$i = $i\n") if($CFG{'DEBUG'});
+
+	&echo(1, "$OID_BASE.8.1.1.$i\n");
+	&echo(1, "integer\n");
+	&echo(1, "$i\n");
+
 	$success = 1;
     }
 # }}}
@@ -1231,7 +1151,117 @@ sub print_types_names {
 }
 # }}}
 
-# {{{ OID_BASE.8.1.X.x.y.z	Output job status
+# {{{ OID_BASE.8.1.2.#		Output the job status counters
+sub print_jobs_status_counters {
+    my $key_nr = shift;
+    my $success = 0;
+    my($i, $max);
+
+    &echo(0, "=> OID_BASE.statsTable.statsEntry.statsTypeName\n") if($CFG{'DEBUG'} > 1);
+
+    if(defined($key_nr)) {
+	# {{{ One specific type name
+	$i = $key_nr;
+	$max = $key_nr;
+# }}}
+    } else {
+	# {{{ ALL status indexes
+	$i = 1;
+	$max = $TYPES_STATS;
+# }}}
+    }
+
+    # {{{ Output index
+    for(; $i <= $max; $i++) {
+	my $value = sprintf("%02d", $i+1);
+	my $key_name = $keys_stats{$value};
+
+	&echo(0, "$OID_BASE.8.1.2.$i = $key_name\n") if($CFG{'DEBUG'});
+
+	&echo(1, "$OID_BASE.8.1.2.$i\n");
+	&echo(1, "string\n");
+	&echo(1, "$key_name\n");
+
+	$success = 1;
+    }
+# }}}
+
+    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+    return $success;
+}
+# }}}
+
+
+# {{{ OID_BASE.9.1.1.x.y.z.#	Output job status index
+sub print_jobs_status_index {
+    my $key_nr = shift;
+    my $success = 0;
+
+    &echo(0, "=> OID_BASE.statsTable.statsEntry.IndexStats\n") if($CFG{'DEBUG'} > 1);
+
+    if(defined($key_nr)) {
+	# {{{ One specific status index number
+	my $client_name_num = 1; # Client number
+	foreach my $client_name (sort keys %CLIENTS) {
+	    if($client_name_num == $CLIENT_NO) {
+		my $job_name_num = 1; # Job Name
+		foreach my $job_name (sort keys %{ $STATUS{$client_name} }) {
+		    if($job_name_num == $JOB_NO) {
+			my $job_id_num = 1; # Job ID number
+			foreach my $job_id (sort keys %{ $STATUS{$client_name}{$job_name} }) {
+			    if($job_id_num == $key_nr) {
+				&echo(0, "$OID_BASE.9.1.1.$client_name_num.$job_name_num.$job_id_num = $job_id_num\n") if($CFG{'DEBUG'});
+				
+				&echo(1, "$OID_BASE.9.1.1.$client_name_num.$job_name_num.$job_id_num\n");
+				&echo(1, "integer\n");
+				&echo(1, "$job_id_num\n");
+				
+				$success = 1;
+			    }
+
+			    $job_id_num++;
+			}
+		    }
+
+		    $job_name_num++;
+		}
+	    }
+
+	    $client_name_num++;
+	}
+# }}}
+    } else {
+	# {{{ ALL status indexes
+	my $client_name_num = 1; # Client number
+	foreach my $client_name (sort keys %CLIENTS) {
+	    my $job_name_num = 1; # Job Name
+	    foreach my $job_name (sort keys %{ $STATUS{$client_name} }) {
+		my $job_id_num = 1; # Job ID number
+		foreach my $job_id (sort keys %{ $STATUS{$client_name}{$job_name} }) {
+		    &echo(0, "$OID_BASE.9.1.1.$client_name_num.$job_name_num.$job_id_num = $job_id_num\n") if($CFG{'DEBUG'});
+		    
+		    &echo(1, "$OID_BASE.9.1.1.$client_name_num.$job_name_num.$job_id_num\n");
+		    &echo(1, "integer\n");
+		    &echo(1, "$job_id_num\n");
+		    
+		    $success = 1;
+		    $job_id_num++;
+		}
+		
+		$job_name_num++;
+	    }
+	    
+	    $client_name_num++;
+	}
+# }}}
+    }
+
+    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+    return $success;
+}
+# }}}
+
+# {{{ OID_BASE.9.1.X.x.y.z.#	Output job status
 sub print_jobs_status {
     my $job_status_nr = shift;
     my $success = 0;
@@ -1260,11 +1290,11 @@ sub print_jobs_status {
 				    if($job_id_num == $job_status_nr) {
 					&echo(0, "=> OID_BASE.statsTable.statsEntry.$key_name.clientId.jobNr\n") if($CFG{'DEBUG'} > 1);
 
-					&echo(0, "$OID_BASE.8.1.$key_nr.$client_name_num.$job_name_num.$job_id_num = ".
+					&echo(0, "$OID_BASE.9.1.$key_nr.$client_name_num.$job_name_num.$job_id_num = ".
 					      $STATUS{$client_name}{$job_name}{$job_id}{$key_name}."\n") if($CFG{'DEBUG'});
 					
-					&echo(1, "$OID_BASE.8.1.$key_nr.$client_name_num.$job_name_num.$job_id_num\n");
-					if(($key_name eq 'start_date') || ($key_name eq 'end_date')) {
+					&echo(1, "$OID_BASE.9.1.$key_nr.$client_name_num.$job_name_num.$job_id_num\n");
+					if(($key_name eq 'start_date') || ($key_name eq 'end_date') || ($key_name eq 'type')) {
 					    &echo(1, "string\n");
 					} elsif($key_name eq 'bytes') {
 					    &echo(1, "counter\n");
@@ -1302,11 +1332,11 @@ sub print_jobs_status {
 		foreach my $job_name (sort keys %{ $STATUS{$client_name} }) {
 		    my $job_id_num = 1; # Job ID number
 		    foreach my $job_id (sort keys %{ $STATUS{$client_name}{$job_name} }) {
-			&echo(0, "$OID_BASE.8.1.$key_nr.$client_name_num.$job_name_num.$job_id_num = ".
+			&echo(0, "$OID_BASE.9.1.$key_nr.$client_name_num.$job_name_num.$job_id_num = ".
 			      $STATUS{$client_name}{$job_name}{$job_id}{$key_name}."\n") if($CFG{'DEBUG'});
 
-			&echo(1, "$OID_BASE.8.1.$key_nr.$client_name_num.$job_name_num.$job_id_num\n");
-			if(($key_name eq 'start_date') || ($key_name eq 'end_date')) {
+			&echo(1, "$OID_BASE.9.1.$key_nr.$client_name_num.$job_name_num.$job_id_num\n");
+			if(($key_name eq 'start_date') || ($key_name eq 'end_date') || ($key_name eq 'type')) {
 			    &echo(1, "string\n");
 			} elsif($key_name eq 'bytes') {
 			    &echo(1, "counter\n");
@@ -1335,7 +1365,7 @@ sub print_jobs_status {
 # }}}
 
 
-# {{{ OID_BASE.9.1.1.x		Output pool index
+# {{{ OID_BASE.10.1.1.x		Output pool index
 sub print_pool_index {
     my $pool_no = shift; # Pool number
     my($i, $max);
@@ -1361,9 +1391,9 @@ sub print_pool_index {
 
     # {{{ Output index
     for(; $i <= $max; $i++) {
-	&echo(0, "$OID_BASE.9.1.1.$i = $i\n") if($CFG{'DEBUG'});
+	&echo(0, "$OID_BASE.10.1.1.$i = $i\n") if($CFG{'DEBUG'});
 
-	&echo(1, "$OID_BASE.9.1.1.$i\n");
+	&echo(1, "$OID_BASE.10.1.1.$i\n");
 	&echo(1, "integer\n");
 	&echo(1, "$i\n");
 
@@ -1376,7 +1406,7 @@ sub print_pool_index {
 }
 # }}}
 
-# {{{ OID_BASE.9.1.X.x		Output pool information
+# {{{ OID_BASE.10.1.X.x		Output pool information
 sub print_pool_names {
     my $pool_no = shift; # Pool number
     my $success = 0;
@@ -1395,11 +1425,11 @@ sub print_pool_names {
 		    if($pool_nr == $pool_no) {
 			&echo(0, "=> OID_BASE.poolTable.poolEntry->$pool_id.$key_name\n") if($CFG{'DEBUG'} > 1);
 
-			&echo(0, "$OID_BASE.9.1.$key_nr.$pool_nr = ".$POOLS{$pool_id}{$key_name}."\n") if($CFG{'DEBUG'});
+			&echo(0, "$OID_BASE.10.1.$key_nr.$pool_nr = ".$POOLS{$pool_id}{$key_name}."\n") if($CFG{'DEBUG'});
 			
-			&echo(1, "$OID_BASE.9.1.$key_nr.$pool_nr\n");
+			&echo(1, "$OID_BASE.10.1.$key_nr.$pool_nr\n");
 
-			# OID_BASE.9.1.{3,16,17} is strings, all others integers!
+			# OID_BASE.10.1.{3,16,17} is strings, all others integers!
 			if(($key_name eq 'id') ||
 			   ($key_name eq 'type') ||
 			   ($key_name eq 'label_format'))
@@ -1431,9 +1461,9 @@ sub print_pool_names {
 	    
 	    my $pool_nr = 1;
 	    foreach my $pool_id (sort keys %POOLS) {
-		&echo(0, "$OID_BASE.9.1.$key_nr.$pool_nr = ".$POOLS{$pool_id}{$key_name}."\n") if($CFG{'DEBUG'});
+		&echo(0, "$OID_BASE.10.1.$key_nr.$pool_nr = ".$POOLS{$pool_id}{$key_name}."\n") if($CFG{'DEBUG'});
 		
-		&echo(1, "$OID_BASE.9.1.$key_nr.$pool_nr\n");
+		&echo(1, "$OID_BASE.10.1.$key_nr.$pool_nr\n");
 		if(($key_name eq 'id') ||
 		   ($key_name eq 'type') ||
 		   ($key_name eq 'label_format'))
@@ -1463,7 +1493,7 @@ sub print_pool_names {
 # }}}
 
 
-# {{{ OID_BASE.10.1.1.x		Output media index
+# {{{ OID_BASE.11.1.1.x		Output media index
 sub print_media_index {
     my $media_no = shift; # Media number
     my($i, $max);
@@ -1489,9 +1519,9 @@ sub print_media_index {
 
     # {{{ Output index
     for(; $i <= $max; $i++) {
-	&echo(0, "$OID_BASE.10.1.1.$i = $i\n") if($CFG{'DEBUG'});
+	&echo(0, "$OID_BASE.11.1.1.$i = $i\n") if($CFG{'DEBUG'});
 
-	&echo(1, "$OID_BASE.10.1.1.$i\n");
+	&echo(1, "$OID_BASE.11.1.1.$i\n");
 	&echo(1, "integer\n");
 	&echo(1, "$i\n");
 
@@ -1504,7 +1534,7 @@ sub print_media_index {
 }
 # }}}
 
-# {{{ OID_BASE.10.1.X.x		Output media index
+# {{{ OID_BASE.11.1.X.x		Output media index
 sub print_media_names {
     my $media_no = shift; # Media number
     my $success = 0;
@@ -1521,9 +1551,9 @@ sub print_media_names {
 		my $media_nr = 1;
 		foreach my $media_id (sort keys %MEDIAS) {
 		    if($media_nr == $media_no) {
-			&echo(0, "$OID_BASE.10.1.$key_nr.$media_nr = ".$MEDIAS{$media_id}{$key_name}."\n") if($CFG{'DEBUG'});
+			&echo(0, "$OID_BASE.11.1.$key_nr.$media_nr = ".$MEDIAS{$media_id}{$key_name}."\n") if($CFG{'DEBUG'});
 			
-			&echo(1, "$OID_BASE.10.1.$key_nr.$media_nr\n");
+			&echo(1, "$OID_BASE.11.1.$key_nr.$media_nr\n");
 			if(($key_name eq 'name') ||
 			   ($key_name eq 'type') ||
 			   ($key_name eq 'first_written') ||
@@ -1563,9 +1593,9 @@ sub print_media_names {
 	    
 	    my $media_nr = 1;
 	    foreach my $media_id (sort keys %MEDIAS) {
-		&echo(0, "$OID_BASE.10.1.$key_nr.$media_nr = ".$MEDIAS{$media_id}{$key_name}."\n") if($CFG{'DEBUG'});
+		&echo(0, "$OID_BASE.11.1.$key_nr.$media_nr = ".$MEDIAS{$media_id}{$key_name}."\n") if($CFG{'DEBUG'});
 		
-		&echo(1, "$OID_BASE.10.1.$key_nr.$media_nr\n");
+		&echo(1, "$OID_BASE.11.1.$key_nr.$media_nr\n");
 		if(($key_name eq 'name') ||
 		   ($key_name eq 'type') ||
 		   ($key_name eq 'first_written') ||
@@ -1668,7 +1698,7 @@ sub call_func {
     }
 
     if(defined($function)) {
-	&echo(0, "=> Calling function '$function($func_arg)'\n") if($CFG{'DEBUG'} > 1);
+	&echo(0, "=> Calling function '$function($func_arg)'\n") if($CFG{'DEBUG'} > 2);
 	
 	$function = \&{$function}; # Because of 'use strict' above...
 	&$function($func_arg);
@@ -1780,6 +1810,67 @@ sub no_value {
 }
 # }}}
 
+# {{{ Get next value from a set of input
+sub get_next_oid {
+    my @tmp = @_;
+
+    &output_extra_debugging(@tmp) if($CFG{'DEBUG'} > 3);
+
+    # next1 => Base OID to use in call
+    # next2 => next1.next2 => Full OID to retreive
+    # next3 => Client number (OID_BASE.4) or Job ID (OID_BASE.9)
+    my($next1, $next2, $next3);
+
+    $next1 = $OID_BASE.".".$tmp[0].".".$tmp[1].".".$tmp[2]; # Base value.
+    if(defined($tmp[5])) {
+	$next2 = ".".$tmp[3].".".$tmp[4];
+	$next3 = $tmp[5];
+    } elsif(defined($tmp[4])) {
+	$next2 = ".".$tmp[3];
+	$next3 = $tmp[4];
+    } else {
+	$next2 = "";
+	$next3 = $tmp[3];
+    }
+
+    # Global variables for the print function(s).
+    if($tmp[0] == 5) {
+	# {{{ ------------------------------------- OID_BASE.5       
+	$TYPE_STATUS = $tmp[2];
+	$CLIENT_NO   = $tmp[3];
+# }}} # OID_BASE.5
+    } elsif(($tmp[0] >= 6) && ($tmp[0] <= 9)) {
+	# {{{ ------------------------------------- OID_BASE.[6-9]   
+	# StatsIndex, StatsTypesName and JobID list
+	$TYPE_STATUS = $tmp[2];
+	$CLIENT_NO   = $tmp[3];
+	$JOB_NO      = $tmp[4];
+# }}} # OID_BASE.[5-8]
+    } elsif(($tmp[0] >= 10) && ($tmp[0] <= 11)) {
+	# {{{ ------------------------------------- OID_BASE.[10-11] 
+	$TYPE_STATUS = $tmp[2];
+	$CLIENT_NO   = $tmp[3];
+# }}} # OID_BASE.[9-10]
+    } else {
+	$CLIENT_NO   = $tmp[3];
+	$TYPE_STATUS = $tmp[4];
+    }
+
+    if($CFG{'DEBUG'} > 2) {
+	my $string;
+	$string  = "TYPE_STATUS=$TYPE_STATUS" if(defined($TYPE_STATUS));
+	$string .= ", " if($string);
+	$string .= "CLIENT_NO=$CLIENT_NO" if(defined($CLIENT_NO));
+	$string .= ", " if($string);
+	$string .= "JOB_NO=$JOB_NO" if(defined($JOB_NO));
+	
+	&echo(0, "=> get_next_oid(): $string\n");
+    }
+
+    return($next1, $next2, $next3);
+}
+# }}}
+
 # {{{ Stuff to do when we're done. ALWAYS (even if crash!).
 sub END {
     # Disconnect from the database.
@@ -1853,30 +1944,29 @@ if($ALL) {
     # We do that here instead of at the very top so that output of ALL
     # works without calling print_jobs_status() FIVE times...
     #
-    # OID_BASE.08.1.1: types_index	Already exists in %functions
-    # OID_BASE.08.1.2: types_names	Already exists in %functions	
-    # OID_BASE.08.1.3: jobs_status	Already exists in %functions	start_date
-    # OID_BASE.08.1.4: jobs_status	Add this to %functions		end_date
-    # OID_BASE.08.1.5: jobs_status	Add this to %functions		duration
-    # OID_BASE.08.1.6: jobs_status	Add this to %functions		files
-    # OID_BASE.08.1.7: jobs_status	Add this to %functions		bytes
-    ($i, $j) = (2, 4);
+    # OID_BASE.09.1.1: types_index	Already exists in %functions
+    # OID_BASE.09.1.2: jobs_status	Already exists in %functions	start_date
+    # OID_BASE.09.1.3: jobs_status	Add this to %functions		end_date
+    # OID_BASE.09.1.4: jobs_status	Add this to %functions		duration
+    # OID_BASE.09.1.5: jobs_status	Add this to %functions		files
+    # OID_BASE.09.1.6: jobs_status	Add this to %functions		bytes
+    ($i, $j) = (2, 3);
     for(; $i <= $TYPES_STATS; $i++, $j++) {
-	$functions{$OID_BASE.".08.1.$j"} = "jobs_status";
+	$functions{$OID_BASE.".09.1.$j"} = "jobs_status";
     }
 
     # Add the '%keys_pool' array to the '%functions' array
     # First one is already there, so start with the second with value '4'...
     ($i, $j) = (2, 3);
     for(; $i <= $TYPES_POOL; $i++, $j++) {
-	$functions{$OID_BASE.".09.1.$j"} = "pool_names";
+	$functions{$OID_BASE.".10.1.$j"} = "pool_names";
     }
 
     # Add the '%keys_media' array to the '%functions' array
     # First one is already there, so start with the second with value '4'...
     ($i, $j) = (2, 3);
     for(; $i <= $TYPES_MEDIA; $i++, $j++) {
-	$functions{$OID_BASE.".10.1.$j"} = "media_names";
+	$functions{$OID_BASE.".11.1.$j"} = "media_names";
     }
 # }}}
 
@@ -1889,7 +1979,7 @@ if($ALL) {
 
 	# {{{ Get all run arguments - next/specfic OID
 	my $arg = $_; chomp($arg);
-	&echo(0, "=> ARG=$arg\n") if($CFG{'DEBUG'} > 1);
+	&echo(0, "=> ARG=$arg\n") if($CFG{'DEBUG'} > 2);
 
 	# Get next line from STDIN -> OID number.
 	# $arg == 'getnext' => Get next OID
@@ -1899,10 +1989,10 @@ if($ALL) {
 	$oid =~ s/$OID_BASE//; # Remove the OID base
 	$oid =~ s/OID_BASE//;  # Remove the OID base (if we're debugging)
 	$oid =~ s/^\.//;       # Remove the first dot if it exists - it's in the way!
-	&echo(0, "=> OID=$OID_BASE.$oid\n") if($CFG{'DEBUG'} > 1);
+	&echo(0, "=> OID=$OID_BASE.$oid\n") if($CFG{'DEBUG'} > 2);
 	
 	my @tmp = split('\.', $oid);
-	&output_extra_debugging(@tmp) if($CFG{'DEBUG'} > 1);
+	&output_extra_debugging(@tmp) if($CFG{'DEBUG'} > 2);
 # }}}
 	
 	if($arg eq 'getnext') {
@@ -1976,10 +2066,11 @@ if($ALL) {
 		}
 # }}} # OID_BASE.5
 
-	    } elsif(($tmp[0] >= 6) &&  ($tmp[0] <= 8)) {
-		# {{{ ------------------------------------- OID_BASE.[6-8]   
+	    } elsif(($tmp[0] >= 6) &&  ($tmp[0] <= 9)) {
+		# {{{ ------------------------------------- OID_BASE.[6-9]   
 		# {{{ Figure out the NEXT value from the input
 		if($tmp[0] == 6) {
+		    # {{{ OID_BASE.6
 		    if(!defined($tmp[1]) || !defined($tmp[2])) {
 			# Called with 'OID_BASE.6'
 			for(my $i=1; $i <= 2; $i++) { $tmp[$i] = 1; }
@@ -1989,7 +2080,10 @@ if($ALL) {
 		    } else {
 			$tmp[4]++;
 		    }
+# }}} # OID_BASE.6
+
 		} elsif($tmp[0] == 7) {
+		    # {{{ OID_BASE.7
 		    if(!defined($tmp[1]) || !defined($tmp[2])) {
 			# Called with 'OID_BASE.7'
 			for(my $i=1; $i <= 5; $i++) { $tmp[$i] = 1; }
@@ -1999,25 +2093,68 @@ if($ALL) {
 		    } else {
 			$tmp[5]++;
 		    }
+# }}} # OID_BASE.7
+
 		} elsif($tmp[0] == 8) {
+		    # {{{ OID_BASE.8
+		    if(!defined($tmp[1])) {
+			for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
+		    } elsif(!defined($tmp[2])) {
+			for(my $i=2; $i <= 3; $i++) { $tmp[$i] = 1; }
+		    } elsif(!defined($tmp[3])) {
+			$tmp[3] = 1;
+		    } elsif($tmp[3] >= $TYPES_STATS) {
+			# No more status counters
+			if($tmp[2] == 1) {
+			    # OID_BASE.8.1.1.x -> OID_BASE.8.1.2.1
+			    $tmp[2]++;
+			    $tmp[3] = 1;
+			} else {
+			    # OID_BASE.8.1.2.x -> OID_BASE.9.1.1.1.1.1
+			    $tmp[0]++;
+			    for(my $i=1; $i <= 5; $i++) { $tmp[$i] = 1; }
+			}
+		    } else {
+			$tmp[3]++;
+		    }
+# }}} # OID_BASE.8
+
+		} elsif($tmp[0] == 9) {
+		    # {{{ OID_BASE.9
 		    if(!defined($tmp[1]) || !defined($tmp[2])) {
 			for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
-		    } elsif(($tmp[2] <= 2) && !defined($tmp[3])) {
-			# Called with 'OID_BASE.8.1.x'
-			for(my $i=3; $i <= 4; $i++) { $tmp[$i] = 1; }
-		    } elsif(($tmp[2] >= 3) && (!defined($tmp[4]) || !defined($tmp[5]))) {
-			for(my $i=4; $i <= 5; $i++) { $tmp[$i] = 1; }
-		    } elsif($tmp[2] >= 8) {
-			# End of the line for the OID_BASE.8.1.x -> OID_BASE.9.1.1.1
+
+		    } elsif($tmp[2] == 1) {
+			if(!defined($tmp[3])) {
+			    # Called with 'OID_BASE.9.1.1' - index
+			    for(my $i=3; $i <= 4; $i++) { $tmp[$i] = 1; }
+			} elsif(!defined($tmp[4])) {
+			    # Called with 'OID_BASE.9.1.1.x' - index
+			    $tmp[4] = 1;
+			} else {
+			    $tmp[5]++;
+			}
+
+		    } elsif($tmp[2] > $TYPES_STATS+2) { # Offset two because of index etc.
+			# End of the line for the OID_BASE.9.1.x -> OID_BASE.10.1.1.1
 			$tmp[0]++;
 			for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
-		    } else {
-			if($tmp[2] <= 2) {
-			    $tmp[3]++;
+
+		    } elsif($tmp[2] >= 2) {
+			if(!defined($tmp[3])) {
+			    # Called with 'OID_BASE.9.1.[2-11]'
+			    for(my $i=3; $i <= 5; $i++) { $tmp[$i] = 1; }
+			} elsif(!defined($tmp[4])) {
+			    # Called with 'OID_BASE.9.1.[2-11].x'
+			    for(my $i=4; $i <= 5; $i++) { $tmp[$i] = 1; }
+			} elsif(!defined($tmp[5])) {
+			    # Called with 'OID_BASE.9.1.[2-11].x.y'
+			    $tmp[5] = 1;
 			} else {
 			    $tmp[5]++;
 			}
 		    }
+# }}} # OID_BASE.8
 		}
 
 		# How to call call_func()
@@ -2032,24 +2169,22 @@ if($ALL) {
 		    if($tmp[0] == 6) {
 			$tmp[3]++;
 			$tmp[4] = 1;
+
 		    } elsif($tmp[0] == 7) {
 			$tmp[4]++;
 			$tmp[5] = 1;
-		    } elsif($tmp[0] == 8) {
-			if($tmp[2] <= 2) {
+
+		    } elsif($tmp[0] == 9) {
+			if($tmp[2] == 1) {
 			    $tmp[2]++;
 			    $tmp[3] = 1;
 
-			    if($tmp[2] == 3) {
+			    if($tmp[2] == 2) {
 				for(my $i=3; $i <= 5; $i++) { $tmp[$i] = 1; }
 			    }
 			} else {
 			    $tmp[4]++;
 			    $tmp[5] = 1;
-
-			    $tmp[3] = 1 if(!defined($tmp[3]));
-			    $tmp[4] = 1 if(!defined($tmp[4]));
-			    $tmp[5] = 1 if(!defined($tmp[5]));
 			}
 		    }
 
@@ -2071,7 +2206,8 @@ if($ALL) {
 				$tmp[0]++;
 				for(my $i=1; $i <= 5; $i++) { $tmp[$i] = 1; }
 			    }
-			} elsif(($tmp[0] == 7) || ($tmp[0] == 8)) {
+
+			} elsif(($tmp[0] == 7) || ($tmp[0] == 9)) {
 			    $tmp[3]++;
 			    for(my $i=4; $i <= 5; $i++) { $tmp[$i] = 1; }
 			}
@@ -2088,7 +2224,8 @@ if($ALL) {
 			    if($tmp[0] == 6) {
 				$tmp[0]++;
 				for(my $i=1; $i <= 5; $i++) { $tmp[$i] = 1; }
-			    } elsif(($tmp[0] == 7) || ($tmp[0] == 8)) {
+
+			    } elsif(($tmp[0] == 7) || ($tmp[0] == 9)) {
 				if(($tmp[0] == 7) && ($tmp[3] >= $CLIENTS)) {
 				    # End of the line for OID_BASE.7.1.x => OID_BASE.8.1.1.1
 				    $tmp[2]++;
@@ -2119,7 +2256,7 @@ if($ALL) {
 				$tmp[2] = 1;
 				$tmp[3] = 1;
 
-				if($tmp[0] == 8) {
+				if($tmp[0] == 9) {
 				    undef($tmp[4]); undef($tmp[5]);
 				}
 
@@ -2139,8 +2276,8 @@ if($ALL) {
 # }}} # Call functions ->  1
 # }}} OID_BASE.[6-8]
 
-	    } elsif(($tmp[0] >= 9) && ($tmp[0] <= 10)) {
-		# {{{ ------------------------------------- OID_BASE.[9-10] 
+	    } elsif(($tmp[0] >= 10) && ($tmp[0] <= 11)) {
+		# {{{ ------------------------------------- OID_BASE.[10-11] 
 		# {{{ Figure out the NEXT value from the input
 		if(!defined($tmp[1])) {
 		    for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
@@ -2160,12 +2297,14 @@ if($ALL) {
 		&echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} > 2);
 		if(!&call_func($next1, $next3)) {
 		    # {{{ Figure out the NEXT value from the input
-		    if(($tmp[0] == 9) && ($tmp[3] >= $POOLS)) {
+		    if(($tmp[0] == 10) && ($tmp[3] >= $POOLS)) {
 			# No more clients -> Next key, first client
 			$tmp[2]++;
 			$tmp[3] = 1;
-		    } elsif(($tmp[0] == 10) && ($tmp[2] > $TYPES_MEDIA)) {
+
+		    } elsif(($tmp[0] == 11) && ($tmp[2] > $TYPES_MEDIA)) {
 			&no_value();
+
 		    } else {
 			$tmp[2]++;
 			$tmp[3] = 1;
@@ -2179,9 +2318,9 @@ if($ALL) {
 		    &echo(0, ">> No OID at that level (-1) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} > 2);
 		    if(!&call_func($next1, $next3)) {
 			# {{{ Figure out the NEXT value from the input
-			if($tmp[0] == 9) {
+			if($tmp[0] == 10) {
 			    if($tmp[2] >= $TYPES_POOL) {
-				# No more values in OID_BASE.9.1.x -> OID_BASE.10.1.1.1
+				# No more values in OID_BASE.10.1.x -> OID_BASE.11.1.1.1
 				$tmp[0]++;
 				for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
 			    }
