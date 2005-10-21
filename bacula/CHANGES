@@ -1,0 +1,14 @@
+bacula-snmp 1.2 Release (Oct 21 2005)
+	Bug fixes
+	  + Convert some values that's to big to fit in a
+	    Counter32. From BYTES to KILO bytes...
+	    - Fixed the 'Wrong Type' error messages.
+	  + Rewrite the baculaStatsTable indexing. Now works.
+
+	Misc changes
+	  + Inset a new table (baculaStatsCountersTable) that
+	    contain the counter names instead of having them
+	    in the baculaStatsTable.
+	    - They messed up the baculaStatsTable...
+	  + Include more information (type, status, level,
+	    errors and missing files) in the stats table.
