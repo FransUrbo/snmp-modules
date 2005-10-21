@@ -1,20 +1,19 @@
 BAYOUR-COM-MIB DEFINITIONS ::= BEGIN
--- $Id: BAYOUR-COM-MIB.txt,v 1.12 2005-10-20 08:27:19 turbo Exp $
+-- $Id: BAYOUR-COM-MIB.txt,v 1.13 2005-10-21 12:47:52 turbo Exp $
 
 -- This is my very first MIB! A lot of it is taken from the IF-MIB
 -- by the IETF Interfaces MIB Working Group (200006140000).
 
 -- {{{ Imports
 IMPORTS
-  MODULE-IDENTITY, OBJECT-TYPE, Counter32, Counter64,
-                                Integer32, enterprises  FROM SNMPv2-SMI
-  MODULE-COMPLIANCE, OBJECT-GROUP                       FROM SNMPv2-CONF
-  TEXTUAL-CONVENTION, DisplayString                     FROM SNMPv2-TC;
+  MODULE-IDENTITY, OBJECT-TYPE, Counter32, Integer32, enterprises  FROM SNMPv2-SMI
+  MODULE-COMPLIANCE, OBJECT-GROUP                                  FROM SNMPv2-CONF
+  TEXTUAL-CONVENTION, DisplayString                                FROM SNMPv2-TC;
 -- }}}
 
 -- {{{ bayourCom Module identity
 bayourCom MODULE-IDENTITY
-  LAST-UPDATED                         "200510141115Z"  -- October 14, 2005
+  LAST-UPDATED                         "200510211259Z"  -- October 21, 2005
   ORGANIZATION                         "Bayour.COM"
   CONTACT-INFO                         "Postal:      Turbo Fredriksson
                                                      Naverlursgatan 8
@@ -24,6 +23,17 @@ bayourCom MODULE-IDENTITY
                                         Tel:         +46 704-697645
                                         E-Mail:      turbo@bayour.com"
   DESCRIPTION                          "The MIB module defines the Bayour.COM Bind9 and Bacula statistics."
+
+  REVISION                             "200510211259Z"  -- October 21, 2005 - 12:59
+  DESCRIPTION                          "* Add a new table containing the counter names - baculaStatsCountersTable.
+                                        * The CounterIndex MUST have a range - 0..2147483647 (a full Integer32)."
+
+  REVISION                             "200510201556Z"  -- October 20, 2005 - 15:56
+  DESCRIPTION                          "* Change back all Counter64 to Counter32 - can't use Counter64 in a
+                                          pass-through scripts because of SMIv1 specification(s)!
+                                        * Remove the JobType - missread the SQL table. It's actually a string.
+                                        * Remove the baculaStatsCounter. AGAIN. It STILL fucks up the table.
+                                          I just don't know why I keep adding it!!"
 
   REVISION                             "200510191032Z"  -- October 19, 2005 - 10:32
   DESCRIPTION                          "* Job Bytes and Pool Retention, Duration and Bytes and also the Media
@@ -83,22 +93,22 @@ bayourCom MODULE-IDENTITY
   DESCRIPTION                          "Initial 'release'."
   ::= { enterprises 8767 }
 
-  CounterIndex                         ::= TEXTUAL-CONVENTION
-    DISPLAY-HINT                       "d"
-    STATUS                             current
-    DESCRIPTION                        "A unique value, greater than zero, for each type of
+  snmp                                 OBJECT IDENTIFIER ::= { bayourCom 2 }
+-- }}}
+
+    -- {{{ Textual conventions
+    CounterIndex                       ::= TEXTUAL-CONVENTION
+      DISPLAY-HINT                     "d"
+      STATUS                           current
+      DESCRIPTION                      "A unique value, greater than zero, for each type of
                                         counter in the managed system. It is recommended that
                                         values are assigned contiguously starting from 1.
                                         The value for each counter sub-layer must remain
                                         constant at least from one re-initialization of the
                                         entity's network management system to the next
                                         re-initialization."
-    SYNTAX                              Integer32
+      SYNTAX                            Integer32 (0..2147483647)
 
-  snmp                                 OBJECT IDENTIFIER ::= { bayourCom 2 }
--- }}}
-
-    -- {{{ Textual conventions
     TrueFalse                          ::= TEXTUAL-CONVENTION
       STATUS                           current
       DESCRIPTION                      "True or False values:
@@ -134,16 +144,6 @@ bayourCom MODULE-IDENTITY
                                          d(0),
                                          f(2),
                                          i(3)
-                                       }
-
-    JobType                            ::= TEXTUAL-CONVENTION
-      STATUS                           current
-      DESCRIPTION                      "Job type values:
-                                          b - 
-                                          r - "
-      SYNTAX                           INTEGER {
-                                         b(1),
-                                         r(2)
                                        }
 
     VolumeStatus                       ::= TEXTUAL-CONVENTION
@@ -216,8 +216,9 @@ bayourCom MODULE-IDENTITY
           DESCRIPTION                  "The compliance statement for SNMP entities which have
                                         bacula status counters."
           MODULE                       -- this module
-          MANDATORY-GROUPS             { baculaGroupClients, baculaGroupStats, baculaGroupJobNames,
-                                         baculaGroupJobIDs, baculaGroupPools, baculaGroupMedia }
+          MANDATORY-GROUPS             { baculaGroupClients, baculaGroupJobNames, baculaGroupJobIDs,
+                                         baculaGroupCounters, baculaGroupStats, baculaGroupPools,
+                                         baculaGroupMedia }
           ::= { baculaConformance 1 }
 
         -- {{{ .1.3.6.1.4.1.8767.2.0.2.1 baculaGroups
@@ -245,15 +246,23 @@ bayourCom MODULE-IDENTITY
                                         applicable to Bacula statistics."
             ::= { baculaGroups 3 }
 
-          baculaGroupStats             OBJECT-GROUP
-            OBJECTS                    { baculaTotalStats, baculaStatsCounter, baculaStatsStart,
-                                         baculaStatsEnd, baculaStatsDuration, baculaStatsFiles,
-                                         baculaStatsBytes, baculaStatsType, baculaStatsStatus,
-                                         baculaStatsLevel, baculaStatsErrors, baculaStatsMissingFiles }
+          baculaGroupCounters          OBJECT-GROUP
+            OBJECTS                    { baculaStatsCounterName }
             STATUS                     current
             DESCRIPTION                "A collection of objects providing information
                                         applicable to Bacula statistics."
             ::= { baculaGroups 4 }
+
+
+          baculaGroupStats             OBJECT-GROUP
+            OBJECTS                    { baculaTotalStats, baculaStatsStart, baculaStatsEnd,
+                                         baculaStatsDuration, baculaStatsFiles, baculaStatsBytes,
+                                         baculaStatsType, baculaStatsStatus, baculaStatsLevel,
+                                         baculaStatsErrors, baculaStatsMissingFiles }
+            STATUS                     current
+            DESCRIPTION                "A collection of objects providing information
+                                        applicable to Bacula statistics."
+            ::= { baculaGroups 5 }
 
           baculaGroupPools             OBJECT-GROUP
             OBJECTS                    { baculaTotalPools, baculaPoolsName, baculaPoolsNum,
@@ -266,7 +275,7 @@ bayourCom MODULE-IDENTITY
             STATUS                     current
             DESCRIPTION                "A collection of objects providing information
                                         applicable to Bacula statistics."
-            ::= { baculaGroups 5 }
+            ::= { baculaGroups 6 }
 
           baculaGroupMedia             OBJECT-GROUP
             OBJECTS                    { baculaTotalMedia, baculaMediaName, baculaMediaSlot,
@@ -282,7 +291,7 @@ bayourCom MODULE-IDENTITY
             STATUS                     current
             DESCRIPTION                "A collection of objects providing information
                                         applicable to Bacula statistics."
-            ::= { baculaGroups 6 }
+            ::= { baculaGroups 7 }
 -- }}}
 -- }}}
 -- }}}
@@ -514,8 +523,8 @@ bayourCom MODULE-IDENTITY
             baculaClientName           DisplayString,
             baculaClientUname          DisplayString,
             baculaClientAutoPrune      TrueFalse,
-            baculaClientRetentionFile  Counter64,
-            baculaClientRetentionJob   Counter64
+            baculaClientRetentionFile  Counter32,
+            baculaClientRetentionJob   Counter32
           }
   
           baculaClientsIndex           OBJECT-TYPE
@@ -549,14 +558,14 @@ bayourCom MODULE-IDENTITY
             ::= { baculaClientsEntry 4 }
 
           baculaClientRetentionFile    OBJECT-TYPE
-            SYNTAX                     Counter64
+            SYNTAX                     Counter32
             MAX-ACCESS                 read-write
             STATUS                     current
             DESCRIPTION                "A textual string containing information about the job."
             ::= { baculaClientsEntry 5 }
 
           baculaClientRetentionJob     OBJECT-TYPE
-            SYNTAX                     Counter64
+            SYNTAX                     Counter32
             MAX-ACCESS                 read-write
             STATUS                     current
             DESCRIPTION                "A textual string containing information about the job."
@@ -662,13 +671,50 @@ bayourCom MODULE-IDENTITY
             ::= { baculaJobsIDEntry 2 }
 -- }}}
 
-      -- {{{ .1.3.6.1.4.1.8767.2.3.8  baculaStatsTable
+      -- {{{ .1.3.6.1.4.1.8767.2.3.8  baculaStatsCountersTable
+      baculaStatsCountersTable        OBJECT-TYPE
+        SYNTAX                        SEQUENCE OF BaculaStatsCountersEntry
+        MAX-ACCESS                    not-accessible
+        STATUS                        current
+        DESCRIPTION                   "A list of bacula statistic counter names."
+        ::= { baculaStats 8 }
+
+        baculaStatsCountersEntry        OBJECT-TYPE
+          SYNTAX                        BaculaStatsCountersEntry
+          MAX-ACCESS                    not-accessible
+          STATUS                        current
+          DESCRIPTION                   "An entry containing bacula statistic counter names."
+          INDEX                         { baculaStatsCountersIndex }
+          ::= { baculaStatsCountersTable 1 }
+
+          BaculaStatsCountersEntry      ::= SEQUENCE {
+            baculaStatsCountersIndex    CounterIndex,
+
+            baculaStatsCounterName      DisplayString
+          }
+
+          baculaStatsCountersIndex      OBJECT-TYPE
+            SYNTAX                      CounterIndex
+            MAX-ACCESS                  not-accessible
+            STATUS                      current
+            DESCRIPTION                 "Reference Index for each counter name."
+            ::= { baculaStatsCountersEntry 1 }
+
+          baculaStatsCounterName        OBJECT-TYPE
+            SYNTAX                      DisplayString
+            MAX-ACCESS                  read-only
+            STATUS                      current
+            DESCRIPTION                 "Names of the counter values."
+            ::= { baculaStatsCountersEntry 2 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.3.9  baculaStatsTable
       baculaStatsTable                 OBJECT-TYPE
         SYNTAX                         SEQUENCE OF BaculaStatsEntry
         MAX-ACCESS                     not-accessible
         STATUS                         current
         DESCRIPTION                    "A list of bacula statistic counters"
-        ::= { baculaStats 8 }
+        ::= { baculaStats 9 }
   
         baculaStatsEntry               OBJECT-TYPE
           SYNTAX                       BaculaStatsEntry
@@ -681,13 +727,12 @@ bayourCom MODULE-IDENTITY
           BaculaStatsEntry             ::= SEQUENCE {
             baculaStatsIndex           CounterIndex,
 
-            baculaStatsCounter         DisplayString,
             baculaStatsStart           DisplayString,
             baculaStatsEnd             DisplayString,
             baculaStatsDuration        Integer32,
             baculaStatsFiles           Integer32,
-            baculaStatsBytes           Counter64,
-            baculaStatsType            JobType,
+            baculaStatsBytes           Counter32,
+            baculaStatsType            DisplayString,
             baculaStatsStatus          Status,
             baculaStatsLevel           Level,
             baculaStatsErrors          Integer32,
@@ -701,92 +746,85 @@ bayourCom MODULE-IDENTITY
             DESCRIPTION                "Reference Index for each counter."
             ::= { baculaStatsEntry 1 }
   
-          baculaStatsCounter           OBJECT-TYPE
-            SYNTAX                     DisplayString
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "Full ID name of a job."
-            ::= { baculaStatsEntry 2 }
-
           baculaStatsStart             OBJECT-TYPE
             SYNTAX                     DisplayString
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Date and time of job start."
-            ::= { baculaStatsEntry 3 }
+            ::= { baculaStatsEntry 2 }
 
           baculaStatsEnd               OBJECT-TYPE
             SYNTAX                     DisplayString
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Date and time of job completion."
-            ::= { baculaStatsEntry 4 }
+            ::= { baculaStatsEntry 3 }
 
           baculaStatsDuration          OBJECT-TYPE
             SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Duration of job."
-            ::= { baculaStatsEntry 5 }
+            ::= { baculaStatsEntry 4 }
 
           baculaStatsFiles             OBJECT-TYPE
             SYNTAX                     Integer32 (1..2147483647)
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Files backed up in the job."
-            ::= { baculaStatsEntry 6 }
+            ::= { baculaStatsEntry 5 }
 
           baculaStatsBytes             OBJECT-TYPE
-            SYNTAX                     Counter64
+            SYNTAX                     Counter32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Bytes backed up in the job."
-            ::= { baculaStatsEntry 7 }
+            ::= { baculaStatsEntry 6 }
 
           baculaStatsType              OBJECT-TYPE
-            SYNTAX                     JobType
+            SYNTAX                     DisplayString
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Files backed up in the job."
-            ::= { baculaStatsEntry 8 }
+            ::= { baculaStatsEntry 7 }
 
           baculaStatsStatus            OBJECT-TYPE
             SYNTAX                     Status
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Files backed up in the job."
-            ::= { baculaStatsEntry 9 }
+            ::= { baculaStatsEntry 8 }
 
           baculaStatsLevel             OBJECT-TYPE
             SYNTAX                     Level
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Files backed up in the job."
-            ::= { baculaStatsEntry 10 }
+            ::= { baculaStatsEntry 9 }
 
           baculaStatsErrors            OBJECT-TYPE
             SYNTAX                     Integer32 (1..2147483647)
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Files backed up in the job."
-            ::= { baculaStatsEntry 11 }
+            ::= { baculaStatsEntry 10 }
 
           baculaStatsMissingFiles      OBJECT-TYPE
             SYNTAX                     Integer32 (1..2147483647)
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Files backed up in the job."
-            ::= { baculaStatsEntry 12 }
+            ::= { baculaStatsEntry 11 }
 
 -- }}}
 
-      -- {{{ .1.3.6.1.4.1.8767.2.3.9  baculaPoolsTable
+      -- {{{ .1.3.6.1.4.1.8767.2.3.10 baculaPoolsTable
       baculaPoolsTable                 OBJECT-TYPE
         SYNTAX                         SEQUENCE OF BaculaPoolsEntry
         MAX-ACCESS                     not-accessible
         STATUS                         current
         DESCRIPTION                    "A list of bacula pool information."
-        ::= { baculaStats 9 }
+        ::= { baculaStats 10 }
   
         baculaPoolsEntry               OBJECT-TYPE
           SYNTAX                       BaculaPoolsEntry
@@ -805,11 +843,11 @@ bayourCom MODULE-IDENTITY
             baculaPoolsUseOnce         TrueFalse,
             baculaPoolsUseCatalog      TrueFalse,
             baculaPoolsAcceptAnyVolume TrueFalse,
-            baculaPoolsRetention       Counter64,
-            baculaPoolsDuration        Counter64,
+            baculaPoolsRetention       Counter32,
+            baculaPoolsDuration        Counter32,
             baculaPoolsMaxJobs         Integer32,
             baculaPoolsMaxFiles        Integer32,
-            baculaPoolsMaxBytes        Counter64,
+            baculaPoolsMaxBytes        Counter32,
             baculaPoolsAutoPrune       TrueFalse,
             baculaPoolsRecycle         TrueFalse,
             baculaPoolsType            DisplayString,
@@ -869,14 +907,14 @@ bayourCom MODULE-IDENTITY
             ::= { baculaPoolsEntry 7 }
 
           baculaPoolsRetention         OBJECT-TYPE
-            SYNTAX                     Counter64
+            SYNTAX                     Counter32
             MAX-ACCESS                 read-write
             STATUS                     current
             DESCRIPTION                "Pool retention period (sec)."
             ::= { baculaPoolsEntry 8 }
 
           baculaPoolsDuration          OBJECT-TYPE
-            SYNTAX                     Counter64
+            SYNTAX                     Counter32
             MAX-ACCESS                 read-write
             STATUS                     current
             DESCRIPTION                "Pool duration period (sec)."
@@ -897,7 +935,7 @@ bayourCom MODULE-IDENTITY
             ::= { baculaPoolsEntry 11 }
 
           baculaPoolsMaxBytes          OBJECT-TYPE
-            SYNTAX                     Counter64
+            SYNTAX                     Counter32
             MAX-ACCESS                 read-write
             STATUS                     current
             DESCRIPTION                "Maximum bytes in pool."
@@ -953,13 +991,13 @@ bayourCom MODULE-IDENTITY
             ::= { baculaPoolsEntry 19 }
 -- }}}
 
-      -- {{{ .1.3.6.1.4.1.8767.2.3.10 baculaMediaTable
+      -- {{{ .1.3.6.1.4.1.8767.2.3.11 baculaMediaTable
       baculaMediaTable                 OBJECT-TYPE
         SYNTAX                         SEQUENCE OF BaculaMediaEntry
         MAX-ACCESS                     not-accessible
         STATUS                         current
         DESCRIPTION                    "A list of bacula media information."
-        ::= { baculaStats 10 }
+        ::= { baculaStats 11 }
   
         baculaMediaEntry               OBJECT-TYPE
           SYNTAX                       BaculaMediaEntry
@@ -983,21 +1021,21 @@ bayourCom MODULE-IDENTITY
             baculaMediaFiles           Integer32,
             baculaMediaBlocks          Integer32,
             baculaMediaMounts          Integer32,
-            baculaMediaBytes           Counter64,
+            baculaMediaBytes           Counter32,
             baculaMediaErrors          Integer32,
             baculaMediaWrites          Integer32,
-            baculaMediaCapacity        Counter64,
+            baculaMediaCapacity        Counter32,
             baculaMediaStatus          VolumeStatus,
             baculaMediaRecycle         TrueFalse,
-            baculaMediaRetention       Counter64,
-            baculaMediaDuration        Counter64,
+            baculaMediaRetention       Counter32,
+            baculaMediaDuration        Counter32,
             baculaMediaMaxJobs         Integer32,
             baculaMediaMaxFiles        Integer32,
-            baculaMediaMaxBytes        Counter64,
+            baculaMediaMaxBytes        Counter32,
             baculaMediaInChanger       TrueFalse,
             baculaMediaMediaAddressing TrueFalse,
-            baculaMediaReadTime        Counter64,
-            baculaMediaWriteTime       Counter64,
+            baculaMediaReadTime        Counter32,
+            baculaMediaWriteTime       Counter32,
             baculaMediaEndFile         Integer32,
             baculaMediaEndBlock        Integer32
           }
@@ -1087,7 +1125,7 @@ bayourCom MODULE-IDENTITY
             ::= { baculaMediaEntry 12 }
 
           baculaMediaBytes             OBJECT-TYPE
-            SYNTAX                     Counter64
+            SYNTAX                     Counter32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "."
@@ -1108,7 +1146,7 @@ bayourCom MODULE-IDENTITY
             ::= { baculaMediaEntry 15 }
 
           baculaMediaCapacity          OBJECT-TYPE
-            SYNTAX                     Counter64
+            SYNTAX                     Counter32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "."
@@ -1129,14 +1167,14 @@ bayourCom MODULE-IDENTITY
             ::= { baculaMediaEntry 18 }
 
           baculaMediaRetention         OBJECT-TYPE
-            SYNTAX                     Counter64
+            SYNTAX                     Counter32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "."
             ::= { baculaMediaEntry 19 }
 
           baculaMediaDuration          OBJECT-TYPE
-            SYNTAX                     Counter64
+            SYNTAX                     Counter32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "."
@@ -1157,7 +1195,7 @@ bayourCom MODULE-IDENTITY
             ::= { baculaMediaEntry 22 }
 
           baculaMediaMaxBytes          OBJECT-TYPE
-            SYNTAX                     Counter64
+            SYNTAX                     Counter32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "."
@@ -1178,14 +1216,14 @@ bayourCom MODULE-IDENTITY
             ::= { baculaMediaEntry 25 }
 
           baculaMediaReadTime          OBJECT-TYPE
-            SYNTAX                     Counter64
+            SYNTAX                     Counter32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "."
             ::= { baculaMediaEntry 26 }
 
           baculaMediaWriteTime         OBJECT-TYPE
-            SYNTAX                     Counter64
+            SYNTAX                     Counter32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "."
