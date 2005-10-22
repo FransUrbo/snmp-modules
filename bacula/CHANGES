@@ -1,3 +1,19 @@
+bacula-snmp 1.2 
+	Bug fixes
+	  * When getting the status index, increase tmp[4], NOT tmp[2] (which is the
+	    status INFORMATION). Fixed problems with the status column not being shown
+	    correctly.
+
+	Misc changes
+	  * Possibility to retreive one specific config option in the get_config()
+	    function. I wanted to be able to re-get the DEBUG value every time in
+	    the main 'process args and get next OID' loop...
+	  * The DEBUG_BACULA environment variable overrides any DEBUG option in the
+	    config file.
+	  * Some cleanup regarding log output. Don't want to much (but not to little
+	    either) when running in debug mode 2 or 3. The SQL status loading is
+	    only shown if DEBUG > 4 (not DEBUG >= 4).
+
 bacula-snmp 1.2 Release (Oct 21 2005)
 	Bug fixes
 	  + Convert some values that's to big to fit in a
