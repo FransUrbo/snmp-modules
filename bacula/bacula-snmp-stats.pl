@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bacula-snmp-stats.pl,v 1.14 2005-10-21 13:03:25 turbo Exp $
+# {{{ $Id: bacula-snmp-stats.pl,v 1.15 2005-10-22 09:41:17 turbo Exp $
 # Extract job statistics for a bacula backup server.
 # Only tested with a MySQL backend, but is general
 # enough to work with the PostgreSQL backend as well.
@@ -312,14 +312,24 @@ $SIG{'ALRM'} = \&load_information;
 
 # {{{ Load the information needed to connect to the MySQL server.
 sub get_config {
+    my $option = shift;
     my($line, $key, $value);
+
+    $option = 0 if(!defined($option));
 
     if(-e "/etc/bacula/.conn_details") {
 	open(CFG, "< /etc/bacula/.conn_details") || die("Can't open /etc/bacula/.conn_details, $!");
 	while(!eof(CFG)) {
 	    $line = <CFG>; chomp($line);
 	    ($key, $value) = split('=', $line);
-	    $CFG{$key} = $value;
+
+	    if(!$option) {
+		# Get all options
+		$CFG{$key} = $value;
+	    } elsif($option eq $key) {
+		# Get only this option
+		$CFG{$key} = $value;
+	    }
 	}
 	close(CFG);
     }
@@ -331,6 +341,9 @@ sub get_config {
     $CFG{'HOST'}	= '' if(!defined($CFG{'HOST'}));
     $CFG{'CATALOG'}	= '' if(!defined($CFG{'CATALOG'}));
     $CFG{'DEBUG'}	= 0  if(!defined($CFG{'DEBUG'}));
+
+    # A debug value from the environment overrides!
+    $CFG{'DEBUG'} = $ENV{'DEBUG_BACULA'} if(defined($ENV{'DEBUG_BACULA'}));
 }
 # }}}
 
@@ -527,7 +540,7 @@ sub get_info_stats {
 	# row[12]: Errors	0
 	# row[13]: MissingFiles	0
 
-	if($CFG{'DEBUG'} >= 4) {
+	if($CFG{'DEBUG'} > 4) {
 	    my $tmp = join(':', @row);
 	    &echo(0, "ROW[$status]: '$tmp'\n");
 	}
@@ -569,7 +582,7 @@ sub get_info_stats {
 	$status++; # Increase number of status counters
     }
 
-    &echo(0, "Number of status counters: $status\n") if($CFG{'DEBUG'} >= 4);
+    &echo(0, "=> Number of status counters: $status\n") if($CFG{'DEBUG'} >= 4);
     return($status, %status);
 }
 # }}}
@@ -934,10 +947,6 @@ sub print_jobs_names {
 	    foreach my $client_name (sort keys %JOBS) {
 		my $job_name_num = 1;
 		foreach my $job_name (sort keys %{ $JOBS{$client_name} }) {
-		    if(!defined($JOBS{$client_name}{$job_name}{$key_name})) {
-			print STDERR "JOBS{$client_name}{$job_name}{$key_name}\n";
-		    }
-
 		    &echo(0, "$OID_BASE.6.1.$key_nr.$client_name_num.$job_name_num = ".$JOBS{$client_name}{$job_name}{$key_name}."\n") if($CFG{'DEBUG'});
 		    
 		    &echo(1, "$OID_BASE.6.1.$key_nr.$client_name_num.$job_name_num\n");
@@ -1850,7 +1859,7 @@ sub get_next_oid {
 	# {{{ ------------------------------------- OID_BASE.[10-11] 
 	$TYPE_STATUS = $tmp[2];
 	$CLIENT_NO   = $tmp[3];
-# }}} # OID_BASE.[9-10]
+# }}} # OID_BASE.[10-11]
     } else {
 	$CLIENT_NO   = $tmp[3];
 	$TYPE_STATUS = $tmp[4];
@@ -1977,9 +1986,11 @@ if($ALL) {
 	    next;
 	}
 
+	# Re-get the DEBUG config option (so that we don't have to restart process).
+	get_config('DEBUG');
+
 	# {{{ Get all run arguments - next/specfic OID
 	my $arg = $_; chomp($arg);
-	&echo(0, "=> ARG=$arg\n") if($CFG{'DEBUG'} > 2);
 
 	# Get next line from STDIN -> OID number.
 	# $arg == 'getnext' => Get next OID
@@ -1989,7 +2000,8 @@ if($ALL) {
 	$oid =~ s/$OID_BASE//; # Remove the OID base
 	$oid =~ s/OID_BASE//;  # Remove the OID base (if we're debugging)
 	$oid =~ s/^\.//;       # Remove the first dot if it exists - it's in the way!
-	&echo(0, "=> OID=$OID_BASE.$oid\n") if($CFG{'DEBUG'} > 2);
+
+	&echo(0, "=> ARG='$arg  $OID_BASE.$oid'\n") if($CFG{'DEBUG'} >= 2);
 	
 	my @tmp = split('\.', $oid);
 	&output_extra_debugging(@tmp) if($CFG{'DEBUG'} > 2);
@@ -2014,7 +2026,7 @@ if($ALL) {
 			# How to call call_func()
 			my($next1, $next2, $next3) = get_next_oid(@tmp);
 
-			&echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} > 2);
+			&echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 			&call_func($next1, $next3);
 		    } else {
 			&call_func($OID_BASE.".".$tmp[0]);
@@ -2050,7 +2062,7 @@ if($ALL) {
 		my($next1, $next2, $next3) = get_next_oid(@tmp);
 # }}} # Figure out next value
 
-		&echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} > 2);
+		&echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 		if(!&call_func($next1, $next3)) {
 		    # OID_BASE.5.1.2.4 => OID_BASE.5.1.2.5 => OID_BASE.5.1.3.1
 		    # {{{ Figure out the NEXT value from the input
@@ -2061,7 +2073,7 @@ if($ALL) {
 		    my($next1, $next2, $next3) = get_next_oid(@tmp);
 # }}} # Figure out next value
 
-		    &echo(0, ">> No OID at that level (-1) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} > 2);
+		    &echo(0, ">> No OID at that level (-1) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 		    &call_func($next1, $next3);
 		}
 # }}} # OID_BASE.5
@@ -2162,7 +2174,7 @@ if($ALL) {
 # }}} # Figure out next value
 
 		# {{{ Call functions, recursively (1)
-		&echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} > 2);
+		&echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 		if(!&call_func($next1, $next3)) {
 		    # Reached the end of OID_BASE.6.1.1.1.1 => OID_BASE.6.1.1.2.1
 		    # {{{ Figure out the NEXT value from the input
@@ -2175,17 +2187,8 @@ if($ALL) {
 			$tmp[5] = 1;
 
 		    } elsif($tmp[0] == 9) {
-			if($tmp[2] == 1) {
-			    $tmp[2]++;
-			    $tmp[3] = 1;
-
-			    if($tmp[2] == 2) {
-				for(my $i=3; $i <= 5; $i++) { $tmp[$i] = 1; }
-			    }
-			} else {
-			    $tmp[4]++;
-			    $tmp[5] = 1;
-			}
+			$tmp[4]++;
+			$tmp[5] = 1;
 		    }
 
 		    # How to call call_func()
@@ -2193,7 +2196,7 @@ if($ALL) {
 # }}} # Figure out next value
 
 		    # {{{ Call functions, recursively (-1)
-		    &echo(0, ">> No OID at that level (-1) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} > 2);
+		    &echo(0, ">> No OID at that level (-1) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 		    if(!&call_func($next1, $next3)) {
 			# Reached the end of OID_BASE.6.1.1.x => OID_BASE.6.1.2.1.1
 			# {{{ Figure out the NEXT value from the input
@@ -2217,7 +2220,7 @@ if($ALL) {
 # }}} # Next value
 
 			# {{{ Call functions, recursively (-2)
-			&echo(0, ">> No OID at that level (-2) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} > 2);
+			&echo(0, ">> No OID at that level (-2) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 			if(!&call_func($next1, $next3)) {
 			    # Reached the end of the OID_BASE.6.1.2 => OID_BASE.7.1.1.1.1.1
 			    # {{{ Figure out the NEXT value from the input
@@ -2247,7 +2250,7 @@ if($ALL) {
 # }}} # Next value
 
 			    # {{{ Call functions, recursively (-3)
-			    &echo(0, ">> No OID at that level (-3) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} > 2);
+			    &echo(0, ">> No OID at that level (-3) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 			    if(!&call_func($next1, $next3)) {
 				# Reached the end of the OID_BASE.7.1.2 => OID_BASE.8.1.1.1
 				# {{{ Figure out the NEXT value from the input
@@ -2264,7 +2267,7 @@ if($ALL) {
 				my($next1, $next2, $next3) = get_next_oid(@tmp);
 # }}} # Next value
 				
-				&echo(0, ">> No OID at that level (-4) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} > 2);
+				&echo(0, ">> No OID at that level (-4) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 				&call_func($next1, $next3);
 			    }
 # }}} # Call functions -> -3
@@ -2294,7 +2297,7 @@ if($ALL) {
 # }}} Figure out next value
 		
 		# {{{ Call functions, recursively (1)
-		&echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} > 2);
+		&echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 		if(!&call_func($next1, $next3)) {
 		    # {{{ Figure out the NEXT value from the input
 		    if(($tmp[0] == 10) && ($tmp[3] >= $POOLS)) {
@@ -2315,7 +2318,7 @@ if($ALL) {
 # }}} # Get next value
 
 		    # {{{ Call functions, recursivly (-1)
-		    &echo(0, ">> No OID at that level (-1) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} > 2);
+		    &echo(0, ">> No OID at that level (-1) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 		    if(!&call_func($next1, $next3)) {
 			# {{{ Figure out the NEXT value from the input
 			if($tmp[0] == 10) {
@@ -2331,7 +2334,7 @@ if($ALL) {
 # }}} # Get next value
 
 			# {{{ Call functions, recursivly (-2)
-			&echo(0, ">> No OID at that level (-2) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} > 2);
+			&echo(0, ">> No OID at that level (-2) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 			&call_func($next1, $next3);
 # }}} # Call functions (-2)
 		    }
