@@ -9,6 +9,31 @@
 				<name>SNMP - Local - Bacula Statistics</name>
 				<graph_template_id>hash_0000072045c2d1a4dfe763df367d5435f559a2</graph_template_id>
 				<rrd>
+					<item_000>
+						<snmp_field_name>baculaStatsDuration</snmp_field_name>
+						<data_template_id>hash_0100070ebd45634d7a1162f8c1f3f7ab22279d</data_template_id>
+						<data_template_rrd_id>hash_08000790fe6a057e1ce5beefb105f204c5333c</data_template_rrd_id>
+					</item_000>
+					<item_001>
+						<snmp_field_name>baculaStatsFiles</snmp_field_name>
+						<data_template_id>hash_0100070ebd45634d7a1162f8c1f3f7ab22279d</data_template_id>
+						<data_template_rrd_id>hash_080007a7e9d405f2a21a3aa0a6723ab8a58ccd</data_template_rrd_id>
+					</item_001>
+					<item_002>
+						<snmp_field_name>baculaStatsBytes</snmp_field_name>
+						<data_template_id>hash_0100070ebd45634d7a1162f8c1f3f7ab22279d</data_template_id>
+						<data_template_rrd_id>hash_080007e1ef1f02ca237368e39c4dc816c91615</data_template_rrd_id>
+					</item_002>
+					<item_003>
+						<snmp_field_name>baculaStatsMissing</snmp_field_name>
+						<data_template_id>hash_0100070ebd45634d7a1162f8c1f3f7ab22279d</data_template_id>
+						<data_template_rrd_id>hash_0800079bc821e1addb36e154e0e6af8bc75cb8</data_template_rrd_id>
+					</item_003>
+					<item_004>
+						<snmp_field_name>baculaStatsError</snmp_field_name>
+						<data_template_id>hash_0100070ebd45634d7a1162f8c1f3f7ab22279d</data_template_id>
+						<data_template_rrd_id>hash_0800072823c7d4ccee1aab5549dc6ec1fcd473</data_template_rrd_id>
+					</item_004>
 				</rrd>
 				<sv_graph>
 				</sv_graph>
@@ -367,6 +392,20 @@
 			<rra_items>hash_150007c21df5178e5c955013591239eb0afd46|hash_1500070d9c0af8b8acdc7807943937b3208e29|hash_1500076fc2d038fb42950138b0ce3e9874cc60|hash_150007e36f3adb9f152adfa5dc50fd2b23337e</rra_items>
 		</ds>
 		<items>
+			<hash_0800072823c7d4ccee1aab5549dc6ec1fcd473>
+				<t_data_source_name></t_data_source_name>
+				<data_source_name>errors</data_source_name>
+				<t_rrd_minimum></t_rrd_minimum>
+				<rrd_minimum>0</rrd_minimum>
+				<t_rrd_maximum></t_rrd_maximum>
+				<rrd_maximum>100000000</rrd_maximum>
+				<t_data_source_type_id></t_data_source_type_id>
+				<data_source_type_id>4</data_source_type_id>
+				<t_rrd_heartbeat></t_rrd_heartbeat>
+				<rrd_heartbeat>600</rrd_heartbeat>
+				<t_data_input_field_id></t_data_input_field_id>
+				<data_input_field_id>0</data_input_field_id>
+			</hash_0800072823c7d4ccee1aab5549dc6ec1fcd473>
 			<hash_0800079bc821e1addb36e154e0e6af8bc75cb8>
 				<t_data_source_name></t_data_source_name>
 				<data_source_name>missing</data_source_name>
