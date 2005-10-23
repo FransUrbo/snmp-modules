@@ -16,7 +16,7 @@
       Data Source Type:			ABSOLUTE
       Heartbeat:			600
 
-   *) Do point 1b two more times. Once for files and once for missing.
+   *) Do point 1b four more times. Once for files, once for missing and once for errors.
 
 2. Add in 'Graph Templates':
    a) Primary values:
@@ -107,8 +107,16 @@
    c) XML Path:				<path_cacti>/resource/snmp_queries/bacula-stats.xml
    d) Data Input Method:		Get SNMP Data (Indexed)
    e) Add 'Associated Graph Templates'
-      a) Name:				SNMP - Local - Bacula Statistics
-      b) Graph Template:		SNMP - Local - Bacula Statistics
+      Name:				SNMP - Local - Bacula Statistics
+      Graph Template:			SNMP - Local - Bacula Statistics
+      * In the 'Associated Data Templates' section:
+	Data Source: bytes		baculaStatsBytes (Backed up bytes)
+	Data Source: duration		baculaStatsDuration (Duration of job)
+	Data Source: errors		baculaStatsError (Job errors)
+	Data Source: files		baculaStatsFiles (Number of files backed up)
+	Data Source: missing		baculaStatsMissing (Missing files in backup)
+
+	[!Don't forget the tickbox at the far right!]
 
 
 => To get all these as one file, export the 'Data Query->SNMP - Local - Bacula Statistics - QUERY'.
