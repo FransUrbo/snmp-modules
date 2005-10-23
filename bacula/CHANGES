@@ -3,6 +3,18 @@ bacula-snmp 1.2
 	  * When getting the status index, increase tmp[4], NOT tmp[2] (which is the
 	    status INFORMATION). Fixed problems with the status column not being shown
 	    correctly.
+	  * Rewrite/fix the Cacti XML template file:
+	    - Replace my 'placeholder'/'shortcut' for the base OID with the real OID
+	      in the Cacti XML template file.
+	    - Change/fix the OID 'path' to the index in the Cacti XML template file.
+	    - Only the OUTPUT values (the actual statistics OIDs) should be put in the
+	      'index_order' tag.
+	    - Add the miscellaneous information (such as client uname, client autoprune
+	      etc, etc). Just for the sake of it!
+	    - Include index (and value OIDs) for the job names, job IDs. This because
+	      the stats table depend on the client, jobname and jobID tables...
+	    - Add the 'Data Queries->Associated Graph Templates' values.
+	    - Add the job errors value to the 'Data Template' section.
 
 	Misc changes
 	  * Possibility to retreive one specific config option in the get_config()
