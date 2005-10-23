@@ -1,9 +1,9 @@
 <interface>
 	<name>Get Bacula statistics per backup client</name>
 	<description>Queries a Bacula backup host for job statistic counters</description>
-	<oid_index>%BACULASTATS%.2.1.1</oid_index>
-	<oid_num_indexes>%BACULASTATS%.1.0</oid_num_indexes>
-	<index_order>baculaCompletionBytes:baculaCompletionFiles:baculaCompletionDuration:baculaCompletionTimeEnd:baculaStartTime:baculaStartDate:baculaJobID:baculaJobName:baculaClientName</index_order>
+	<oid_index>.1.3.6.1.4.1.8767.2.3.5.1.1</oid_index>
+	<oid_num_indexes>.1.3.6.1.4.1.8767.2.3.1.0</oid_num_indexes>
+	<index_order>baculaStatsStart:baculaStatsEnd:baculaStatsDuration:baculaStatsFiles:baculaStatsBytes:baculaStatsMissing</index_order>
 	<index_order_type>numeric</index_order_type>
 	<index_title_format>|chosen_order_field|</index_title_format>
 
@@ -13,7 +13,7 @@
 			<method>walk</method>
 			<source>value</source>
 			<direction>input</direction>
-			<oid>%BACULASTATS%.2.1.1</oid>
+			<oid>.1.3.6.1.4.1.8767.2.3.5.1.1</oid>
 		</baculaIndexClients>
 
 		<baculaClientName>
@@ -21,80 +21,173 @@
 			<method>walk</method>
 			<source>value</source>
 			<direction>input</direction>
-			<oid>%BACULASTATS%.2.1.2</oid>
+			<oid>.1.3.6.1.4.1.8767.2.3.5.1.2</oid>
 		</baculaClientName>
 
-		<baculaJobName>
+		<baculaClientUname>
+			<name>Client uname</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>output</direction>
+			<oid>.1.3.6.1.4.1.8767.2.3.5.1.3</oid>
+		</baculaClientUname>
+
+		<baculaClientAutoPrune>
+			<name>Autoprune volumes</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>output</direction>
+			<oid>.1.3.6.1.4.1.8767.2.3.5.1.4</oid>
+		</baculaClientAutoPrune>
+
+		<baculaClientFileRetention>
+			<name>File retention</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>output</direction>
+			<oid>.1.3.6.1.4.1.8767.2.3.5.1.5</oid>
+		</baculaClientFileRetention>
+
+		<baculaClientJobRetention>
+			<name>Job retention</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>output</direction>
+			<oid>.1.3.6.1.4.1.8767.2.3.5.1.6</oid>
+		</baculaClientJobRetention>
+
+
+
+		<baculaIndexJobNames>
+			<name>Index (Job names)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.3.6.1.1</oid>
+		</baculaIndexJobNames>
+
+		<baculaJobNamesName>
 			<name>Job names</name>
 			<method>walk</method>
 			<source>value</source>
-			<direction>output</direction>
-			<oid>%BACULASTATS%.2.1.3</oid>
-		</baculaJobName>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.3.6.1.2</oid>
+		</baculaJobNamesName>
 
-		<baculaJobID>
-			<name>Full job IDs</name>
+		<baculaJobNamesDesc>
+			<name>Fileset description</name>
 			<method>walk</method>
 			<source>value</source>
 			<direction>output</direction>
-			<oid>%BACULASTATS%.2.1.4</oid>
-		</baculaJobID>
+			<oid>.1.3.6.1.4.1.8767.2.3.6.1.2</oid>
+		</baculaJobNamesDesc>
 
-		<baculaStartDate>
-			<name>"Date of job start</name>
+		<baculaJobNamesMD5>
+			<name>Jobname MD5 sum</name>
 			<method>walk</method>
 			<source>value</source>
 			<direction>output</direction>
-			<oid>%BACULASTATS%.2.1.5</oid>
-		</baculaStartDate>
+			<oid>.1.3.6.1.4.1.8767.2.3.6.1.4</oid>
+		</baculaJobNamesMD5>
 
-
-		<baculaStartTime>
-			<name>Time of job start</name>
+		<baculaJobNamesCreateTime>
+			<name>Job create time</name>
 			<method>walk</method>
 			<source>value</source>
 			<direction>output</direction>
-			<oid>%BACULASTATS%.2.1.6</oid>
-		</baculaStartTime>
+			<oid>.1.3.6.1.4.1.8767.2.3.6.1.5</oid>
+		</baculaJobNamesCreateTime>
 
-		<baculaCompletionDateEnd>
-			<name>Date of job completion</name>
+
+
+		<baculaIndexJobIDs>
+			<name>Index (Job IDs)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.3.7.1.1</oid>
+		</baculaIndexJobIDs>
+
+		<baculaJobIDs>
+			<name>Job IDs</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.3.7.1.2</oid>
+		</baculaJobIDs>
+
+
+
+		<baculaIndexJobStatus>
+			<name>Index (Job Status)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.3.9.1.1</oid>
+		</baculaIndexJobStatus>
+
+		<baculaCounterName>
+			<name>Counter name</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.3.8.1.2</oid>
+		</baculaCounterName>
+
+		<baculaStatsStart>
+			<name>Job start date</name>
 			<method>walk</method>
 			<source>value</source>
 			<direction>output</direction>
-			<oid>%BACULASTATS%.2.1.7</oid>
-		</baculaCompletionDateEnd>
+			<oid>.1.3.6.1.4.1.8767.2.3.9.1.2</oid>
+		</baculaStatsStart>
 
-		<baculaCompletionTimeEnd>
-			<name>Time of job completion</name>
+		<baculaStatsEnd>
+			<name>Job end date</name>
 			<method>walk</method>
 			<source>value</source>
 			<direction>output</direction>
-			<oid>%BACULASTATS%.2.1.8</oid>
-		</baculaCompletionTimeEnd>
+			<oid>.1.3.6.1.4.1.8767.2.3.9.1.3</oid>
+		</baculaStatsEnd>
 
-		<baculaCompletionDuration>
+		<baculaStatsDuration>
 			<name>Duration of job</name>
 			<method>walk</method>
 			<source>value</source>
 			<direction>output</direction>
-			<oid>%BACULASTATS%.2.1.9</oid>
-		</baculaCompletionDuration>
+			<oid>.1.3.6.1.4.1.8767.2.3.9.1.4</oid>
+		</baculaStatsDuration>
 
-		<baculaCompletionFiles>
-			<name>Files backed up in the job</name>
+		<baculaStatsFiles>
+			<name>Number of files backed up</name>
 			<method>walk</method>
 			<source>value</source>
 			<direction>output</direction>
-			<oid>%BACULASTATS%.2.1.10</oid>
-		</baculaCompletionFiles>
+			<oid>.1.3.6.1.4.1.8767.2.3.9.1.5</oid>
+		</baculaStatsFiles>
 
-		<baculaCompletionBytes>
-			<name>Bytes backed up in the job</name>
+		<baculaStatsBytes>
+			<name>Backed up bytes</name>
 			<method>walk</method>
 			<source>value</source>
 			<direction>output</direction>
-			<oid>%BACULASTATS%.2.1.11</oid>
-		</baculaCompletionBytes>
+			<oid>.1.3.6.1.4.1.8767.2.3.9.1.6</oid>
+		</baculaStatsBytes>
+
+		<baculaStatsMissing>
+			<name>Missing files in backup</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>output</direction>
+			<oid>.1.3.6.1.4.1.8767.2.3.9.1.7</oid>
+		</baculaStatsMissing>
+
+		<baculaStatsError>
+			<name>Job errors</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>output</direction>
+			<oid>.1.3.6.1.4.1.8767.2.3.9.1.10</oid>
+		</baculaStatsError>
 	</fields>
 </interface>
