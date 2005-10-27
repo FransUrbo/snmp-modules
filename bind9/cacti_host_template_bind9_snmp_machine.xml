@@ -683,7 +683,7 @@
 			<rrd_step>300</rrd_step>
 			<t_active></t_active>
 			<active>on</active>
-			<rra_items></rra_items>
+			<rra_items>hash_150010c21df5178e5c955013591239eb0afd46|hash_1500100d9c0af8b8acdc7807943937b3208e29|hash_1500106fc2d038fb42950138b0ce3e9874cc60|hash_150010e36f3adb9f152adfa5dc50fd2b23337e</rra_items>
 		</ds>
 		<items>
 			<hash_08001050fa1c4f8966d29869fec323117d7883>
@@ -772,6 +772,46 @@
 			</hash_080010540ffd2ba234eebdf1c2cc4b30f76fa6>
 		</items>
 		<data>
+			<item_000>
+				<data_input_field_id>hash_070010e6deda7be0f391399c5130e7c4a48b28</data_input_field_id>
+				<t_value></t_value>
+				<value></value>
+			</item_000>
+			<item_001>
+				<data_input_field_id>hash_070010cbbe5c1ddfb264a6e5d509ce1c78c95f</data_input_field_id>
+				<t_value></t_value>
+				<value></value>
+			</item_001>
+			<item_002>
+				<data_input_field_id>hash_0700106027a919c7c7731fbe095b6f53ab127b</data_input_field_id>
+				<t_value></t_value>
+				<value></value>
+			</item_002>
+			<item_003>
+				<data_input_field_id>hash_070010b5c23f246559df38662c255f4aa21d6b</data_input_field_id>
+				<t_value></t_value>
+				<value></value>
+			</item_003>
+			<item_004>
+				<data_input_field_id>hash_0700101cc1493a6781af2c478fa4de971531cf</data_input_field_id>
+				<t_value></t_value>
+				<value></value>
+			</item_004>
+			<item_005>
+				<data_input_field_id>hash_070010f4facc5e2ca7ebee621f09bc6d9fc792</data_input_field_id>
+				<t_value></t_value>
+				<value></value>
+			</item_005>
+			<item_006>
+				<data_input_field_id>hash_070010acb449d1451e8a2a655c2c99d31142c7</data_input_field_id>
+				<t_value></t_value>
+				<value></value>
+			</item_006>
+			<item_007>
+				<data_input_field_id>hash_070010617cdc8a230615e59f06f361ef6e7728</data_input_field_id>
+				<t_value></t_value>
+				<value></value>
+			</item_007>
 		</data>
 	</hash_01001007fcc22ea6c3e80de1b682cce7649250>
 	<hash_030010bf566c869ac6443b0c75d1c32b5a350e>
