@@ -18,19 +18,6 @@ $(BACULA_INSTDIR):
 	@(rm -f $(TMPDIR) && mkdir -p $(BACULA_INSTDIR); \
 	  echo "Instdir:   "$(BACULA_INSTDIR))
 
-install:
-	@rcp -x BAYOUR-COM-MIB.txt root@aurora:/usr/share/snmp/mibs/
-	@rcp -x bind9/bind9-snmp-stats.pl root@aurora:/etc/snmp/
-	@rcp -x bind9/bind9-stats*.xml root@aurora:/usr/share/cacti/resource/snmp_queries/
-
-	@scp BAYOUR-COM-MIB.txt root@anton.swe.net:/usr/share/snmp/mibs/
-	@scp bind9/bind9-snmp-stats.pl root@anton.swe.net:/etc/snmp/
-	@scp bind9/bind9-stats*.xml root@anton.swe.net:/usr/share/cacti/resource/snmp_queries/
-
-	@scp BAYOUR-COM-MIB.txt root@alma.swe.net:/usr/share/snmp/mibs/
-	@scp bind9/bind9-snmp-stats.pl root@alma.swe.net:/etc/snmp/
-	@scp bind9/bind9-stats*.xml root@alma.swe.net:/usr/share/cacti/resource/snmp_queries/
-
 bind9_tarball: $(BIND9_INSTDIR)
 	@(mkdir -p $(BIND9_INSTDIR)/usr/share/snmp/mibs; \
 	  cp BAYOUR-COM-MIB.txt $(BIND9_INSTDIR)/usr/share/snmp/mibs/; \
@@ -39,7 +26,7 @@ bind9_tarball: $(BIND9_INSTDIR)
 	  mkdir -p $(BIND9_INSTDIR)/usr/share/cacti/resource/snmp_queries; \
 	  cp bind9/bind9-stats*.xml $(BIND9_INSTDIR)/usr/share/cacti/resource/snmp_queries/; \
 	  mkdir -p $(BIND9_INSTDIR)/tmp; \
-	  cp bind9/cacti_data_query_snmp_local_bind9_statistics_*.xml $(BIND9_INSTDIR)/tmp; \
+	  cp bind9/cacti_host_template_bind9_snmp_machine.xml $(BIND9_INSTDIR)/tmp; \
 	  cd $(BIND9_INSTDIR); \
 	  tar czf ../bind9-snmp_$(BIND9_VERSION).tgz `find -type f`)
 
