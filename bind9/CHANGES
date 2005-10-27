@@ -1,3 +1,9 @@
+bind9-snmp 1.3 Release (Oct 27 2005)
+	Bug fixes
+	  + Instead of having two (broken - missing dependencies etc) Cacti template
+	    files, use ONE which creates a host template with the two queries (+ two
+	    graph templates) and all dependencies etc.
+
 bind9-snmp 1.2 Release (Oct 20 2005)
 	Bug fixes
 	  + Missing hard-return in a graph item.
