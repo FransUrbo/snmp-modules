@@ -7,59 +7,78 @@ via SNMP but what's making this one special is that
 it's indexed and 'tablified'.
 
 
-Current release is: 1.1
-Tarball:            http://www.bayour.com/bind9-snmp/bind9-snmp_1.1.tgz
+Current release is: 1.3
+Tarball:            http://www.bayour.com/bind9-snmp/bind9-snmp_1.3.tgz
 
 
 SNMP Setup files (Paths depend on where your SNMP/Cacti is installed!)
 =================
-BAYOUR-COM-MIB.txt	This is the MIB declaration.
-			Copy to /usr/share/snmp/mibs/
+* BAYOUR-COM-MIB.txt
+  This is the MIB declaration.
+  Copy to /usr/share/snmp/mibs/
 
-bind9-snmp-stats.pl	This is the stat retreival script.
-			Copy to /etc/snmp/
+* bind9-snmp-stats.pl
+  This is the stat retreival script.
+  Copy to /etc/snmp/
 
-snmp.conf.stub		This is part of the snmp.conf file.
-			Add to the end of /etc/snmp/snmp.conf
+* snmp.conf.stub
+  This is part of the snmp.conf file.
+  Add to the end of /etc/snmp/snmp.conf
 
-snmpd.conf.stub		This is part of the snmpd.conf file.
-			Add to the end of /etc/snmp/snmpd.conf
+* snmpd.conf.stub
+  This is part of the snmpd.conf file.
+  Add to the end of /etc/snmp/snmpd.conf
 
 
 Cacti setup files
 =================
-bind9-stats_domains.xml	Domain vise statistics
-bind9-stats_totals.xml	Total statistic numbers
-			These are the XML declaration for cacti.
-			Copy to /usr/share/cacti/resource/snmp_queries/
+* bind9-stats_domains.xml	Domain vise statistics
+* bind9-stats_totals.xml	Total statistic numbers
+  These are the XML declaration for cacti.
+  Copy to /usr/share/cacti/resource/snmp_queries/
 
-cacti_data_query_snmp_local_bind9_statistics_domains.xml
-cacti_data_query_snmp_local_bind9_statistics_totals.xml
-	This is all the templates to import into  cacti to retreive Bind9
-	statistics via a Indexed SNMP query.
+* cacti_host_template_bind9_snmp_machine.xml
+  This is the template to import into cacti to add Bind9 statistic
+  graphs to your SNMP hosts.
 
-cacti_data_query_snmp_local_bind9_statistics_dependencies.xml
-	Loading the templates above will give dependency errors from
-	cacti. This is because the're referencing (for example) 'Get SNMP Data
-	(Indexed)' (which is distributed with Cacti by default) with a hash
-	value on _MY_ Cacti installation.  Your's will have different values...
+  This file will create a new host template named 'Bind9 SNMP
+  Machine'. See below how to create the graphs..
 
-	The best (most secure I guess) way is to extract YOUR hash values
-	from YOUR installation and then insert them into the template
-	files above. This is however very user-unfriendly (to say the
-	least) and very time consuming (you have to do it manually).
+Adding Bind9 SNMP statistic graphs for your host(s):
+=================
+To add the Bind9 SNMP graphs and data queries etc to you host(s), got
+to 'Devices->[host(s)]->Host Template' and select the 'Bind9 SNMP
+Machine' template. It will NOT delete/remove any of your existing
+graph template(s) or data queries. Just add the Bind9 SNMP stuff you
+need.
 
-	There's more information about this in the cacti-user mailinglist
-	archives. Unfortunatly, I'm not sure what the PERFECT way is...
-	http://sourceforge.net/mailarchive/message.php?msg_id=11634191
-	http://sourceforge.net/mailarchive/forum.php?thread_id=7632776&forum_id=12795
+1. Click on the 'Create Graphs for this Host' and in the 'Data Query
+   [SNMP - Local - Bind9 Statistics - domains - QUERY]' section,
+   tick/select all the domains you want statistics for.
 
-	In these threads, it is/was discussed that adding this dependency
-	file to BOTH of the template XML file (in the correct way/place)
-	WORKS. But DO NOT recommend it! Do not blame me if that way fucks
-	up your Cacti installation. YOU HAVE BEEN WARNED!
+2. In the 'Data Query [SNMP - Local - Bind9 Statistics - totals -
+   QUERY]' section, tick/select all summaries you want statistics for.
 
-NOTE:
+After those two points, click the 'create' button at the bottom left.
+
+
+NOTE (1):
+=================
+Some people have had problems getting statistics in previous versions.
+This is/was because of a number of problems which should be fixed in
+version 1.3 (this version).
+
+IF you've had problems before, got to 'Graph Management', search for
+'Any' host and with the search string 'bind9'. Make sure you delete
+(!) all entries found. Also make sure to delete all RRD files in the
+'<path_rra>' directory - the command 'rm <path_rra>/*_bind9_*.rrd'
+should do that. Be sure to replace '<path_rra>' with the full path
+to your RRD files (you can find that in the 'Configuration->Settings->Paths'
+section...
+
+
+NOTE (2):
+=================
 The latest version of these files can be found via anonymous cvs
 (just press the ENTER key when asked for a password):
 
