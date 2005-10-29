@@ -61,6 +61,17 @@ need.
 
 After those two points, click the 'create' button at the bottom left.
 
+Mailinglists
+=================
+If you're interested in all the CVS commits and changes, you can subscribe
+to the 'cvs-snmp-modules@bayour.com' mailinglist. It contain ALL my
+SNMP modules, not just the Bind9 SNMP Subagent changes. It's not that
+much traffic on the list, so don't worry about 'drowning' :).
+
+For support and other discussions about the module, please subscribe
+to the 'snmp-modules@bayour.com' mailinglist.
+
+To subscribe: Send an empty mail to the 'request-<mailinglist>' address.
 
 NOTE (1):
 =================
