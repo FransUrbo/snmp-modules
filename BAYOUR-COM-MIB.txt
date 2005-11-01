@@ -1,19 +1,19 @@
 BAYOUR-COM-MIB DEFINITIONS ::= BEGIN
--- $Id: BAYOUR-COM-MIB.txt,v 1.13 2005-10-21 12:47:52 turbo Exp $
+-- $Id: BAYOUR-COM-MIB.txt,v 1.14 2005-11-01 10:52:59 turbo Exp $
 
 -- This is my very first MIB! A lot of it is taken from the IF-MIB
 -- by the IETF Interfaces MIB Working Group (200006140000).
 
 -- {{{ Imports
 IMPORTS
-  MODULE-IDENTITY, OBJECT-TYPE, Counter32, Integer32, enterprises  FROM SNMPv2-SMI
-  MODULE-COMPLIANCE, OBJECT-GROUP                                  FROM SNMPv2-CONF
-  TEXTUAL-CONVENTION, DisplayString                                FROM SNMPv2-TC;
+  MODULE-IDENTITY, OBJECT-TYPE, Integer32, enterprises FROM SNMPv2-SMI
+  MODULE-COMPLIANCE, OBJECT-GROUP                      FROM SNMPv2-CONF
+  TEXTUAL-CONVENTION, DisplayString                    FROM SNMPv2-TC;
 -- }}}
 
 -- {{{ bayourCom Module identity
 bayourCom MODULE-IDENTITY
-  LAST-UPDATED                         "200510211259Z"  -- October 21, 2005
+  LAST-UPDATED                         "200510301440Z"  -- October 30, 2005
   ORGANIZATION                         "Bayour.COM"
   CONTACT-INFO                         "Postal:      Turbo Fredriksson
                                                      Naverlursgatan 8
@@ -23,6 +23,17 @@ bayourCom MODULE-IDENTITY
                                         Tel:         +46 704-697645
                                         E-Mail:      turbo@bayour.com"
   DESCRIPTION                          "The MIB module defines the Bayour.COM Bind9 and Bacula statistics."
+
+  REVISION                             "200510311440Z"  -- October 31, 2005
+  DESCRIPTION                          "Change all Counter32's in baculaStats to Integer32's. I've missunderstood
+                                        the meaning of Counters's!"
+
+  REVISION                             "200510280655Z"  -- October 28, 2005
+  DESCRIPTION                          "* Change all Counter32's in the b9st{Totals,Domains}Table's to Integer32's.
+                                          I've missunderstood the meaning of Counters's!
+                                        * Add systemStats (and corresponding systemConformance) branch where some
+                                          misc system statistics will end up.
+                                          This will be (for starters) uptime, memory/swap information and CPU load."
 
   REVISION                             "200510211259Z"  -- October 21, 2005 - 12:59
   DESCRIPTION                          "* Add a new table containing the counter names - baculaStatsCountersTable.
@@ -294,6 +305,53 @@ bayourCom MODULE-IDENTITY
             ::= { baculaGroups 7 }
 -- }}}
 -- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.0.3 systemConformance
+      systemConformance                OBJECT IDENTIFIER ::= { conformance 3 }
+        systemCompliance               MODULE-COMPLIANCE
+          STATUS                       current
+          DESCRIPTION                  "The compliance statement for SNMP entities which have
+                                        system status counters."
+          MODULE                       -- this module
+          MANDATORY-GROUPS             { systemGroupMemory, systemGroupCPU, systemGroupLoad,
+                                         systemGroupMisc }
+          ::= { systemConformance 1 }
+
+        -- {{{ .1.3.6.1.4.1.8767.2.0.3.1 systemgroups
+        systemGroups                   OBJECT IDENTIFIER ::= { systemConformance 2 }
+          systemGroupMemory            OBJECT-GROUP
+            OBJECTS                    { systemMemoryTotal, systemMemoryUsed, systemMemoryBuffered,
+                                         systemMemoryCached, systemMemorySwapTotal, systemMemorySwapUsed }
+            STATUS                     current
+            DESCRIPTION                "A collection of objects providing information
+                                        applicable to System memory statistics."
+            ::= { systemGroups 1 }
+
+          systemGroupCPU               OBJECT-GROUP
+            OBJECTS                    { systemCPUTasksTotal, systemCPUTasksRunning, systemCPUTasksSleeping,
+                                         systemCPUTasksStopped, systemCPUTasksZombies, systemCPUUsageUser,
+                                         systemCPUUsageSystem, systemCPUUsageNice, systemCPUUsageIdle,
+                                         systemCPUUsageIOWait }
+            STATUS                     current
+            DESCRIPTION                "A collection of objects providing information
+                                        applicable to System CPU statistics."
+            ::= { systemGroups 2 }
+
+          systemGroupLoad              OBJECT-GROUP
+            OBJECTS                    { systemLoadLastOne, systemLoadLastFive, systemLoadLastFifteen }
+            STATUS                     current
+            DESCRIPTION                "A collection of objects providing information
+                                        applicable to System load statistics."
+            ::= { systemGroups 3 }
+
+          systemGroupMisc              OBJECT-GROUP
+            OBJECTS                    { systemUptime }
+            STATUS                     current
+            DESCRIPTION                "A collection of objects providing information
+                                        applicable to misc system statistics."
+            ::= { systemGroups 4 }
+-- }}}
+-- }}}
 -- }}}
 
     -- {{{ .1.3.6.1.4.1.8767.2.1 bind9Stats
@@ -334,9 +392,9 @@ bayourCom MODULE-IDENTITY
             b9stIndexTotals            CounterIndex,
 
             b9stCounterName            DisplayString,
-            b9stCounterTotal           Counter32,
-            b9stCounterForward         Counter32,
-            b9stCounterReverse         Counter32
+            b9stCounterTotal           Integer32,
+            b9stCounterForward         Integer32,
+            b9stCounterReverse         Integer32
           }
   
           b9stIndexTotals              OBJECT-TYPE
@@ -356,21 +414,21 @@ bayourCom MODULE-IDENTITY
             ::= { b9stTotalsEntry 2 }
 
           b9stCounterTotal             OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Total number of request."
             ::= { b9stTotalsEntry 3 }
 
           b9stCounterForward           OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Total number of forward requests."
             ::= { b9stTotalsEntry 4 }
 
           b9stCounterReverse           OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Total number of reverse requests."
@@ -397,12 +455,12 @@ bayourCom MODULE-IDENTITY
             b9stIndexDomains           CounterIndex,
 
             b9stDomainName             DisplayString,
-            b9stCounterSuccess         Counter32,
-            b9stCounterReferral        Counter32,
-            b9stCounterNXRRSet         Counter32,
-            b9stCounterNXDomain        Counter32,
-            b9stCounterRecursion       Counter32,
-            b9stCounterFailure         Counter32
+            b9stCounterSuccess         Integer32,
+            b9stCounterReferral        Integer32,
+            b9stCounterNXRRSet         Integer32,
+            b9stCounterNXDomain        Integer32,
+            b9stCounterRecursion       Integer32,
+            b9stCounterFailure         Integer32
           }
   
           b9stIndexDomains             OBJECT-TYPE
@@ -422,42 +480,42 @@ bayourCom MODULE-IDENTITY
             ::= { b9stDomainsEntry 2 }
 
           b9stCounterSuccess           OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Total number of reverse requests."
             ::= { b9stDomainsEntry 3 }
 
           b9stCounterReferral          OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Total number of reverse requests."
             ::= { b9stDomainsEntry 4 }
 
           b9stCounterNXRRSet           OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Total number of reverse requests."
             ::= { b9stDomainsEntry 5 }
 
           b9stCounterNXDomain          OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Total number of reverse requests."
             ::= { b9stDomainsEntry 6 }
 
           b9stCounterRecursion         OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Total number of reverse requests."
             ::= { b9stDomainsEntry 7 }
 
           b9stCounterFailure           OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Total number of reverse requests."
@@ -523,8 +581,8 @@ bayourCom MODULE-IDENTITY
             baculaClientName           DisplayString,
             baculaClientUname          DisplayString,
             baculaClientAutoPrune      TrueFalse,
-            baculaClientRetentionFile  Counter32,
-            baculaClientRetentionJob   Counter32
+            baculaClientRetentionFile  Integer32,
+            baculaClientRetentionJob   Integer32
           }
   
           baculaClientsIndex           OBJECT-TYPE
@@ -558,14 +616,14 @@ bayourCom MODULE-IDENTITY
             ::= { baculaClientsEntry 4 }
 
           baculaClientRetentionFile    OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-write
             STATUS                     current
             DESCRIPTION                "A textual string containing information about the job."
             ::= { baculaClientsEntry 5 }
 
           baculaClientRetentionJob     OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-write
             STATUS                     current
             DESCRIPTION                "A textual string containing information about the job."
@@ -731,7 +789,7 @@ bayourCom MODULE-IDENTITY
             baculaStatsEnd             DisplayString,
             baculaStatsDuration        Integer32,
             baculaStatsFiles           Integer32,
-            baculaStatsBytes           Counter32,
+            baculaStatsBytes           Integer32,
             baculaStatsType            DisplayString,
             baculaStatsStatus          Status,
             baculaStatsLevel           Level,
@@ -775,7 +833,7 @@ bayourCom MODULE-IDENTITY
             ::= { baculaStatsEntry 5 }
 
           baculaStatsBytes             OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "Bytes backed up in the job."
@@ -843,11 +901,11 @@ bayourCom MODULE-IDENTITY
             baculaPoolsUseOnce         TrueFalse,
             baculaPoolsUseCatalog      TrueFalse,
             baculaPoolsAcceptAnyVolume TrueFalse,
-            baculaPoolsRetention       Counter32,
-            baculaPoolsDuration        Counter32,
+            baculaPoolsRetention       Integer32,
+            baculaPoolsDuration        Integer32,
             baculaPoolsMaxJobs         Integer32,
             baculaPoolsMaxFiles        Integer32,
-            baculaPoolsMaxBytes        Counter32,
+            baculaPoolsMaxBytes        Integer32,
             baculaPoolsAutoPrune       TrueFalse,
             baculaPoolsRecycle         TrueFalse,
             baculaPoolsType            DisplayString,
@@ -907,14 +965,14 @@ bayourCom MODULE-IDENTITY
             ::= { baculaPoolsEntry 7 }
 
           baculaPoolsRetention         OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-write
             STATUS                     current
             DESCRIPTION                "Pool retention period (sec)."
             ::= { baculaPoolsEntry 8 }
 
           baculaPoolsDuration          OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-write
             STATUS                     current
             DESCRIPTION                "Pool duration period (sec)."
@@ -935,7 +993,7 @@ bayourCom MODULE-IDENTITY
             ::= { baculaPoolsEntry 11 }
 
           baculaPoolsMaxBytes          OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-write
             STATUS                     current
             DESCRIPTION                "Maximum bytes in pool."
@@ -1021,21 +1079,21 @@ bayourCom MODULE-IDENTITY
             baculaMediaFiles           Integer32,
             baculaMediaBlocks          Integer32,
             baculaMediaMounts          Integer32,
-            baculaMediaBytes           Counter32,
+            baculaMediaBytes           Integer32,
             baculaMediaErrors          Integer32,
             baculaMediaWrites          Integer32,
-            baculaMediaCapacity        Counter32,
+            baculaMediaCapacity        Integer32,
             baculaMediaStatus          VolumeStatus,
             baculaMediaRecycle         TrueFalse,
-            baculaMediaRetention       Counter32,
-            baculaMediaDuration        Counter32,
+            baculaMediaRetention       Integer32,
+            baculaMediaDuration        Integer32,
             baculaMediaMaxJobs         Integer32,
             baculaMediaMaxFiles        Integer32,
-            baculaMediaMaxBytes        Counter32,
+            baculaMediaMaxBytes        Integer32,
             baculaMediaInChanger       TrueFalse,
             baculaMediaMediaAddressing TrueFalse,
-            baculaMediaReadTime        Counter32,
-            baculaMediaWriteTime       Counter32,
+            baculaMediaReadTime        Integer32,
+            baculaMediaWriteTime       Integer32,
             baculaMediaEndFile         Integer32,
             baculaMediaEndBlock        Integer32
           }
@@ -1125,7 +1183,7 @@ bayourCom MODULE-IDENTITY
             ::= { baculaMediaEntry 12 }
 
           baculaMediaBytes             OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "."
@@ -1146,7 +1204,7 @@ bayourCom MODULE-IDENTITY
             ::= { baculaMediaEntry 15 }
 
           baculaMediaCapacity          OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "."
@@ -1167,14 +1225,14 @@ bayourCom MODULE-IDENTITY
             ::= { baculaMediaEntry 18 }
 
           baculaMediaRetention         OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "."
             ::= { baculaMediaEntry 19 }
 
           baculaMediaDuration          OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "."
@@ -1195,7 +1253,7 @@ bayourCom MODULE-IDENTITY
             ::= { baculaMediaEntry 22 }
 
           baculaMediaMaxBytes          OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "."
@@ -1216,14 +1274,14 @@ bayourCom MODULE-IDENTITY
             ::= { baculaMediaEntry 25 }
 
           baculaMediaReadTime          OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "."
             ::= { baculaMediaEntry 26 }
 
           baculaMediaWriteTime         OBJECT-TYPE
-            SYNTAX                     Counter32
+            SYNTAX                     Integer32
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "."
@@ -1242,6 +1300,259 @@ bayourCom MODULE-IDENTITY
             STATUS                     current
             DESCRIPTION                "."
             ::= { baculaMediaEntry 29 }
+-- }}}
+-- }}}
+
+    -- {{{ .1.3.6.1.4.1.8767.2.4 systemStats
+    systemStats                        OBJECT IDENTIFIER ::= { snmp 4 }
+      -- {{{ .1.3.6.1.4.1.8767.2.3.1   systemUptime
+      systemUptime                     OBJECT-TYPE
+        SYNTAX                         Integer32
+        MAX-ACCESS                     read-only
+        STATUS                         current
+        DESCRIPTION                    "System uptime (in seconds)."
+        ::= { systemStats 1 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.3.2   systemMemoryTable
+      systemMemoryTable                OBJECT-TYPE
+        SYNTAX                         SEQUENCE OF SystemMemoryTableEntry
+        MAX-ACCESS                     not-accessible
+        STATUS                         current
+        DESCRIPTION                    "A list of system memory statistic counters"
+        ::= { systemStats 2 }
+  
+        systemMemoryEntry              OBJECT-TYPE
+          SYNTAX                       SystemMemoryTableEntry
+          MAX-ACCESS                   not-accessible
+          STATUS                       current
+          DESCRIPTION                  "An entry containing system memory statistics"
+          INDEX                        { systemMemoryIndex }
+          ::= { systemMemoryTable 1 }
+  
+          SystemMemoryTableEntry       ::= SEQUENCE {
+            systemMemoryIndex          CounterIndex,
+
+            systemMemoryTotal          Integer32,
+            systemMemoryUsed           Integer32,
+            systemMemoryBuffered       Integer32,
+            systemMemoryCached         Integer32,
+            systemMemorySwapTotal      Integer32,
+            systemMemorySwapUsed       Integer32
+          }
+  
+          systemMemoryIndex            OBJECT-TYPE
+            SYNTAX                     CounterIndex
+            MAX-ACCESS                 not-accessible
+            STATUS                     current
+            DESCRIPTION                "Reference Index for each counter."
+            ::= { systemMemoryEntry 1 }
+
+          systemMemoryTotal            OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Total physical memory in the system."
+            ::= { systemMemoryEntry 2 }
+
+          systemMemoryUsed             OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Physical memory in use by the system."
+            ::= { systemMemoryEntry 3 }
+
+          systemMemoryBuffered         OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Memory buffered in the system."
+            ::= { systemMemoryEntry 4 }
+
+          systemMemoryCached           OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Memory cached in the system."
+            ::= { systemMemoryEntry 5 }
+
+          systemMemorySwapTotal        OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Total amount of swap space in the system."
+            ::= { systemMemoryEntry 6 }
+
+          systemMemorySwapUsed         OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Swap memory in use by the system."
+            ::= { systemMemoryEntry 7 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.3.3   systemCPUTable
+      systemCPUTable                   OBJECT-TYPE
+        SYNTAX                         SEQUENCE OF SystemCPUTableEntry
+        MAX-ACCESS                     not-accessible
+        STATUS                         current
+        DESCRIPTION                    "A list of system CPU statistic counters"
+        ::= { systemStats 3 }
+  
+        systemCPUEntry                 OBJECT-TYPE
+          SYNTAX                       SystemCPUTableEntry
+          MAX-ACCESS                   not-accessible
+          STATUS                       current
+          DESCRIPTION                  "An entry containing system CPU statistics"
+          INDEX                        { systemCPUIndex }
+          ::= { systemCPUTable 1 }
+  
+          SystemCPUTableEntry          ::= SEQUENCE {
+            systemCPUIndex             CounterIndex,
+
+            systemCPUTasksTotal        Integer32,
+            systemCPUTasksRunning      Integer32,
+            systemCPUTasksSleeping     Integer32,
+            systemCPUTasksStopped      Integer32,
+            systemCPUTasksZombies      Integer32,
+
+            systemCPUUsageUser         Integer32,
+            systemCPUUsageSystem       Integer32,
+            systemCPUUsageNice         Integer32,
+            systemCPUUsageIdle         Integer32,
+            systemCPUUsageIOWait       Integer32
+          }
+  
+          systemCPUIndex               OBJECT-TYPE
+            SYNTAX                     CounterIndex
+            MAX-ACCESS                 not-accessible
+            STATUS                     current
+            DESCRIPTION                "Reference Index for each counter."
+            ::= { systemCPUEntry 1 }
+
+          systemCPUTasksTotal          OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { systemCPUEntry 2 }
+
+          systemCPUTasksRunning        OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { systemCPUEntry 3 }
+
+          systemCPUTasksSleeping       OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { systemCPUEntry 4 }
+
+          systemCPUTasksStopped        OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { systemCPUEntry 5 }
+
+          systemCPUTasksZombies        OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { systemCPUEntry 6 }
+
+          systemCPUUsageUser           OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { systemCPUEntry 7 }
+
+          systemCPUUsageSystem         OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { systemCPUEntry 8 }
+
+          systemCPUUsageNice           OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { systemCPUEntry 9 }
+
+          systemCPUUsageIdle           OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { systemCPUEntry 10 }
+
+          systemCPUUsageIOWait         OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { systemCPUEntry 11 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.3.4   systemLoadTable
+      systemLoadTable                  OBJECT-TYPE
+        SYNTAX                         SEQUENCE OF SystemLoadTableEntry
+        MAX-ACCESS                     not-accessible
+        STATUS                         current
+        DESCRIPTION                    "A list of system load average statistic counters"
+        ::= { systemStats 4 }
+  
+        systemLoadEntry                OBJECT-TYPE
+          SYNTAX                       SystemLoadTableEntry
+          MAX-ACCESS                   not-accessible
+          STATUS                       current
+          DESCRIPTION                  "An entry containing system load average statistics"
+          INDEX                        { systemLoadIndex }
+          ::= { systemLoadTable 1 }
+  
+          SystemLoadTableEntry         ::= SEQUENCE {
+            systemLoadIndex            CounterIndex,
+
+            systemLoadLastOne          Integer32,
+            systemLoadLastFive         Integer32,
+            systemLoadLastFifteen      Integer32
+          }
+  
+          systemLoadIndex              OBJECT-TYPE
+            SYNTAX                     CounterIndex
+            MAX-ACCESS                 not-accessible
+            STATUS                     current
+            DESCRIPTION                "Reference Index for each counter."
+            ::= { systemLoadEntry 1 }
+
+          systemLoadLastOne            OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { systemLoadEntry 2 }
+
+          systemLoadLastFive           OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { systemLoadEntry 3 }
+
+          systemLoadLastFifteen        OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { systemLoadEntry 4 }
+
 -- }}}
 -- }}}
 END
