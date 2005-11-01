@@ -1,9 +1,19 @@
-bacula-snmp 1.2 
+bacula-snmp 1.3 TO BE ANNOUNCED
 	Bug fixes
-	  * When getting the status index, increase tmp[4], NOT tmp[2] (which is the
+	  + Implemented the SET command.
+	    - New global array - %writables - with OID to function mapping much like the
+	      %functions array work.
+	    - New function 'call_write()' that takes care of calling the right write
+	      function.
+	      * Renamed 'call_function()' to 'call_print()'.
+	    - All new write_*() function that takes care of doing the SQL update.
+
+bacula-snmp 1.2 Release (Oct 21 2005)
+	Bug fixes
+	  + When getting the status index, increase tmp[4], NOT tmp[2] (which is the
 	    status INFORMATION). Fixed problems with the status column not being shown
 	    correctly.
-	  * Rewrite/fix the Cacti XML template file:
+	  + Rewrite/fix the Cacti XML template file:
 	    - Replace my 'placeholder'/'shortcut' for the base OID with the real OID
 	      in the Cacti XML template file.
 	    - Change/fix the OID 'path' to the index in the Cacti XML template file.

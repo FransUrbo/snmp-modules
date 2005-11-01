@@ -1,3 +1,8 @@
+bind9-snmp 1.3c Release (Nov  1 2005)
+	Bug fixes
+	  + Change the 'OID_BASE.[34].1.x' from counter32 to integer32. Missundestood
+	    the meaning with Counter32's...
+
 bind9-snmp 1.3b Release (Oct 27 2005)
 	Bug fixes
 	  + Missed to enable the "Associated RRA's" for the domains data query in the
