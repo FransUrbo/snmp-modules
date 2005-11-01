@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bacula-snmp-stats.pl,v 1.15 2005-10-22 09:41:17 turbo Exp $
+# {{{ $Id: bacula-snmp-stats.pl,v 1.16 2005-11-01 11:01:35 turbo Exp $
 # Extract job statistics for a bacula backup server.
 # Only tested with a MySQL backend, but is general
 # enough to work with the PostgreSQL backend as well.
@@ -42,7 +42,7 @@ if($ENV{'MIBDIRS'}) {
     $OID_BASE = ".1.3.6.1.4.1.8767.2.3"; # .iso.org.dod.internet.private.enterprises.bayourcom.snmp.baculastats
 }
 
-# The 'flow' of the OID/MIB tree.
+# {{{ The 'flow' of the OID/MIB tree.
 my %functions  = (# baculaTotal*	Total counters
 		  $OID_BASE.".01"	=> "amount_clients",
 		  $OID_BASE.".02"	=> "amount_stats",
@@ -152,8 +152,28 @@ my %keys_media  = (#01  => index
 		   "27" => "write_time",
 		   "28" => "end_file",
 		   "29" => "end_block");
+# }}} # Flow
 
-# Some global data variables
+# {{{ Writable entries
+my %writables = ($OID_BASE.".5.1.4"   => 'client_autoprune',
+		 $OID_BASE.".5.1.5"   => 'client_retentionfile',
+		 $OID_BASE.".5.1.6"   => 'client_retentionjob',
+		 $OID_BASE.".10.1.5"  => 'pools_useonce',
+		 $OID_BASE.".10.1.6"  => 'pools_usecatalog',
+		 $OID_BASE.".10.1.7"  => 'pools_acceptanyvolume',
+		 $OID_BASE.".10.1.8"  => 'pools_retention',
+		 $OID_BASE.".10.1.9"  => 'pools_duration',
+		 $OID_BASE.".10.1.10" => 'pools_maxjobs',
+		 $OID_BASE.".10.1.11" => 'pools_maxfiles',
+		 $OID_BASE.".10.1.12" => 'pools_maxbytes',
+		 $OID_BASE.".10.1.13" => 'pools_autoprune',
+		 $OID_BASE.".10.1.14" => 'pools_recycle',
+		 $OID_BASE.".10.1.15" => 'pools_type',
+		 $OID_BASE.".10.1.16" => 'pools_labelformat',
+		 $OID_BASE.".10.1.17" => 'pools_enabled');
+# }}}
+
+# {{{ Some global data variables
 my($oid, %STATUS, %POOLS, %MEDIAS, @CLIENTS, %CLIENTS, %JOBS);
 
 # Total numbers
@@ -161,7 +181,7 @@ my($TYPES_STATS, $TYPES_CLIENT, $TYPES_POOL, $TYPES_MEDIA, $TYPES_JOBS);
 my($CLIENTS, $JOBS, $STATUS, $POOLS, $MEDIAS);
 
 # Because &print_jobs_name() needs TWO args, not ONE,
-# but &call_func() can't handle that and it would be
+# but &call_print() can't handle that and it would be
 # cumbersome to make it do that...
 # The function &print_jobs_name() needs: 'Client number'
 # and 'Job number' but we set the client number as a global
@@ -183,6 +203,7 @@ my($TYPE_STATUS);
 # which type of information wanted (from %keys_client
 # above).
 my($TYPE_CLIENT);
+# }}}
 
 # handle a SIGALRM - read information from the SQL server
 $SIG{'ALRM'} = \&load_information;
@@ -396,10 +417,11 @@ sub get_info_client {
 sub get_info_pool {
     my($QUERY, $pool, %pool);
 
-    # Setup and execute the SQL query
+    # {{{ Setup and execute the SQL query
     $QUERY  = "SELECT * FROM Pool";
     my $sth = $dbh->prepare($QUERY) || die("Could not prepare SQL query: $dbh->errstr\n");
     $sth->execute || die("Could not execute query: $sth->errstr\n");
+# }}}
 
     while( my @row = $sth->fetchrow_array() ) {
 	# {{{ Put toghether the pool array
@@ -1640,6 +1662,521 @@ sub print_media_names {
 # }}}
 
 # ====================================================
+# =====       W R I T E  F U N C T I O N S       =====
+
+# {{{ OID_BASE.5.1.4
+sub write_client_autoprune {
+    my $arg_sub  = shift;
+    my $arg_type = shift;
+    my $arg_val  = shift;
+
+    &echo(0, "=> write_client_autoprune($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+
+    return 2 if($arg_type ne 'integer');
+
+    # {{{ Setup and execute the SQL query
+    my ($QUERY, $sth) = ("UPDATE Client SET AutoPrune=$arg_val WHERE ClientId=$arg_sub", 0);
+
+    # Prepare query
+    if(!($sth = $dbh->prepare($QUERY))) {
+	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+
+    # Execute query
+    if(!$sth->execute) {
+	&echo(0, "Could not execute query: $sth->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+# }}}
+
+    return(0);
+}
+# }}}
+
+# {{{ OID_BASE.5.1.5
+sub write_client_retentionfile {
+    my $arg_sub  = shift;
+    my $arg_type = shift;
+    my $arg_val  = shift;
+
+    &echo(0, "=> write_client_retentionfile($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+
+    return 2 if($arg_type ne 'integer');
+
+    # {{{ Setup and execute the SQL query
+    my ($QUERY, $sth) = ("UPDATE Client SET FileRetention=$arg_val WHERE ClientId=$arg_sub", 0);
+
+    # Prepare query
+    if(!($sth = $dbh->prepare($QUERY))) {
+	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+
+    # Execute query
+    if(!$sth->execute) {
+	&echo(0, "Could not execute query: $sth->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+# }}}
+
+    return(0);
+}
+# }}}
+
+# {{{ OID_BASE.5.1.6
+sub write_client_retentionjob {
+    my $arg_sub  = shift;
+    my $arg_type = shift;
+    my $arg_val  = shift;
+
+    &echo(0, "=> write_client_retentionjob($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+
+    return 2 if($arg_type ne 'integer');
+
+    # {{{ Setup and execute the SQL query
+    my ($QUERY, $sth) = ("UPDATE Client SET JobRetention=$arg_val WHERE ClientId=$arg_sub", 0);
+
+    # Prepare query
+    if(!($sth = $dbh->prepare($QUERY))) {
+	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+
+    # Execute query
+    if(!$sth->execute) {
+	&echo(0, "Could not execute query: $sth->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+# }}}
+
+    return(0);
+}
+# }}}
+
+# {{{ OID_BASE.10.1.5
+sub write_pools_useonce {
+    my $arg_sub  = shift;
+    my $arg_type = shift;
+    my $arg_val  = shift;
+
+    &echo(0, "=> write_pools_useonce($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+
+    return 2 if($arg_type ne 'integer');
+
+    # {{{ Setup and execute the SQL query
+    my ($QUERY, $sth) = ("UPDATE Pool SET UseOnce=$arg_val WHERE PoolId=$arg_sub", 0);
+
+    # Prepare query
+    if(!($sth = $dbh->prepare($QUERY))) {
+	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+
+    # Execute query
+    if(!$sth->execute) {
+	&echo(0, "Could not execute query: $sth->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+# }}}
+
+    return(0);
+}
+# }}}
+
+# {{{ OID_BASE.10.1.6
+sub write_pools_usecatalog {
+    my $arg_sub  = shift;
+    my $arg_type = shift;
+    my $arg_val  = shift;
+
+    &echo(0, "=> write_pools_usecatalog($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+
+    return 2 if($arg_type ne 'integer');
+
+    # {{{ Setup and execute the SQL query
+    my ($QUERY, $sth) = ("UPDATE Pool SET UseCatalog=$arg_val WHERE PoolId=$arg_sub", 0);
+
+    # Prepare query
+    if(!($sth = $dbh->prepare($QUERY))) {
+	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+
+    # Execute query
+    if(!$sth->execute) {
+	&echo(0, "Could not execute query: $sth->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+# }}}
+
+    return(0);
+}
+# }}}
+
+# {{{ OID_BASE.10.1.7
+sub write_pools_acceptanyvolume {
+    my $arg_sub  = shift;
+    my $arg_type = shift;
+    my $arg_val  = shift;
+
+    &echo(0, "=> write_pools_acceptanyvolume($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+
+    return 2 if($arg_type ne 'integer');
+
+    # {{{ Setup and execute the SQL query
+    my ($QUERY, $sth) = ("UPDATE Pool SET AcceptAnyVolume=$arg_val WHERE PoolId=$arg_sub", 0);
+
+    # Prepare query
+    if(!($sth = $dbh->prepare($QUERY))) {
+	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+
+    # Execute query
+    if(!$sth->execute) {
+	&echo(0, "Could not execute query: $sth->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+# }}}
+
+    return(0);
+}
+# }}}
+
+# {{{ OID_BASE.10.1.8
+sub write_pools_retention {
+    my $arg_sub  = shift;
+    my $arg_type = shift;
+    my $arg_val  = shift;
+
+    &echo(0, "=> write_pools_retention($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+
+    return 2 if($arg_type ne 'integer');
+
+    # {{{ Setup and execute the SQL query
+    my ($QUERY, $sth) = ("UPDATE Pool SET VolRetention=$arg_val WHERE PoolId=$arg_sub", 0);
+
+    # Prepare query
+    if(!($sth = $dbh->prepare($QUERY))) {
+	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+
+    # Execute query
+    if(!$sth->execute) {
+	&echo(0, "Could not execute query: $sth->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+# }}}
+
+    return(0);
+}
+# }}}
+
+# {{{ OID_BASE.10.1.9
+sub write_pools_duration {
+    my $arg_sub  = shift;
+    my $arg_type = shift;
+    my $arg_val  = shift;
+
+    &echo(0, "=> write_pools_duration($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+
+    return 2 if($arg_type ne 'integer');
+
+    # {{{ Setup and execute the SQL query
+    my ($QUERY, $sth) = ("UPDATE Pool SET VolUseDuration=$arg_val WHERE PoolId=$arg_sub", 0);
+
+    # Prepare query
+    if(!($sth = $dbh->prepare($QUERY))) {
+	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+
+    # Execute query
+    if(!$sth->execute) {
+	&echo(0, "Could not execute query: $sth->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+# }}}
+
+    return(0);
+}
+# }}}
+
+# {{{ OID_BASE.10.1.10
+sub write_pools_maxjobs {
+    my $arg_sub  = shift;
+    my $arg_type = shift;
+    my $arg_val  = shift;
+
+    &echo(0, "=> write_pools_maxjobs($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+
+    return 2 if($arg_type ne 'integer');
+
+    # {{{ Setup and execute the SQL query
+    my ($QUERY, $sth) = ("UPDATE Pool SET MaxVolJobs=$arg_val WHERE PoolId=$arg_sub", 0);
+
+    # Prepare query
+    if(!($sth = $dbh->prepare($QUERY))) {
+	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+
+    # Execute query
+    if(!$sth->execute) {
+	&echo(0, "Could not execute query: $sth->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+# }}}
+
+    return(0);
+}
+# }}}
+
+# {{{ OID_BASE.10.1.11
+sub write_pools_maxfiles {
+    my $arg_sub  = shift;
+    my $arg_type = shift;
+    my $arg_val  = shift;
+
+    &echo(0, "=> write_pools_maxfiles($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+
+    return 2 if($arg_type ne 'integer');
+
+    # {{{ Setup and execute the SQL query
+    my ($QUERY, $sth) = ("UPDATE Pool SET MaxVolFiles=$arg_val WHERE PoolId=$arg_sub", 0);
+
+    # Prepare query
+    if(!($sth = $dbh->prepare($QUERY))) {
+	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+
+    # Execute query
+    if(!$sth->execute) {
+	&echo(0, "Could not execute query: $sth->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+# }}}
+
+    return(0);
+}
+# }}}
+
+# {{{ OID_BASE.10.1.12
+sub write_pools_maxbytes {
+    my $arg_sub  = shift;
+    my $arg_type = shift;
+    my $arg_val  = shift;
+
+    &echo(0, "=> write_pools_maxbytes($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+
+    return 2 if($arg_type ne 'integer');
+
+    # {{{ Setup and execute the SQL query
+    my ($QUERY, $sth) = ("UPDATE Pool SET MaxVolBytes=$arg_val WHERE PoolId=$arg_sub", 0);
+
+    # Prepare query
+    if(!($sth = $dbh->prepare($QUERY))) {
+	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+
+    # Execute query
+    if(!$sth->execute) {
+	&echo(0, "Could not execute query: $sth->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+# }}}
+
+    return(0);
+}
+# }}}
+
+# {{{ OID_BASE.10.1.13
+sub write_pools_autoprune {
+    my $arg_sub  = shift;
+    my $arg_type = shift;
+    my $arg_val  = shift;
+
+    &echo(0, "=> write_pools_autoprune($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+
+    return 2 if($arg_type ne 'integer');
+
+    # {{{ Setup and execute the SQL query
+    my ($QUERY, $sth) = ("UPDATE Pool SET AutoPrune=$arg_val WHERE PoolId=$arg_sub", 0);
+
+    # Prepare query
+    if(!($sth = $dbh->prepare($QUERY))) {
+	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+
+    # Execute query
+    if(!$sth->execute) {
+	&echo(0, "Could not execute query: $sth->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+# }}}
+
+    return(0);
+}
+# }}}
+
+# {{{ OID_BASE.10.1.14
+sub write_pools_recycle {
+    my $arg_sub  = shift;
+    my $arg_type = shift;
+    my $arg_val  = shift;
+
+    &echo(0, "=> write_pools_recycle($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+
+    return 2 if($arg_type ne 'integer');
+
+    # {{{ Setup and execute the SQL query
+    my ($QUERY, $sth) = ("UPDATE Pool SET Recycle=$arg_val WHERE PoolId=$arg_sub", 0);
+
+    # Prepare query
+    if(!($sth = $dbh->prepare($QUERY))) {
+	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+
+    # Execute query
+    if(!$sth->execute) {
+	&echo(0, "Could not execute query: $sth->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+# }}}
+
+    return(0);
+}
+# }}}
+
+# {{{ OID_BASE.10.1.15
+sub write_pools_type {
+    my $arg_sub  = shift;
+    my $arg_type = shift;
+    my $arg_val  = shift;
+
+    &echo(0, "=> write_pools_type($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+
+    return 2 if($arg_type ne 'string');
+
+    # {{{ Setup and execute the SQL query
+    my ($QUERY, $sth) = ("UPDATE Pool SET PoolType=$arg_val WHERE PoolId=$arg_sub", 0);
+
+    # Prepare query
+    if(!($sth = $dbh->prepare($QUERY))) {
+	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+
+    # Execute query
+    if(!$sth->execute) {
+	&echo(0, "Could not execute query: $sth->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+# }}}
+
+    return(0);
+}
+# }}}
+
+# {{{ OID_BASE.10.1.16
+sub write_pools_labelformat {
+    my $arg_sub  = shift;
+    my $arg_type = shift;
+    my $arg_val  = shift;
+
+    &echo(0, "=> write_pools_labelformat($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+
+    return 2 if($arg_type ne 'string');
+
+    # {{{ Setup and execute the SQL query
+    my ($QUERY, $sth) = ("UPDATE Pool SET LabelFormat=$arg_val WHERE PoolId=$arg_sub", 0);
+
+    # Prepare query
+    if(!($sth = $dbh->prepare($QUERY))) {
+	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+
+    # Execute query
+    if(!$sth->execute) {
+	&echo(0, "Could not execute query: $sth->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+# }}}
+
+    return(0);
+}
+# }}}
+
+# {{{ OID_BASE.10.1.17
+sub write_pools_enabled {
+    my $arg_sub  = shift;
+    my $arg_type = shift;
+    my $arg_val  = shift;
+
+    &echo(0, "=> write_pools_enabled($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+
+    return 2 if($arg_type ne 'integer');
+
+    # {{{ Setup and execute the SQL query
+    my ($QUERY, $sth) = ("UPDATE Pool SET Enabled=$arg_val WHERE PoolId=$arg_sub", 0);
+
+    # Prepare query
+    if(!($sth = $dbh->prepare($QUERY))) {
+	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+
+    # Execute query
+    if(!$sth->execute) {
+	&echo(0, "Could not execute query: $sth->errstr\n");
+	return(2);
+    }
+    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+# }}}
+
+    return(0);
+}
+# }}}
+
+# ====================================================
 # =====        M I S C  F U N C T I O N S        =====
 
 # {{{ Show usage
@@ -1675,8 +2212,8 @@ sub calculate_duration {
 }
 # }}}
 
-# {{{ Call function with option
-sub call_func {
+# {{{ Call function with option - print
+sub call_print {
     my $func_nr  = shift;
     my $func_arg = shift;
     my $function;
@@ -1691,7 +2228,7 @@ sub call_func {
     # Make sure that the argument variable is initialized
     $func_arg =  '' if(!$func_arg);
 
-    &echo(0, "=> call_func($func_nr, $func_arg)\n") if($CFG{'DEBUG'} > 3);
+    &echo(0, "=> call_print($func_nr, $func_arg)\n") if($CFG{'DEBUG'} > 3);
     my $func = $functions{$func_nr};
     if($func) {
 	$function = "print_".$func;
@@ -1714,6 +2251,26 @@ sub call_func {
     } else {
 	return 0;
     }
+}
+# }}}
+
+# {{{ Call function with option - write
+sub call_write {
+    my $func_base = shift;
+    my $func_sub  = shift;
+    my $func_type = shift;
+    my $func_arg  = shift;
+    my $function;
+
+    &echo(0, "=> call_write($func_base, $func_sub, $func_type, $func_arg)\n") if($CFG{'DEBUG'} > 3);
+    my $func = $writables{$OID_BASE.".".$func_base};
+    return 1 if(!defined($func));
+
+    $function = "write_".$func;
+    &echo(0, "=> Calling function '$function($func_sub, $func_type, $func_arg)'\n") if($CFG{'DEBUG'} > 2);
+
+    $function = \&{$function}; # Because of 'use strict' above...
+    return(&$function($func_sub, $func_type, $func_arg));
 }
 # }}}
 
@@ -2008,28 +2565,29 @@ if($ALL) {
 # }}}
 	
 	if($arg eq 'getnext') {
+	    # {{{ Get next OID
 	    if(!defined($tmp[0])) {
 		# {{{ ------------------------------------- OID_BASE         
-		&call_func($OID_BASE.".1");
+		&call_print($OID_BASE.".1");
 # }}} # OID_BASE
 
 	    } elsif(($tmp[0] >= 1) && ($tmp[0] <= 4)) {
 		# {{{ ------------------------------------- OID_BASE.[1-4]   
 		if(!defined($tmp[1])) {
-		    &call_func($OID_BASE.".".$tmp[0]);
+		    &call_print($OID_BASE.".".$tmp[0]);
 		} else {
 		    $tmp[0]++;
 		    
 		    if($tmp[0] >= 5) {
 			for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
 
-			# How to call call_func()
+			# How to call call_print()
 			my($next1, $next2, $next3) = get_next_oid(@tmp);
 
 			&echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
-			&call_func($next1, $next3);
+			&call_print($next1, $next3);
 		    } else {
-			&call_func($OID_BASE.".".$tmp[0]);
+			&call_print($OID_BASE.".".$tmp[0]);
 		    }
 		}
 # }}} # OID_BASE.[1-4]
@@ -2058,23 +2616,23 @@ if($ALL) {
 		    }
 		}
 
-		# How to call call_func()
+		# How to call call_print()
 		my($next1, $next2, $next3) = get_next_oid(@tmp);
 # }}} # Figure out next value
 
 		&echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
-		if(!&call_func($next1, $next3)) {
+		if(!&call_print($next1, $next3)) {
 		    # OID_BASE.5.1.2.4 => OID_BASE.5.1.2.5 => OID_BASE.5.1.3.1
 		    # {{{ Figure out the NEXT value from the input
 		    $tmp[0]++;
 		    for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
 
-		    # How to call call_func()
+		    # How to call call_print()
 		    my($next1, $next2, $next3) = get_next_oid(@tmp);
 # }}} # Figure out next value
 
 		    &echo(0, ">> No OID at that level (-1) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
-		    &call_func($next1, $next3);
+		    &call_print($next1, $next3);
 		}
 # }}} # OID_BASE.5
 
@@ -2169,13 +2727,13 @@ if($ALL) {
 # }}} # OID_BASE.8
 		}
 
-		# How to call call_func()
+		# How to call call_print()
 		my($next1, $next2, $next3) = get_next_oid(@tmp);
 # }}} # Figure out next value
 
 		# {{{ Call functions, recursively (1)
 		&echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
-		if(!&call_func($next1, $next3)) {
+		if(!&call_print($next1, $next3)) {
 		    # Reached the end of OID_BASE.6.1.1.1.1 => OID_BASE.6.1.1.2.1
 		    # {{{ Figure out the NEXT value from the input
 		    if($tmp[0] == 6) {
@@ -2191,13 +2749,13 @@ if($ALL) {
 			$tmp[5] = 1;
 		    }
 
-		    # How to call call_func()
+		    # How to call call_print()
 		    my($next1, $next2, $next3) = get_next_oid(@tmp);
 # }}} # Figure out next value
 
 		    # {{{ Call functions, recursively (-1)
 		    &echo(0, ">> No OID at that level (-1) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
-		    if(!&call_func($next1, $next3)) {
+		    if(!&call_print($next1, $next3)) {
 			# Reached the end of OID_BASE.6.1.1.x => OID_BASE.6.1.2.1.1
 			# {{{ Figure out the NEXT value from the input
 			if($tmp[0] == 6) {
@@ -2215,13 +2773,13 @@ if($ALL) {
 			    for(my $i=4; $i <= 5; $i++) { $tmp[$i] = 1; }
 			}
 			
-			# How to call call_func()
+			# How to call call_print()
 			my($next1, $next2, $next3) = get_next_oid(@tmp);
 # }}} # Next value
 
 			# {{{ Call functions, recursively (-2)
 			&echo(0, ">> No OID at that level (-2) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
-			if(!&call_func($next1, $next3)) {
+			if(!&call_print($next1, $next3)) {
 			    # Reached the end of the OID_BASE.6.1.2 => OID_BASE.7.1.1.1.1.1
 			    # {{{ Figure out the NEXT value from the input
 			    if($tmp[0] == 6) {
@@ -2245,13 +2803,13 @@ if($ALL) {
 				}
 			    }
 
-			    # How to call call_func()
+			    # How to call call_print()
 			    my($next1, $next2, $next3) = get_next_oid(@tmp);
 # }}} # Next value
 
 			    # {{{ Call functions, recursively (-3)
 			    &echo(0, ">> No OID at that level (-3) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
-			    if(!&call_func($next1, $next3)) {
+			    if(!&call_print($next1, $next3)) {
 				# Reached the end of the OID_BASE.7.1.2 => OID_BASE.8.1.1.1
 				# {{{ Figure out the NEXT value from the input
 				$tmp[0]++;
@@ -2263,12 +2821,12 @@ if($ALL) {
 				    undef($tmp[4]); undef($tmp[5]);
 				}
 
-				# How to call call_func()
+				# How to call call_print()
 				my($next1, $next2, $next3) = get_next_oid(@tmp);
 # }}} # Next value
 				
 				&echo(0, ">> No OID at that level (-4) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
-				&call_func($next1, $next3);
+				&call_print($next1, $next3);
 			    }
 # }}} # Call functions -> -3
 			}
@@ -2292,13 +2850,13 @@ if($ALL) {
 		    $tmp[3]++;
 		}
 		
-		# How to call call_func()
+		# How to call call_print()
 		my($next1, $next2, $next3) = get_next_oid(@tmp);
 # }}} Figure out next value
 		
 		# {{{ Call functions, recursively (1)
 		&echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
-		if(!&call_func($next1, $next3)) {
+		if(!&call_print($next1, $next3)) {
 		    # {{{ Figure out the NEXT value from the input
 		    if(($tmp[0] == 10) && ($tmp[3] >= $POOLS)) {
 			# No more clients -> Next key, first client
@@ -2313,13 +2871,13 @@ if($ALL) {
 			$tmp[3] = 1;
 		    }
 		    
-		    # How to call call_func()
+		    # How to call call_print()
 		    my($next1, $next2, $next3) = get_next_oid(@tmp);
 # }}} # Get next value
 
 		    # {{{ Call functions, recursivly (-1)
 		    &echo(0, ">> No OID at that level (-1) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
-		    if(!&call_func($next1, $next3)) {
+		    if(!&call_print($next1, $next3)) {
 			# {{{ Figure out the NEXT value from the input
 			if($tmp[0] == 10) {
 			    if($tmp[2] >= $TYPES_POOL) {
@@ -2329,13 +2887,13 @@ if($ALL) {
 			    }
 			}
 		    
-			# How to call call_func()
+			# How to call call_print()
 			my($next1, $next2, $next3) = get_next_oid(@tmp);
 # }}} # Get next value
 
 			# {{{ Call functions, recursivly (-2)
 			&echo(0, ">> No OID at that level (-2) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
-			&call_func($next1, $next3);
+			&call_print($next1, $next3);
 # }}} # Call functions (-2)
 		    }
 # }}} # Call functions (-1)
@@ -2350,6 +2908,7 @@ if($ALL) {
 		next;
 # }}} # No such OID
 	    }
+# }}}
 	} elsif($arg eq 'get') {
 	    # {{{ Get _this_ OID
 	    my($next1, $next2, $next3);
@@ -2358,16 +2917,38 @@ if($ALL) {
 		$next2 = '';
 		$next3 = $tmp[1];
 	    } else {
-		# How to call call_func()
+		# How to call call_print()
 		($next1, $next2, $next3) = get_next_oid(@tmp);
 	    }
 
 	    &echo(0, "=> Get this OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} > 2);
-	    if(!&call_func($next1, $next3)) {
+	    if(!&call_print($next1, $next3)) {
 		&no_value();
 		next;
 	    }
 # }}} # Get _this_ OID
+	} elsif($arg eq 'set') {
+	    # {{{ Set a value
+	    my $input  = <>; chomp($input);
+	    my ($type, $value) = split(' ', $input);
+	    &echo(0, "=> Type: '$type', Value: '$value'\n") if($CFG{'DEBUG'} > 3);
+
+	    my $code = &call_write($tmp[0].".1.".$tmp[2], $tmp[3], $type, $value);
+	    if($code == 0) {
+		&echo(0, "=> Successfully modified object\n") if($CFG{'DEBUG'} > 2);
+		&echo(1, "\n");
+	    } elsif($code == 1) {
+		&echo(0, "=> ERROR: Object not writable\n");
+		&echo(1, "not-writable\n");
+	    } elsif($code == 2) {
+		&echo(0, "=> ERROR: Input of wrong type (='$type')\n");
+		&echo(1, "wrong-type\n");
+	    } else {
+		&echo(0, "=> ERROR: Generic failure\n");
+	    }
+
+	    next;
+# }}} # Set a value
 	}
 
 	&echo(0, "\n") if($CFG{'DEBUG'} > 1);
