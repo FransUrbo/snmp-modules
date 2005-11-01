@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.9 2005-10-20 08:35:44 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.10 2005-11-01 11:02:52 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -220,7 +220,7 @@ sub print_b9stCounterTypeTotal {
 	&echo(0, "$OID_BASE.3.1.$type_nr.$nr = ".$DATA{$counter}{$type}."\n") if($DEBUG);
 
 	&echo(1, "$OID_BASE.3.1.$type_nr.$nr\n");
-	&echo(1, "counter32\n");
+	&echo(1, "integer\n");
 	&echo(1, $DATA{$counter}{$type}."\n");
     }
 
@@ -288,7 +288,7 @@ sub print_b9stCounterTypeDomains {
 	&echo(0, "$OID_BASE.4.1.$type_nr.$i = $value\n") if($DEBUG);
 
 	&echo(1, "$OID_BASE.4.1.$type_nr.$i\n");
-	&echo(1, "counter32\n");
+	&echo(1, "integer\n");
 	&echo(1, "$value\n");
     }
 
