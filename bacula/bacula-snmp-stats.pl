@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bacula-snmp-stats.pl,v 1.16 2005-11-01 11:01:35 turbo Exp $
+# {{{ $Id: bacula-snmp-stats.pl,v 1.17 2005-11-05 11:10:53 turbo Exp $
 # Extract job statistics for a bacula backup server.
 # Only tested with a MySQL backend, but is general
 # enough to work with the PostgreSQL backend as well.
@@ -1466,11 +1466,6 @@ sub print_pool_names {
 			   ($key_name eq 'label_format'))
 			{
 			    &echo(1, "string\n");
-			} elsif(($key_name eq 'vol_retention') ||
-				($key_name eq 'vol_use_duration') ||
-				($key_name eq 'max_bytes'))
-			{
-			    &echo(1, "counter\n");
 			} else {
 			    &echo(1, "integer\n");
 			}
@@ -1592,15 +1587,6 @@ sub print_media_names {
 			   ($key_name eq 'label_date'))
 			{
 			    &echo(1, "string\n");
-			} elsif(($key_name eq 'bytes') ||
-				($key_name eq 'capacity') ||
-				($key_name eq 'retention') ||
-				($key_name eq 'use_duration') ||
-				($key_name eq 'max_bytes') ||
-				($key_name eq 'read_time') ||
-				($key_name eq 'write_time'))
-			{
-			    &echo(1, "counter\n");
 			} else {
 			    &echo(1, "integer\n");
 			}
