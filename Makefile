@@ -29,6 +29,7 @@ bind9_tarball: $(BIND9_INSTDIR)
 	  cp bind9/cacti_host_template_bind9_snmp_machine.xml $(BIND9_INSTDIR)/tmp; \
 	  cd $(BIND9_INSTDIR); \
 	  tar czf ../bind9-snmp_$(BIND9_VERSION).tgz `find -type f`; \
+	  tar cjf ../bind9-snmp_$(BIND9_VERSION).tar.bz2 `find -type f`; \
 	  zip ../bind9-snmp_$(BIND9_VERSION).zip `find -type f`)
 
 bind9_changes:
@@ -48,6 +49,7 @@ bacula_tarball: $(BACULA_INSTDIR)
 	  cp bacula/cacti_data_query_snmp_local_bacula_statistics_*.xml $(BACULA_INSTDIR)/tmp; \
 	  cd $(BACULA_INSTDIR); \
 	  tar czf ../bacula-snmp_$(BACULA_VERSION).tgz `find -type f`; \
+	  tar cjf ../bacula-snmp_$(BACULA_VERSION).tar.bz2 `find -type f`; \
 	  zip ../bacula-snmp_$(BACULA_VERSION).zip `find -type f`)
 
 bacula_changes:
