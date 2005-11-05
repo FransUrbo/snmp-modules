@@ -1,3 +1,8 @@
+bind9-snmp 1.4 TO BE ANNOUNCED
+	Bug fixes
+	  + Completley disble the output of the Index branches. They should be
+	    'invisable' so they don't interfere with the table(s).
+
 bind9-snmp 1.3c Release (Nov  1 2005)
 	Bug fixes
 	  + Change the 'OID_BASE.[34].1.x' from counter32 to integer32. Missundestood
