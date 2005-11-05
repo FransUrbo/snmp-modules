@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.10 2005-11-01 11:02:52 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.11 2005-11-05 11:33:28 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -31,7 +31,7 @@ my $log      = "/var/lib/named/var/log/dns-stats.log";
 my $rndc     = "/usr/sbin/rndc"; 
 my $delta    = "/var/tmp/"; 
 
-my $DEBUG    = 0;
+my $DEBUG    = 4;
 my $arg      = '';
 
 my %DATA;
@@ -142,9 +142,8 @@ sub print_b9stTotalsIndex {
     }
 
     foreach $j (keys %cnts) {
-	if($DEBUG) {
-	    &echo(0, "$OID_BASE.3.1.1.$j = $j\n");
-	}
+	$j =~ s/^0//;
+	&echo(0, "$OID_BASE.3.1.1.$j = $j\n") if($DEBUG);
 	
 	&echo(1, "$OID_BASE.3.1.1.$j\n");
 	&echo(1, "integer\n");
@@ -357,7 +356,6 @@ sub print_b9stDomainsIndex {
 
     foreach $j (sort keys %cnts) {
 	$j =~ s/^0//;
-
 	&echo(0, "$OID_BASE.4.1.1.$j = $j\n") if($DEBUG);
 
 	&echo(1, "$OID_BASE.4.1.1.$j\n");
@@ -498,7 +496,11 @@ sub echo {
 
 # {{{ Return 'no such value'
 sub no_value {
-    &echo(0, "=> No value in this object - exiting!\n") if($DEBUG > 1);
+    my $reason = shift;
+
+    $reason = " $reason" if(defined($reason));
+
+    &echo(0, "=> No value in this object$reason - exiting!\n") if($DEBUG > 1);
     
     &echo(1, "NONE\n");
     &echo(0, "\n") if($DEBUG > 1);
@@ -691,48 +693,76 @@ if($ALL) {
 	} elsif($tmp[0] == 3) {
 	    # {{{ ------------------------------------- OID_BASE.3		(b9stTotalsTable)   
 	    if($arg eq 'getnext') {
+		# Make sure to skip the OID_BASE.3.1.1 branch - it's the index and should not be returned!
 		if(!$tmp[2] && !$tmp[3]) {
-		    &call_func_total(1, 1);
+		    &call_func_total(2, 1);
 		} elsif(!$tmp[3]) {
 		    if($tmp[2] < $count_counters) {
-			&call_func_total($tmp[2], 1);
+			&echo(0, "tmp[2] < $count_counters\n");
+			if($tmp[2] > 1) {
+			    &echo(0, "tmp[2] > 1\n");
+			    &call_func_total($tmp[2], 1);
+			} else {
+			    &echo(0, "tmp[2] < 1\n");
+			    &no_value("(Index)");
+			}
 		    } else {
-			&call_func_domain(1, 1);
+			&call_func_domain(2, 1);
 		    }
 		} else {
 		    my $x = $tmp[3] + 1;
 		    
 		    if($x > $count_counters) {
-			&echo(0, "=> $x > $count_counters\n") if($DEBUG > 2);
-			if($prints_total{$tmp[2]+1}) {
-			    &call_func_total($tmp[2]+1, 1);
+			&echo(0, "=> x > count_counters ($x > $count_counters)\n") if($DEBUG > 2);
+			if($tmp[2] == 1) {
+			    &no_value("(Index)");
 			} else {
-			    &call_func_domain(1, 1);
+			    if($prints_total{$tmp[2]+1}) {
+				&call_func_total($tmp[2]+1, 1);
+			    } else {
+				&call_func_domain(2, 1);
+			    }
 			}
 		    } else {
-			&echo(0, "=> !($x > $count_counters) => call_func_total(".$tmp[2].", ".($tmp[3]+1).")\n") if($DEBUG > 2);
-			&call_func_total($tmp[2], $tmp[3]+1);
+			if($tmp[2] == 1) {
+			    &no_value("(Index)");
+			} else {
+			    &echo(0, "=> !($x > $count_counters) => call_func_total(".$tmp[2].", ".($tmp[3]+1).")\n") if($DEBUG > 2);
+			    &call_func_total($tmp[2], $tmp[3]+1);
+			}
 		    }
 		}
-	    } elsif($tmp[2] && $prints_total{$tmp[2]}) {
-		&call_func_total($tmp[2], $tmp[3]);
-	    } elsif($tmp[2] && $prints_domain{$tmp[2]}) {
-		&call_func_domain($tmp[2], $tmp[3]);
 	    } else {
-		&echo(0, "No value in this object - exiting!\n") if($DEBUG);
-		
-		&echo(1, "NONE\n");
-		next;
+		if(!$tmp[3] || ($tmp[2] == 1)) {
+		    &no_value();
+		} elsif($tmp[2] && $prints_total{$tmp[2]}) {
+		    &echo(0, "tmp[2] && prints_total{tmp[2]} (".$prints_total{$tmp[2]}.")\n");
+		    if($tmp[2] > 1) {
+			&no_value("(Index)");
+		    } else {
+			&call_func_total($tmp[2]+1, $tmp[3]);
+		    }
+		} elsif($tmp[2] && $prints_domain{$tmp[2]}) {
+		    &call_func_domain($tmp[2], $tmp[3]);
+		} else {
+		    # End of MIB.
+		    &no_value();
+		}
 	    }
 # }}} # OID_BASE.3
 
 	} elsif($tmp[0] == 4) {
 	    # {{{ ------------------------------------- OID_BASE.4		(b9stDomainsTable)  
 	    if($arg eq 'getnext') {
+		# Make sure to skip the OID_BASE.4.1.1 branch - it's the index and should not be returned!
 		if(!$tmp[2] && !$tmp[3]) {
-		    &call_func_domain(1, 1);
+		    &call_func_domain(2, 1);
 		} elsif(!$tmp[3]) {
-		    &call_func_domain($tmp[2], 1);
+		    if($tmp[2] > 1) {
+			&call_func_domain($tmp[2], 1);
+		    } else {
+			&call_func_domain($tmp[2]+1, 1);
+		    }
 		} else {
 		    my $x = $tmp[3] + 1;
 		    
@@ -740,28 +770,30 @@ if($ALL) {
 			if($prints_domain{$tmp[2]+1}) {
 			    &call_func_domain($tmp[2]+1, 1);
 			} else {
-			    &echo(0, "No more values\n") if($DEBUG);
-			    
-			    &echo(1, "NONE\n");
-			    next;
+			    # End of MIB.
+			    &no_value();
 			}
 		    } else {
-			&call_func_domain($tmp[2], $tmp[3]+1);
+			if($tmp[2] == 1) {
+			    &no_value("(Index)");
+			} else {
+			    &echo(0, "=> $x < $count_domains\n") if($DEBUG > 2);
+			    &call_func_domain($tmp[2], $tmp[3]+1);
+			}
 		    }
 		}
-	    } elsif($tmp[2] && $prints_domain{$tmp[2]}) {
-		&call_func_domain($tmp[2], $tmp[3]);
 	    } else {
-		&echo(0, "No more values - exiting!\n") if($DEBUG);
-		
-		&echo(1, "NONE\n");
-		next;
+		if($tmp[2] && $prints_domain{$tmp[2]}) {
+		    &call_func_domain($tmp[2], $tmp[3]);
+		} else {
+		    &no_value();
+		}
 	    }
 # }}} # OID_BASE.4
 
 	} else {
 	    # {{{ ------------------------------------- OID_BASE.?              (Unknown OID)       
-	    &no_value(); next;
+	    &no_value();
 # }}}
 	}
     }
