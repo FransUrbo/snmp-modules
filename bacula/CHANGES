@@ -1,3 +1,7 @@
+bacula-snmp 1.3b TO BE ANNOUNCED
+	Bug fixes
+	  + There's no CounterXX - they should be Integer32's.
+
 bacula-snmp 1.3 Release (Nov  1 2005)
 	Bug fixes
 	  + Implemented the SET command.
