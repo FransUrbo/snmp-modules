@@ -5,32 +5,36 @@ DATE    := $(shell date +"%b %e %Y")
 TMPDIR  := $(shell tempfile)
 
 BIND9_VERSION := $(shell cat bind9/.version | sed 's@\ .*@@')
-BIND9_INSTDIR := $(TMPDIR)/bind9-snmp
+BIND9_INSTDIR := bind9-snmp-$(BIND9_VERSION)
+
 BACULA_VERSION := $(shell cat bacula/.version | sed 's@\ .*@@')
-BACULA_INSTDIR := $(TMPDIR)/bacula-snmp
+BACULA_INSTDIR := bacula-snmp-$(BACULA_VERSION)
 
 
 $(BIND9_INSTDIR):
-	@(rm -f $(TMPDIR) && mkdir -p $(BIND9_INSTDIR); \
-	  echo "Instdir:   "$(BIND9_INSTDIR))
+	@(if [ -f $(TMPDIR) ]; then \
+	    rm -f $(TMPDIR); \
+	  fi; \
+	  mkdir -p $(TMPDIR)/$(BIND9_INSTDIR); \
+	  echo "Instdir:   "$(TMPDIR)/$(BIND9_INSTDIR))
 
 $(BACULA_INSTDIR):
-	@(rm -f $(TMPDIR) && mkdir -p $(BACULA_INSTDIR); \
-	  echo "Instdir:   "$(BACULA_INSTDIR))
+	@(if [ -f $(TMPDIR) ]; then \
+	    rm -f $(TMPDIR); \
+	  fi; \
+	  mkdir -p $(TMPDIR)/$(BACULA_INSTDIR); \
+	  echo "Instdir:   "$(TMPDIR)/$(BACULA_INSTDIR))
 
 bind9_tarball: $(BIND9_INSTDIR)
-	@(mkdir -p $(BIND9_INSTDIR)/usr/share/snmp/mibs; \
-	  cp BAYOUR-COM-MIB.txt $(BIND9_INSTDIR)/usr/share/snmp/mibs/; \
-	  mkdir -p $(BIND9_INSTDIR)/etc/snmp; \
-	  cp bind9/bind9-snmp-stats.pl $(BIND9_INSTDIR)/etc/snmp/; \
-	  mkdir -p $(BIND9_INSTDIR)/usr/share/cacti/resource/snmp_queries; \
-	  cp bind9/bind9-stats*.xml $(BIND9_INSTDIR)/usr/share/cacti/resource/snmp_queries/; \
-	  mkdir -p $(BIND9_INSTDIR)/tmp; \
-	  cp bind9/cacti_host_template_bind9_snmp_machine.xml $(BIND9_INSTDIR)/tmp; \
-	  cd $(BIND9_INSTDIR); \
-	  tar czf ../bind9-snmp_$(BIND9_VERSION).tgz `find -type f`; \
-	  tar cjf ../bind9-snmp_$(BIND9_VERSION).tar.bz2 `find -type f`; \
-	  zip ../bind9-snmp_$(BIND9_VERSION).zip `find -type f`)
+	@(cp BAYOUR-COM-MIB.txt $(TMPDIR)/$(BIND9_INSTDIR)/; \
+	  cp bind9/bind9-snmp-stats.pl $(TMPDIR)/$(BIND9_INSTDIR)/; \
+	  cp bind9/bind9-stats*.xml $(TMPDIR)/$(BIND9_INSTDIR)/; \
+	  cp bind9/cacti_host_template_bind9_snmp_machine.xml $(TMPDIR)/$(BIND9_INSTDIR)/; \
+	  cp bind9/README.txt bind9/UPGRADE.txt $(TMPDIR)/$(BIND9_INSTDIR)/; \
+	  cd $(TMPDIR)/; \
+	  tar czf bind9-snmp_$(BIND9_VERSION).tgz `find $(BIND9_INSTDIR) -type f`; \
+	  tar cjf bind9-snmp_$(BIND9_VERSION).tar.bz2 `find $(BIND9_INSTDIR) -type f`; \
+	  zip bind9-snmp_$(BIND9_VERSION).zip `find $(BIND9_INSTDIR) -type f` > /dev/null)
 
 bind9_changes:
 	@(echo "Date: $(DATE)"; \
@@ -39,18 +43,14 @@ bind9_changes:
 	  cvs commit -m "New release - $(BIND9_VERSION)" bind9/CHANGES)
 
 bacula_tarball: $(BACULA_INSTDIR)
-	@(mkdir -p $(BACULA_INSTDIR)/usr/share/snmp/mibs; \
-	  cp BAYOUR-COM-MIB.txt $(BACULA_INSTDIR)/usr/share/snmp/mibs/; \
-	  mkdir -p $(BACULA_INSTDIR)/etc/snmp; \
-	  cp bacula/bacula-snmp-stats.pl $(BACULA_INSTDIR)/etc/snmp/; \
-	  mkdir -p $(BACULA_INSTDIR)/usr/share/cacti/resource/snmp_queries; \
-	  cp bacula/bacula-stats*.xml $(BACULA_INSTDIR)/usr/share/cacti/resource/snmp_queries/; \
-	  mkdir -p $(BACULA_INSTDIR)/tmp; \
-	  cp bacula/cacti_data_query_snmp_local_bacula_statistics_*.xml $(BACULA_INSTDIR)/tmp; \
-	  cd $(BACULA_INSTDIR); \
-	  tar czf ../bacula-snmp_$(BACULA_VERSION).tgz `find -type f`; \
-	  tar cjf ../bacula-snmp_$(BACULA_VERSION).tar.bz2 `find -type f`; \
-	  zip ../bacula-snmp_$(BACULA_VERSION).zip `find -type f`)
+	@(cp BAYOUR-COM-MIB.txt $(TMPDIR)/$(BACULA_INSTDIR)/; \
+	  cp bacula/bacula-snmp-stats.pl $(TMPDIR)/$(BACULA_INSTDIR)/; \
+	  cp bacula/bacula-stats*.xml $(TMPDIR)/$(BACULA_INSTDIR)/; \
+	  cp bacula/cacti_data_query_snmp_local_bacula_statistics_*.xml $(TMPDIR)/$(BACULA_INSTDIR)/; \
+	  cd $(TMPDIR); \
+	  tar czf bacula-snmp_$(BACULA_VERSION).tgz `find $(BACULA_INSTDIR) -type f`; \
+	  tar cjf bacula-snmp_$(BACULA_VERSION).tar.bz2 `find $(BACULA_INSTDIR) -type f`; \
+	  zip bacula-snmp_$(BACULA_VERSION).zip `find $(BACULA_INSTDIR) -type f` > /dev/null)
 
 bacula_changes:
 	@(echo "Date: $(DATE)"; \
