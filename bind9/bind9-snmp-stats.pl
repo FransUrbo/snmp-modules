@@ -1,7 +1,17 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.11 2005-11-05 11:33:28 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.12 2005-11-29 19:49:06 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
+#
+# Require the file "/etc/bind/.bindsnmp" with the following
+# defines (example values shown here!):
+#
+#	DEBUG=4
+#	DEBUG_FILE=/var/log/bind9-snmp-stats.log
+#	STATS_FILE=/var/lib/named/var/log/dns-stats.log
+#	STATS_FILE_OWNER_GROUP=bind9.bind9
+#	RNDC=/usr/sbin/rndc
+#	DELTA_DIR=/var/tmp/
 #
 # Based on 'parse_bind9stat.pl' by
 # Dobrica Pavlinusic, <dpavlin@rot13.org> 
@@ -9,6 +19,10 @@
 #
 # Copyright 2005 Turbo Fredriksson <turbo@bayour.com>.
 # This software is distributed under GPL v2.
+
+# If the location of the config file isn't good enough for you,
+# feel free to change that here.
+my $CFG_FILE = "/etc/bind/.bindsnmp";
 # }}}
 
 # {{{ Include libraries and setup global variables
@@ -19,23 +33,16 @@ use strict;
 use POSIX qw(strftime);
 
 $ENV{PATH}   = "/bin:/usr/bin:/usr/sbin";
+my %CFG;
 
-my $OID_BASE;
-$OID_BASE = "OID_BASE"; # When debugging, it's easier to type this than the full OID
-if($ENV{'MIBDIRS'}) {
-    # ALWAYS override this if we're running through the SNMP daemon!
-    $OID_BASE = ".1.3.6.1.4.1.8767.2.1"; # .iso.org.dod.internet.private.enterprises.bayourcom.snmp.bind9stats
-}
-
-my $log      = "/var/lib/named/var/log/dns-stats.log";
-my $rndc     = "/usr/sbin/rndc"; 
-my $delta    = "/var/tmp/"; 
-
-my $DEBUG    = 4;
+# When debugging, it's easier to type this than the full OID
+# This is changed (way) below IF/WHEN we're running through SNMPd!
+my $OID_BASE = "OID_BASE";
 my $arg      = '';
 
 my %DATA;
 my %DOMAINS;
+my $IGNORE_INDEX   = 1;
 
 my %counters       = ("1" => 'success',
 		      "2" => 'referral',
@@ -94,8 +101,8 @@ $SIG{'ALRM'} = \&load_information;
 sub print_b9stNumberTotals {
     my $j = shift;
 
-    if($DEBUG) {
-	&echo(0, "=> OID_BASE.b9stNumberTotals.0\n") if($DEBUG > 1);
+    if($CFG{'DEBUG'}) {
+	&echo(0, "=> OID_BASE.b9stNumberTotals.0\n") if($CFG{'DEBUG'} > 1);
 	&echo(0, "$OID_BASE.1.0 = $count_counters\n");
     }
 
@@ -103,7 +110,7 @@ sub print_b9stNumberTotals {
     &echo(1, "integer\n");
     &echo(1, "$count_counters\n");
 
-    &echo(0, "\n") if($DEBUG > 1);
+    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -111,8 +118,8 @@ sub print_b9stNumberTotals {
 sub print_b9stNumberDomains {
     my $j = shift;
 
-    if($DEBUG) {
-	&echo(0, "=> OID_BASE.b9stNumberDomains.0\n") if($DEBUG > 1);
+    if($CFG{'DEBUG'}) {
+	&echo(0, "=> OID_BASE.b9stNumberDomains.0\n") if($CFG{'DEBUG'} > 1);
 	&echo(0, "$OID_BASE.2.0 = $count_domains\n");
     }
 
@@ -120,7 +127,7 @@ sub print_b9stNumberDomains {
     &echo(1, "integer\n");
     &echo(1, "$count_domains\n");
 
-    &echo(0, "\n") if($DEBUG > 1);
+    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -131,26 +138,26 @@ sub print_b9stTotalsIndex {
     my %cnts;
 
     if($j) {
-	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.$j\n") if($DEBUG > 1);
+	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.$j\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ($j => $counters{$j});
     } elsif(defined($j)) {
-	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.x\n") if($DEBUG > 1);
+	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.x\n") if($CFG{'DEBUG'} > 1);
 	%cnts = %counters;
     } else {
-	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.1\n") if($DEBUG > 1);
+	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.1\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ("1" => $counters{"1"});
     }
 
     foreach $j (keys %cnts) {
 	$j =~ s/^0//;
-	&echo(0, "$OID_BASE.3.1.1.$j = $j\n") if($DEBUG);
+	&echo(0, "$OID_BASE.3.1.1.$j = $j\n") if($CFG{'DEBUG'});
 	
 	&echo(1, "$OID_BASE.3.1.1.$j\n");
 	&echo(1, "integer\n");
 	&echo(1, "$j\n");
     }
 
-    &echo(0, "\n") if($DEBUG > 1);
+    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -161,25 +168,25 @@ sub print_b9stCounterName {
     my %cnts;
 
     if($j) {
-	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.$j\n") if($DEBUG > 1);
+	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.$j\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ($j => $counters{$j});
     } elsif(defined($j)) {
-	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.x\n") if($DEBUG > 1);
+	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.x\n") if($CFG{'DEBUG'} > 1);
 	%cnts = %counters;
     } else {
-	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.1\n") if($DEBUG > 1);
+	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.1\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ("1" => $counters{"1"});
     }
 
     foreach $j (keys %cnts) {
-	&echo(0, "$OID_BASE.3.1.2.$j = ".$counters{$j}."\n") if($DEBUG);
+	&echo(0, "$OID_BASE.3.1.2.$j = ".$counters{$j}."\n") if($CFG{'DEBUG'});
 
 	&echo(1, "$OID_BASE.3.1.2.$j\n");
 	&echo(1, "string\n");
 	&echo(1, $counters{$j}."\n");
     }
 
-    &echo(0, "\n") if($DEBUG > 1);
+    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -210,20 +217,20 @@ sub print_b9stCounterTypeTotal {
     }
 
     my $type_name = ucfirst($types{$type_nr-2});
-    &echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounter$type_name.x\n") if($DEBUG > 1);
+    &echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounter$type_name.x\n") if($CFG{'DEBUG'} > 1);
 
     my $counter;
     foreach $nr (keys %cnts) {
 	$counter  = $counters{$nr};
 
-	&echo(0, "$OID_BASE.3.1.$type_nr.$nr = ".$DATA{$counter}{$type}."\n") if($DEBUG);
+	&echo(0, "$OID_BASE.3.1.$type_nr.$nr = ".$DATA{$counter}{$type}."\n") if($CFG{'DEBUG'});
 
 	&echo(1, "$OID_BASE.3.1.$type_nr.$nr\n");
 	&echo(1, "integer\n");
 	&echo(1, $DATA{$counter}{$type}."\n");
     }
 
-    &echo(0, "\n") if($DEBUG > 1);
+    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -278,20 +285,20 @@ sub print_b9stCounterTypeDomains {
     }
 
     my $type_name = ucfirst($counters{$type_nr-2});
-    &echo(0, "=> OID_BASE.b9stDomainsTable.b9stCounter$type_name.x\n") if($DEBUG > 1);
+    &echo(0, "=> OID_BASE.b9stDomainsTable.b9stCounter$type_name.x\n") if($CFG{'DEBUG'} > 1);
 
     foreach my $i (sort keys %cnts) {
 	my ($domain, $value) = split(':', $cnts{$i}{$type});
 
 	$i =~ s/^0//;
-	&echo(0, "$OID_BASE.4.1.$type_nr.$i = $value\n") if($DEBUG);
+	&echo(0, "$OID_BASE.4.1.$type_nr.$i = $value\n") if($CFG{'DEBUG'});
 
 	&echo(1, "$OID_BASE.4.1.$type_nr.$i\n");
 	&echo(1, "integer\n");
 	&echo(1, "$value\n");
     }
 
-    &echo(0, "\n") if($DEBUG > 1);
+    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -344,26 +351,26 @@ sub print_b9stDomainsIndex {
     my %cnts;
 
     if($j) {
-	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.$j\n") if($DEBUG > 1);
+	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.$j\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ($j => $DOMAINS{$j});
     } elsif(defined($j)) {
-	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.x\n") if($DEBUG > 1);
+	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.x\n") if($CFG{'DEBUG'} > 1);
 	%cnts = %DOMAINS;
     } else {
-	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.1\n") if($DEBUG > 1);
+	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.1\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ("1" => $DOMAINS{"1"});
     }
 
     foreach $j (sort keys %cnts) {
 	$j =~ s/^0//;
-	&echo(0, "$OID_BASE.4.1.1.$j = $j\n") if($DEBUG);
+	&echo(0, "$OID_BASE.4.1.1.$j = $j\n") if($CFG{'DEBUG'});
 
 	&echo(1, "$OID_BASE.4.1.1.$j\n");
 	&echo(1, "integer\n");
 	&echo(1, "$j\n");
     }
 
-    &echo(0, "\n") if($DEBUG > 1);
+    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -373,17 +380,17 @@ sub print_b9stDomainName {
     my %cnts;
 
     if($j) {
-	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.$j\n") if($DEBUG > 1);
+	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.$j\n") if($CFG{'DEBUG'} > 1);
 
 	my $i = $j;
 	$j = sprintf("%02d", $j);
 
 	%cnts = ($j => $DOMAINS{$j});
     } elsif(defined($j)) {
-	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.x\n") if($DEBUG > 1);
+	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.x\n") if($CFG{'DEBUG'} > 1);
 	%cnts = %DOMAINS;
     } else {
-	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.1\n") if($DEBUG > 1);
+	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.1\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ("1" => $DOMAINS{"1"});
     }
 
@@ -391,14 +398,14 @@ sub print_b9stDomainName {
 	my $domain = (split(':', $cnts{$j}{"success"}))[0];
 
 	$j =~ s/^0//;
-	&echo(0, "$OID_BASE.4.1.2.$j = $domain\n") if($DEBUG);
+	&echo(0, "$OID_BASE.4.1.2.$j = $domain\n") if($CFG{'DEBUG'});
 
 	&echo(1, "$OID_BASE.4.1.2.$j\n");
 	&echo(1, "string\n");
 	&echo(1, "$domain\n");
     }
 
-    &echo(0, "\n") if($DEBUG > 1);
+    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -413,7 +420,7 @@ sub call_func_total {
     
     my $func = "print_b9st".$prints_total{$func_nr};
     $func_arg = '' if(!defined($func_arg));
-    &echo(0, "=> Calling function '$func($func_arg)'\n") if($DEBUG > 3);
+    &echo(0, "=> Calling function '$func($func_arg)'\n") if($CFG{'DEBUG'} > 3);
 
     $func = \&{$func}; # Because of 'use strict' above...
     &$func($func_arg);
@@ -427,7 +434,7 @@ sub call_func_domain {
     
     my $func = "print_b9st".$prints_domain{$func_nr};
     $func_arg = '' if(!defined($func_arg));
-    &echo(0, "=> Calling function '$func($func_arg)'\n") if($DEBUG > 3);
+    &echo(0, "=> Calling function '$func($func_arg)'\n") if($CFG{'DEBUG'} > 3);
 
     $func = \&{$func}; # Because of 'use strict' above...
     &$func($func_arg);
@@ -462,8 +469,8 @@ sub get_timestring {
 
 # {{{ Open logfile for debugging
 sub open_log {
-    if(!open(LOG, ">> /var/log/bind9-snmp-stats.log")) {
-	&echo(0, "Can't open logfile '/var/log/bind9-snmp-stats.log', $!\n") if($DEBUG);
+    if(!open(LOG, ">> ".$CFG{'DEBUG_FILE'})) {
+	&echo(0, "Can't open logfile '".$CFG{'DEBUG_FILE'}."', $!\n") if($CFG{'DEBUG'});
 	return 0;
     } else {
 	return 1;
@@ -478,17 +485,17 @@ sub echo {
     my $log_opened = 0;
 
     # Open logfile if debugging OR running from snmpd.
-    if($DEBUG) {
+    if($CFG{'DEBUG'}) {
 	if(&open_log()) {
 	    $log_opened = 1;
-	    open(STDERR, ">&LOG") if(($DEBUG <= 2) || $ENV{'MIBDIRS'});
+	    open(STDERR, ">&LOG") if(($CFG{'DEBUG'} <= 2) || $ENV{'MIBDIRS'});
 	}
     }
 
     if($stdout) {
 	print $string;
     } elsif($log_opened) {
-	print LOG &get_timestring()," " if($DEBUG > 2);
+	print LOG &get_timestring()," " if($CFG{'DEBUG'} > 2);
 	print LOG $string;
     }
 }
@@ -498,31 +505,71 @@ sub echo {
 sub no_value {
     my $reason = shift;
 
-    $reason = " $reason" if(defined($reason));
+    if(defined($reason)) {
+	$reason = " ($reason)";
+    } else {
+	$reason = '';
+    }
 
-    &echo(0, "=> No value in this object$reason - exiting!\n") if($DEBUG > 1);
+    &echo(0, "=> No value in this object$reason - exiting!\n") if($CFG{'DEBUG'} > 1);
     
     &echo(1, "NONE\n");
-    &echo(0, "\n") if($DEBUG > 1);
+    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
+}
+# }}}
+
+# {{{ Load configuration file
+sub get_config {
+    my $option = shift;
+    my($line, $key, $value);
+
+    $option = 0 if(!defined($option));
+
+    if(-e $CFG_FILE) {
+	open(CFG, "< ".$CFG_FILE) || die("Can't open ".$CFG_FILE.", $!");
+	while(!eof(CFG)) {
+	    $line = <CFG>; chomp($line);
+	    next if($line !~ /^[A-Z]/);
+
+	    ($key, $value) = split('=', $line);
+
+	    if(!$option) {
+		# Get all options
+		$CFG{$key} = $value;
+	    } elsif($option eq $key) {
+		# Get only this option
+		$CFG{$key} = $value;
+	    }
+	}
+	close(CFG);
+    }
+
+    $CFG{'DEBUG'} = 0  if(!defined($CFG{'DEBUG'}));
+
+    # A debug value from the environment overrides!
+    $CFG{'DEBUG'} = $ENV{'DEBUG_BIND9'} if(defined($ENV{'DEBUG_BIND9'}));
 }
 # }}}
 
 # {{{ Load all information needed
 sub load_information {
-    system "$rndc stats" if($rndc);
+    # Load configuration file
+    &get_config();
+
+    system($CFG{'RNDC'}." stats") if($CFG{'RNDC'});
     
-    my $tmp=$log;
-    $tmp=~s/\W/_/g;
-    $delta.=$tmp.".offset" if($delta);
+    my $tmp =  $CFG{'STATS_FILE'};
+    $tmp =~ s/\W/_/g;
+    my $delta  =  $CFG{'DELTA_DIR'}.$tmp.".offset" if($CFG{'DELTA_DIR'});
     
-    open(DUMP, $log) || die "$log: $!";
+    open(DUMP, $CFG{'STATS_FILE'}) || die($CFG{'STATS_FILE'}.": $!");
     
     if (-e $delta) {
-	open(D, $delta) || die "can't open delta file '$delta' for '$log': $!";
+	open(D, $delta) || die "can't open delta file '$delta' for '".$CFG{'STATS_FILE'}."': $!";
 	my $file_offset = <D>;
 	chomp $file_offset;
 	close(D);
-	my $log_size = -s $log;
+	my $log_size = -s $CFG{'STATS_FILE'};
 	if ($file_offset <= $log_size) {
 	    seek(DUMP, $file_offset, 0);
 	}
@@ -548,17 +595,17 @@ sub load_information {
     } 
     
     if($delta) {
-	open(D,"> $delta") || die "can't open delta file '$delta' for log '$log': $!"; 
+	open(D,"> $delta") || die "can't open delta file '$delta' for log '".$CFG{'STATS_FILE'}."': $!"; 
 	print D tell(DUMP); 
 	close(D); 
     }
     
     close(DUMP); 
-    
-    unlink($log);
+
+    unlink($CFG{'STATS_FILE'});
     unlink($delta);
-    system "touch /var/lib/named/var/log/dns-stats.log";
-    system "chown bind9.bind9 /var/lib/named/var/log/dns-stats.log";
+    system("touch ".$CFG{'STATS_FILE'});
+    system("chown ".$CFG{'STATS_FILE_OWNER_GROUP'}." ".$CFG{'STATS_FILE'});
 
     # How many domains?
     my %tmp1;
@@ -587,6 +634,21 @@ sub load_information {
 }
 # }}}
 
+# {{{ Show usage
+sub help {
+    my $prog = `basename $0`;
+    chomp($prog);
+
+    print "Usage: $prog [option]\n";
+    print "Options:\n";
+    print "  -h|--help|?   Show this text\n";
+    print "  -a|--all      Output the whole MIB tree\n";
+    print "\n";
+    print "Debug mode can be changed dynamically by editing the file\n";
+    print "'/etc/bind/.bindsnmp'.\n";
+    exit(0);
+}
+# }}}
 
 # ====================================================
 # =====          P R O C E S S  A R G S          =====
@@ -599,10 +661,11 @@ my $ALL = 0;
 for(my $i=0; $ARGV[$i]; $i++) {
     if($ARGV[$i] eq '--help' || $ARGV[$i] eq '-h' || $ARGV[$i] eq '?' ) {
 	&help();
-    } elsif($ARGV[$i] eq '--debug' || $ARGV[$i] eq '-d') {
-	$DEBUG++;
     } elsif($ARGV[$i] eq '--all' || $ARGV[$i] eq '-a') {
 	$ALL = 1;
+    } else {
+	print "Unknown option '",$ARGV[$i],"'\n";
+	&help();
     }
 }
 # }}}
@@ -622,15 +685,22 @@ if($ALL) {
 # }}} 
 } else {
     # {{{ Go through the commands sent on STDIN
+    # ALWAYS override the OID_BASE value since we're
+    # running through the SNMP daemon!
+    $OID_BASE = ".1.3.6.1.4.1.8767.2.1";
+
     while(<>) {
 	if (m!^PING!){
 	    print "PONG\n";
 	    next;
 	}
+
+	# Re-get the DEBUG config option (so that we don't have to restart process).
+	get_config('DEBUG');
 	
 	# {{{ Get all run arguments - next/specfic OID
 	my $arg = $_; chomp($arg);
-	&echo(0, "=> ARG=$arg\n") if($DEBUG > 2);
+	&echo(0, "=> ARG=$arg\n") if($CFG{'DEBUG'} > 2);
 	
 	# Get next line from STDIN -> OID number.
 	# $arg == 'getnext' => Get next OID
@@ -639,12 +709,12 @@ if($ALL) {
 	$oid =~ s/$OID_BASE//; # Remove the OID base
 	$oid =~ s/OID_BASE//;  # Remove the OID base (if we're debugging)
 	$oid =~ s/^\.//;       # Remove the first dot if it exists - it's in the way!
-	&echo(0, "=> OID=$OID_BASE.$oid\n") if($DEBUG > 2);
+	&echo(0, "=> OID=$OID_BASE.$oid\n") if($CFG{'DEBUG'} > 2);
 	
 	my @tmp = split('\.', $oid);
-	&output_extra_debugging(@tmp) if($DEBUG > 2);
+	&output_extra_debugging(@tmp) if($CFG{'DEBUG'} > 2);
 	
-	&echo(0, "=> count_counters=$count_counters, count_types=$count_types, count_domains=$count_domains\n") if($DEBUG > 2);
+	&echo(0, "=> count_counters=$count_counters, count_types=$count_types, count_domains=$count_domains\n") if($CFG{'DEBUG'} > 2);
 # }}} Get arguments
 	
 	if(!defined($tmp[0])) {
@@ -693,18 +763,30 @@ if($ALL) {
 	} elsif($tmp[0] == 3) {
 	    # {{{ ------------------------------------- OID_BASE.3		(b9stTotalsTable)   
 	    if($arg eq 'getnext') {
+		# {{{ CMD: getnext
 		# Make sure to skip the OID_BASE.3.1.1 branch - it's the index and should not be returned!
 		if(!$tmp[2] && !$tmp[3]) {
-		    &call_func_total(2, 1);
+		    if($IGNORE_INDEX) {
+			&call_func_total(2, 1);
+		    } else {
+			&call_func_total(1, 1);
+		    }
 		} elsif(!$tmp[3]) {
-		    if($tmp[2] < $count_counters) {
+		    if(($tmp[2] == 1) && $IGNORE_INDEX) {
+			&call_func_total(2, 1);
+		    } elsif($tmp[2] < $count_counters) {
 			&echo(0, "tmp[2] < $count_counters\n");
 			if($tmp[2] > 1) {
 			    &echo(0, "tmp[2] > 1\n");
 			    &call_func_total($tmp[2], 1);
 			} else {
 			    &echo(0, "tmp[2] < 1\n");
-			    &no_value("(Index)");
+			    if($IGNORE_INDEX) {
+				&call_func_total($tmp[2]+1, 1);
+				#&no_value("index");
+			    } else {
+				&call_func_total($tmp[2], 1);
+			    }
 			}
 		    } else {
 			&call_func_domain(2, 1);
@@ -713,9 +795,10 @@ if($ALL) {
 		    my $x = $tmp[3] + 1;
 		    
 		    if($x > $count_counters) {
-			&echo(0, "=> x > count_counters ($x > $count_counters)\n") if($DEBUG > 2);
-			if($tmp[2] == 1) {
-			    &no_value("(Index)");
+			&echo(0, "=> x > count_counters ($x > $count_counters)\n") if($CFG{'DEBUG'} > 2);
+			if(($tmp[2] == 1) && $IGNORE_INDEX) {
+			    &call_func_total($tmp[2]+1, 1);
+			    #&no_value("index");
 			} else {
 			    if($prints_total{$tmp[2]+1}) {
 				&call_func_total($tmp[2]+1, 1);
@@ -724,23 +807,30 @@ if($ALL) {
 			    }
 			}
 		    } else {
-			if($tmp[2] == 1) {
-			    &no_value("(Index)");
+			if(($tmp[2] == 1) && $IGNORE_INDEX) {
+			    &call_func_total($tmp[2]+1, 1);
+			    #&no_value("index");
 			} else {
-			    &echo(0, "=> !($x > $count_counters) => call_func_total(".$tmp[2].", ".($tmp[3]+1).")\n") if($DEBUG > 2);
+			    &echo(0, "=> !($x > $count_counters) => call_func_total(".$tmp[2].", ".($tmp[3]+1).")\n") if($CFG{'DEBUG'} > 2);
 			    &call_func_total($tmp[2], $tmp[3]+1);
 			}
 		    }
 		}
+# }}} # CMD: getnext
 	    } else {
-		if(!$tmp[3] || ($tmp[2] == 1)) {
+		# {{{ CMD: get
+		if(!$tmp[3] || (($tmp[2] == 1) && $IGNORE_INDEX)) {
 		    &no_value();
 		} elsif($tmp[2] && $prints_total{$tmp[2]}) {
 		    &echo(0, "tmp[2] && prints_total{tmp[2]} (".$prints_total{$tmp[2]}.")\n");
 		    if($tmp[2] > 1) {
-			&no_value("(Index)");
+			&no_value("index");
 		    } else {
-			&call_func_total($tmp[2]+1, $tmp[3]);
+			if($IGNORE_INDEX) {
+			    &call_func_total(1, $tmp[3]);
+			} else {
+			    &call_func_total($tmp[2], $tmp[3]);
+			}
 		    }
 		} elsif($tmp[2] && $prints_domain{$tmp[2]}) {
 		    &call_func_domain($tmp[2], $tmp[3]);
@@ -748,20 +838,26 @@ if($ALL) {
 		    # End of MIB.
 		    &no_value();
 		}
+# }}} # CMD: get
 	    }
 # }}} # OID_BASE.3
 
 	} elsif($tmp[0] == 4) {
 	    # {{{ ------------------------------------- OID_BASE.4		(b9stDomainsTable)  
 	    if($arg eq 'getnext') {
+		# {{{ CMD: getnext
 		# Make sure to skip the OID_BASE.4.1.1 branch - it's the index and should not be returned!
 		if(!$tmp[2] && !$tmp[3]) {
-		    &call_func_domain(2, 1);
-		} elsif(!$tmp[3]) {
-		    if($tmp[2] > 1) {
-			&call_func_domain($tmp[2], 1);
+		    if($IGNORE_INDEX) {
+			&call_func_domain(2, 1);
 		    } else {
-			&call_func_domain($tmp[2]+1, 1);
+			&call_func_domain(1, 1);
+		    }
+		} elsif(!$tmp[3]) {
+		    if(($tmp[2] == 1) && $IGNORE_INDEX) {
+			&call_func_domain(2, 1);
+		    } else {
+			&call_func_domain($tmp[2], 1);
 		    }
 		} else {
 		    my $x = $tmp[3] + 1;
@@ -774,20 +870,27 @@ if($ALL) {
 			    &no_value();
 			}
 		    } else {
-			if($tmp[2] == 1) {
-			    &no_value("(Index)");
+			if(($tmp[2] == 1) && $IGNORE_INDEX) {
+			    &no_value("index");
 			} else {
-			    &echo(0, "=> $x < $count_domains\n") if($DEBUG > 2);
+			    &echo(0, "=> $x < $count_domains\n") if($CFG{'DEBUG'} > 2);
 			    &call_func_domain($tmp[2], $tmp[3]+1);
 			}
 		    }
 		}
+# }}} # CMD: getnext
 	    } else {
+		# {{{ CMD: get
 		if($tmp[2] && $prints_domain{$tmp[2]}) {
-		    &call_func_domain($tmp[2], $tmp[3]);
+		    if(($tmp[2] == 1) && $IGNORE_INDEX) {
+			&no_value();
+		    } else {
+			&call_func_domain($tmp[2], $tmp[3]);
+		    }
 		} else {
 		    &no_value();
 		}
+# }}} # CMD: get
 	    }
 # }}} # OID_BASE.4
 
