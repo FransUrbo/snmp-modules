@@ -3,6 +3,16 @@ bind9-snmp 1.4 TO BE ANNOUNCED
 	  + Completley disble the output of the Index branches. They should be
 	    'invisable' so they don't interfere with the table(s).
 	  + Remove the Index stuff from the Cacti template files.
+	  + Put all (?) configurable stuff in a config file - default location /etc/bind/.bindsnmp.
+	    - Including the DEBUG option. It is re-read for every cycle of the 'get input
+	      from STDIN' loop.
+	  + The MIBDIRS check I did to check if running from shell or SNMPd was flawed.
+	    'Only' worked for Debian GNU/Linux. Instead set the OID to correct/real
+	    value when we go into the 'get input from STDIN' loop. Sure sign of running
+	    through the SNMP.
+	  + Missing help() function (referenced, but didn't exist) added.
+	  + Selectable at 'compile time' if to ignore Index(es) or not. Used only (!)
+	    for debugging!
 
 bind9-snmp 1.3c Release (Nov  1 2005)
 	Bug fixes
