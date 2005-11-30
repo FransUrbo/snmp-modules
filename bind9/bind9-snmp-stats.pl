@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.12 2005-11-29 19:49:06 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.13 2005-11-30 15:43:42 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Require the file "/etc/bind/.bindsnmp" with the following
@@ -823,14 +823,10 @@ if($ALL) {
 		    &no_value();
 		} elsif($tmp[2] && $prints_total{$tmp[2]}) {
 		    &echo(0, "tmp[2] && prints_total{tmp[2]} (".$prints_total{$tmp[2]}.")\n");
-		    if($tmp[2] > 1) {
+		    if(($tmp[2] == 1) && $IGNORE_INDEX) {
 			&no_value("index");
 		    } else {
-			if($IGNORE_INDEX) {
-			    &call_func_total(1, $tmp[3]);
-			} else {
-			    &call_func_total($tmp[2], $tmp[3]);
-			}
+			&call_func_total($tmp[2], $tmp[3]);
 		    }
 		} elsif($tmp[2] && $prints_domain{$tmp[2]}) {
 		    &call_func_domain($tmp[2], $tmp[3]);
