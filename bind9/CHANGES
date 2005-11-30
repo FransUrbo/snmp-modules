@@ -1,4 +1,4 @@
-bind9-snmp 1.4 TO BE ANNOUNCED
+bind9-snmp 1.4 Release (Nov 30 2005)
 	Bug fixes
 	  + Completley disble the output of the Index branches. They should be
 	    'invisable' so they don't interfere with the table(s).

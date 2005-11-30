@@ -7,8 +7,8 @@ via SNMP but what's making this one special is that
 it's indexed and 'tablified'.
 
 
-Current release is: 1.3b
-Tarball:            http://www.bayour.com/bind9-snmp/bind9-snmp_1.3b.tgz
+Current release is: 1.4
+Tarball:            http://www.bayour.com/bind9-snmp/bind9-snmp_1.4.tgz
 
 
 SNMP Setup files (Paths depend on where your SNMP/Cacti is installed!)
@@ -98,3 +98,20 @@ cvs -d :pserver:anonymous@cvs.bayour.com:/var/cvs co bind9-snmp
 
 There's a web to cvs gateway at the URL:
 http://apache.bayour.com/cgi-bin/cvsweb/snmp-modules/bind9/
+
+
+NOTE (3):
+=================
+As of version 1.4, there a config file you need to create.
+This is (by default) '/etc/bind/.bindsnmp'. 
+
+It have the following format (my values as example):
+
+----- s n i p -----
+DEBUG=4
+DEBUG_FILE=/var/log/bind9-snmp-stats.log
+STATS_FILE=/var/lib/named/var/log/dns-stats.log
+STATS_FILE_OWNER_GROUP=bind9.bind9
+RNDC=/usr/sbin/rndc
+DELTA_DIR=/var/tmp/
+----- s n i p -----
