@@ -1,3 +1,21 @@
+bind9-snmp 1.5 Release (Jan 16 2006)
+	Bug fixes
+	  + Rewrite the note/documentation about the config file. More and better info.
+	  + Move IGNORE_INDEX to config file. Default to '1' when loading config file if
+	    not present in config file...
+	    - Missalignment of IGNORE_INDEX and the no_value(index) stuff.
+	  + More debugging added
+	  + Only try to open/close the delta file if we should/have dumped the stats.
+	    This is not done if we specify a specific file (for example a dump from a
+	    'customer' etc).
+	  + Don't decrease the domains counter after loading the stats file. The counter
+	    starts at zero, goes through all domains and then increase the variable
+	    with one. This leads to a 'human' correct value (domains 0-30 => 31 domains,
+	    NOT 30!).
+	  + Implement some additional checks for IGNORE_INDEX.
+	    - If we're at OID_BASE.2 and we 'getnext', we should get "b9stCounterName",
+	      not "b9stTotalsIndex" if IGNORE_INDEX is set.
+
 bind9-snmp 1.4 Release (Nov 30 2005)
 	Bug fixes
 	  + Completley disble the output of the Index branches. They should be
