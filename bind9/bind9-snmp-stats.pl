@@ -1,17 +1,7 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.13 2005-11-30 15:43:42 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.14 2006-01-16 15:01:05 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
-#
-# Require the file "/etc/bind/.bindsnmp" with the following
-# defines (example values shown here!):
-#
-#	DEBUG=4
-#	DEBUG_FILE=/var/log/bind9-snmp-stats.log
-#	STATS_FILE=/var/lib/named/var/log/dns-stats.log
-#	STATS_FILE_OWNER_GROUP=bind9.bind9
-#	RNDC=/usr/sbin/rndc
-#	DELTA_DIR=/var/tmp/
 #
 # Based on 'parse_bind9stat.pl' by
 # Dobrica Pavlinusic, <dpavlin@rot13.org> 
@@ -19,10 +9,41 @@
 #
 # Copyright 2005 Turbo Fredriksson <turbo@bayour.com>.
 # This software is distributed under GPL v2.
+# }}}
 
+# {{{ Config file description and location.
+# Require the file "/etc/bind/.bindsnmp" with the following
+# defines (example values shown here!):
+#
 # If the location of the config file isn't good enough for you,
 # feel free to change that here.
 my $CFG_FILE = "/etc/bind/.bindsnmp";
+#
+#   Optional arguments
+#	DEBUG=4
+#	DEBUG_FILE=/var/log/bind9-snmp-stats.log
+#	IGNORE_INDEX=1
+#
+#   Required options
+#	RNDC=/usr/sbin/rndc
+#	STATS_FILE=/var/lib/named/var/log/dns-stats.log
+#	STATS_FILE_OWNER_GROUP=bind9.bind9
+#	DELTA_DIR=/var/tmp/
+#
+# NOTE1: RNDC is semi-required - if it is unset, bind9-snmp-stats.pl
+#        will NOT remove the stats file after reading. This can be
+#        used to load someone elses 'database' for debuging purposes.
+#        You'd get the exact same values every time though!
+#
+# NOTE2: Please do NOT set the IGNORE_INDEX to anything else than 1' (or
+#        better yet, leave it unset/undefined). Strange things will/can
+#        happen if you disable it! !! YOU HAVE BEEN WARNED !!
+#
+# NOTE3: If DEBUG is specified (default is '0' - no debugging), then the
+#        DEBUG_FILE is _required_!
+#
+# NOTE4: An environment variable with the name DEBUG_BIND9 will override
+#        the DEBUG option, and make DEBUG_FILE in the config file _required_!
 # }}}
 
 # {{{ Include libraries and setup global variables
@@ -42,7 +63,6 @@ my $arg      = '';
 
 my %DATA;
 my %DOMAINS;
-my $IGNORE_INDEX   = 1;
 
 my %counters       = ("1" => 'success',
 		      "2" => 'referral',
@@ -222,6 +242,7 @@ sub print_b9stCounterTypeTotal {
     my $counter;
     foreach $nr (keys %cnts) {
 	$counter  = $counters{$nr};
+	&echo(0, "   DATA{$counter}{$type}\n") if($CFG{'DEBUG'} >= 4);
 
 	&echo(0, "$OID_BASE.3.1.$type_nr.$nr = ".$DATA{$counter}{$type}."\n") if($CFG{'DEBUG'});
 
@@ -545,6 +566,7 @@ sub get_config {
     }
 
     $CFG{'DEBUG'} = 0  if(!defined($CFG{'DEBUG'}));
+    $CFG{'IGNORE_INDEX'} = 1 if(!defined($CFG{'IGNORE_INDEX'}));
 
     # A debug value from the environment overrides!
     $CFG{'DEBUG'} = $ENV{'DEBUG_BIND9'} if(defined($ENV{'DEBUG_BIND9'}));
@@ -556,16 +578,21 @@ sub load_information {
     # Load configuration file
     &get_config();
 
+    &echo(0, "=> Dumping Bind9 stats\n") if($CFG{'RNDC'} && ($CFG{'DEBUG'} > 1));
     system($CFG{'RNDC'}." stats") if($CFG{'RNDC'});
     
     my $tmp =  $CFG{'STATS_FILE'};
     $tmp =~ s/\W/_/g;
     my $delta  =  $CFG{'DELTA_DIR'}.$tmp.".offset" if($CFG{'DELTA_DIR'});
     
+    &echo(0, "=> Loading statistics file '".$CFG{'STATS_FILE'}."'\n") if($CFG{'DEBUG'} > 1);
     open(DUMP, $CFG{'STATS_FILE'}) || die($CFG{'STATS_FILE'}.": $!");
     
-    if (-e $delta) {
+    if(-e $delta && $CFG{'RNDC'}) {
+	# Only open the delta file if RNDC is set.
 	open(D, $delta) || die "can't open delta file '$delta' for '".$CFG{'STATS_FILE'}."': $!";
+
+	&echo(0, "=> Opening delta file '$delta'\n") if($CFG{'DEBUG'} > 1);
 	my $file_offset = <D>;
 	chomp $file_offset;
 	close(D);
@@ -582,19 +609,23 @@ sub load_information {
 	my ($what, $nr, $domain, $direction) = split(/\s+/, $_, 4);
 	
 	if (!$domain) {
+	    &echo(0, "DATA{$what}{total} += $nr\n") if($CFG{'DEBUG'} >= 4);
 	    $DATA{$what}{"total"} += $nr;
 	} else {
+	    &echo(0, "DOMAINS{$domain}{$what} = $nr\n") if($CFG{'DEBUG'} >= 4);
 	    $DOMAINS{$domain}{$what} = $nr;
 	    
 	    if ($domain =~ m/in-addr.arpa/) {
+		&echo(0, "DATA{$what}{reverse} += $nr\n") if($CFG{'DEBUG'} >= 4);
 		$DATA{$what}{"reverse"} += $nr;
 	    } else {
+		&echo(0, "DATA{$what}{forward} += $nr\n") if($CFG{'DEBUG'} >= 4);
 		$DATA{$what}{"forward"} += $nr;
 	    }
 	}
     } 
     
-    if($delta) {
+    if($delta && $CFG{'RNDC'}) {
 	open(D,"> $delta") || die "can't open delta file '$delta' for log '".$CFG{'STATS_FILE'}."': $!"; 
 	print D tell(DUMP); 
 	close(D); 
@@ -602,15 +633,24 @@ sub load_information {
     
     close(DUMP); 
 
-    unlink($CFG{'STATS_FILE'});
-    unlink($delta);
-    system("touch ".$CFG{'STATS_FILE'});
-    system("chown ".$CFG{'STATS_FILE_OWNER_GROUP'}." ".$CFG{'STATS_FILE'});
+    if($CFG{'RNDC'}) {
+	# Only remove the stats and delta file if RNDC is set!
+	unlink($CFG{'STATS_FILE'});
+	system("touch ".$CFG{'STATS_FILE'});
+
+	unlink($delta);
+	system("chown ".$CFG{'STATS_FILE_OWNER_GROUP'}." ".$CFG{'STATS_FILE'});
+    }
 
     # How many domains?
     my %tmp1;
     my %tmp2;
+    if($CFG{'DEBUG'} >= 4) {
+	&echo(0, "\n");
+	&echo(0, "=> Going through and counting domains.\n");
+    }
     foreach my $domain (sort keys %DOMAINS) {
+	&echo(0, "load_information: domain='$domain' ($count_domains)\n") if($CFG{'DEBUG'} >= 4);
 	if(!$tmp{$domain}) {
 	    $count_domains++;
 	    
@@ -624,13 +664,14 @@ sub load_information {
 	    }
 	}
     }
-    $count_domains -= 1;
     
     undef(%DOMAINS);
     %DOMAINS = %tmp2;
 
     # Schedule an alarm once every five minutes to re-read information.
     alarm(5*60);
+
+    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -749,7 +790,11 @@ if($ALL) {
 		if(!defined($tmp[1])) {
 		    &print_b9stNumberDomains(0);
 		} else {
-		    &call_func_total(1, 1);
+		    if($CFG{'IGNORE_INDEX'}) {
+			&call_func_total(2, 1);
+		    } else {
+			&call_func_total(1, 1);
+		    }
 		}
 	    } else {
 		if(defined($tmp[1])) {
@@ -766,13 +811,13 @@ if($ALL) {
 		# {{{ CMD: getnext
 		# Make sure to skip the OID_BASE.3.1.1 branch - it's the index and should not be returned!
 		if(!$tmp[2] && !$tmp[3]) {
-		    if($IGNORE_INDEX) {
+		    if($CFG{'IGNORE_INDEX'}) {
 			&call_func_total(2, 1);
 		    } else {
 			&call_func_total(1, 1);
 		    }
 		} elsif(!$tmp[3]) {
-		    if(($tmp[2] == 1) && $IGNORE_INDEX) {
+		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			&call_func_total(2, 1);
 		    } elsif($tmp[2] < $count_counters) {
 			&echo(0, "tmp[2] < $count_counters\n");
@@ -781,7 +826,7 @@ if($ALL) {
 			    &call_func_total($tmp[2], 1);
 			} else {
 			    &echo(0, "tmp[2] < 1\n");
-			    if($IGNORE_INDEX) {
+			    if($CFG{'IGNORE_INDEX'}) {
 				&call_func_total($tmp[2]+1, 1);
 				#&no_value("index");
 			    } else {
@@ -796,7 +841,7 @@ if($ALL) {
 		    
 		    if($x > $count_counters) {
 			&echo(0, "=> x > count_counters ($x > $count_counters)\n") if($CFG{'DEBUG'} > 2);
-			if(($tmp[2] == 1) && $IGNORE_INDEX) {
+			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			    &call_func_total($tmp[2]+1, 1);
 			    #&no_value("index");
 			} else {
@@ -807,7 +852,7 @@ if($ALL) {
 			    }
 			}
 		    } else {
-			if(($tmp[2] == 1) && $IGNORE_INDEX) {
+			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			    &call_func_total($tmp[2]+1, 1);
 			    #&no_value("index");
 			} else {
@@ -819,11 +864,11 @@ if($ALL) {
 # }}} # CMD: getnext
 	    } else {
 		# {{{ CMD: get
-		if(!$tmp[3] || (($tmp[2] == 1) && $IGNORE_INDEX)) {
+		if(!$tmp[3] || (($tmp[2] == 1) && $CFG{'IGNORE_INDEX'})) {
 		    &no_value();
 		} elsif($tmp[2] && $prints_total{$tmp[2]}) {
 		    &echo(0, "tmp[2] && prints_total{tmp[2]} (".$prints_total{$tmp[2]}.")\n");
-		    if(($tmp[2] == 1) && $IGNORE_INDEX) {
+		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			&no_value("index");
 		    } else {
 			&call_func_total($tmp[2], $tmp[3]);
@@ -844,13 +889,13 @@ if($ALL) {
 		# {{{ CMD: getnext
 		# Make sure to skip the OID_BASE.4.1.1 branch - it's the index and should not be returned!
 		if(!$tmp[2] && !$tmp[3]) {
-		    if($IGNORE_INDEX) {
+		    if($CFG{'IGNORE_INDEX'}) {
 			&call_func_domain(2, 1);
 		    } else {
 			&call_func_domain(1, 1);
 		    }
 		} elsif(!$tmp[3]) {
-		    if(($tmp[2] == 1) && $IGNORE_INDEX) {
+		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			&call_func_domain(2, 1);
 		    } else {
 			&call_func_domain($tmp[2], 1);
@@ -866,7 +911,7 @@ if($ALL) {
 			    &no_value();
 			}
 		    } else {
-			if(($tmp[2] == 1) && $IGNORE_INDEX) {
+			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			    &no_value("index");
 			} else {
 			    &echo(0, "=> $x < $count_domains\n") if($CFG{'DEBUG'} > 2);
@@ -878,7 +923,7 @@ if($ALL) {
 	    } else {
 		# {{{ CMD: get
 		if($tmp[2] && $prints_domain{$tmp[2]}) {
-		    if(($tmp[2] == 1) && $IGNORE_INDEX) {
+		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			&no_value();
 		    } else {
 			&call_func_domain($tmp[2], $tmp[3]);
