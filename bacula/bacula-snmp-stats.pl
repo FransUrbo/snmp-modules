@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bacula-snmp-stats.pl,v 1.17 2005-11-05 11:10:53 turbo Exp $
+# {{{ $Id: bacula-snmp-stats.pl,v 1.18 2006-01-19 11:36:43 turbo Exp $
 # Extract job statistics for a bacula backup server.
 # Only tested with a MySQL backend, but is general
 # enough to work with the PostgreSQL backend as well.
@@ -9,16 +9,28 @@
 # Require the file "/etc/bacula/.conn_details"
 # with the following defines:
 #
+#   Optional arguments
+#	DEBUG=4
+#	DEBUG_FILE=/var/log/bacula-snmp-stats.log
+#	IGNORE_INDEX=1
+#
+#   Required options
 #	USERNAME=
 #	PASSWORD=
 #	DB=
 #	HOST=
 #	CATALOG=
-#	DEBUG=
 #
 # Since using perl DBI, 'CATALOG' can be any database
 # backend that's supported by the module (currently
 # Bacula only supports MySQL and PostgreSQL though).
+#
+# NOTE1: Please do NOT set the IGNORE_INDEX to anything else than 1' (or
+#        better yet, leave it unset/undefined). Strange things will/can
+#        happen if you disable it! !! YOU HAVE BEEN WARNED !!
+#
+# NOTE2: If DEBUG is specified (default is '0' - no debugging), then the
+#        DEBUG_FILE is _required_!
 #
 # Copyright 2005 Turbo Fredriksson <turbo@bayour.com>.
 # This software is distributed under GPL v2.
@@ -356,12 +368,13 @@ sub get_config {
     }
 
     # Just incase any of these isn't set, initialize the variable.
-    $CFG{'USERNAME'}	= '' if(!defined($CFG{'USERNAME'}));
-    $CFG{'PASSWORD'}	= '' if(!defined($CFG{'PASSWORD'}));
-    $CFG{'DB'}		= '' if(!defined($CFG{'DB'}));
-    $CFG{'HOST'}	= '' if(!defined($CFG{'HOST'}));
-    $CFG{'CATALOG'}	= '' if(!defined($CFG{'CATALOG'}));
-    $CFG{'DEBUG'}	= 0  if(!defined($CFG{'DEBUG'}));
+    $CFG{'USERNAME'}	 = '' if(!defined($CFG{'USERNAME'}));
+    $CFG{'PASSWORD'}	 = '' if(!defined($CFG{'PASSWORD'}));
+    $CFG{'DB'}		 = '' if(!defined($CFG{'DB'}));
+    $CFG{'HOST'}	 = '' if(!defined($CFG{'HOST'}));
+    $CFG{'CATALOG'}	 = '' if(!defined($CFG{'CATALOG'}));
+    $CFG{'DEBUG'}	 = 0  if(!defined($CFG{'DEBUG'}));
+    $CFG{'IGNORE_INDEX'} = 1  if(!defined($CFG{'IGNORE_INDEX'}));
 
     # A debug value from the environment overrides!
     $CFG{'DEBUG'} = $ENV{'DEBUG_BACULA'} if(defined($ENV{'DEBUG_BACULA'}));
@@ -806,10 +819,8 @@ sub print_clients_name {
 			&echo(0, "$OID_BASE.5.1.$key_nr.$client_nr = ".$CLIENTS{$client_name}{$key_name}."\n") if($CFG{'DEBUG'});
 			
 			&echo(1, "$OID_BASE.5.1.$key_nr.$client_nr\n");
-			if($key_name eq 'auto_prune') {
+			if(($key_name eq 'auto_prune') || ($key_name eq 'file_retention') || ($key_name eq 'job_retention')) {
 			    &echo(1, "integer\n");
-			} elsif(($key_name eq 'file_retention') || ($key_name eq 'job_retention')) {
-			    &echo(1, "counter\n");
 			} else {
 			    &echo(1, "string\n");
 			}
@@ -2287,8 +2298,8 @@ sub get_timestring {
 
 # {{{ Open logfile for debugging
 sub open_log {
-    if(!open(LOG, ">> /var/log/bacula-snmp-stats.log")) {
-	&echo(0, "Can't open logfile '/var/log/bacula-snmp-stats.log', $!\n") if($CFG{'DEBUG'});
+    if(!open(LOG, ">> ".$CFG{'DEBUG_FILE'})) {
+	&echo(0, "Can't open logfile '".$CFG{'DEBUG_FILE'}."', $!\n") if($CFG{'DEBUG'});
 	return 0;
     } else {
 	return 1;
@@ -2565,7 +2576,13 @@ if($ALL) {
 		    $tmp[0]++;
 		    
 		    if($tmp[0] >= 5) {
-			for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
+			$tmp[1] = 1;
+			if($CFG{'IGNORE_INDEX'}) {
+			    $tmp[2] = 2; # Skip 'OID_BASE.5.1.1' => Index!
+			} else {
+			    $tmp[2] = 1; # Show Index!
+			}
+			$tmp[3] = 1;
 
 			# How to call call_print()
 			my($next1, $next2, $next3) = get_next_oid(@tmp);
@@ -2581,24 +2598,49 @@ if($ALL) {
 	    } elsif( $tmp[0] == 5) {
 		# {{{ ------------------------------------- OID_BASE.5       
 		# {{{ Figure out the NEXT value from the input
+		# NOTE: Make sure to skip the OID_BASE.5.1.1 branch - it's the index and should not be returned!
+
 		if(!defined($tmp[1]) || !defined($tmp[2])) {
-		    # Called only as 'OID_BASE.5'
-		    for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
+		    if($CFG{'IGNORE_INDEX'}) {
+			# Called only as 'OID_BASE.5' (jump directly to OID_BASE.5.1.2 because of the index).
+			$tmp[1] = 2;
+		    } else {
+			$tmp[1] = 1; # Show index.
+		    }
+		    for(my $i=2; $i <= 3; $i++) { $tmp[$i] = 1; }
 		} elsif(!defined($tmp[3])) {
 		    # Called only as 'OID_BASE.5.1.x'
-		    $tmp[3] = 1;
+		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
+			# The index, skip it!
+			&no_value();
+			next;
+		    } else {
+			$tmp[3] = 1;
+		    }
 		} else {
 		    if($tmp[2] >= $TYPES_CLIENT+2) {
 			# We've reached the ned of the OID_BASE.5.1.x -> OID_BASE.6.1.1.1.1
 			$tmp[0]++;
 			for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
 		    } elsif($tmp[3] >= $CLIENTS) {
-			# We've reached the end of the OID_BASE.5.1.x.y -> OID_BASE.5.1.x+1.1
-			$tmp[2]++;
-			$tmp[3] = 1;
+			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
+                            # The index, skip it!
+                            &no_value();
+                            next;
+                        } else {
+			    # We've reached the end of the OID_BASE.5.1.x.y -> OID_BASE.5.1.x+1.1
+			    $tmp[2]++;
+			    $tmp[3] = 1;
+			}
 		    } else {
 			# Get OID_BASE.5.1.x.y+1
-			$tmp[3]++;
+			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
+			    # The index, skip it!
+			    &no_value();
+			    next;
+			} else {
+			    $tmp[3]++;
+			}
 		    }
 		}
 
@@ -2610,8 +2652,14 @@ if($ALL) {
 		if(!&call_print($next1, $next3)) {
 		    # OID_BASE.5.1.2.4 => OID_BASE.5.1.2.5 => OID_BASE.5.1.3.1
 		    # {{{ Figure out the NEXT value from the input
-		    $tmp[0]++;
-		    for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
+		    $tmp[0]++;   # Go to OID_BASE.6
+		    $tmp[1] = 1;
+		    if($CFG{'IGNORE_INDEX'}) {
+			$tmp[2] = 2; # Skip 'OID_BASE.6.1.1' => Index!
+		    } else {
+			$tmp[2] = 1; # Show Index!
+		    }
+		    $tmp[3] = 1;
 
 		    # How to call call_print()
 		    my($next1, $next2, $next3) = get_next_oid(@tmp);
@@ -2628,68 +2676,132 @@ if($ALL) {
 		if($tmp[0] == 6) {
 		    # {{{ OID_BASE.6
 		    if(!defined($tmp[1]) || !defined($tmp[2])) {
-			# Called with 'OID_BASE.6'
-			for(my $i=1; $i <= 2; $i++) { $tmp[$i] = 1; }
+			if($CFG{'IGNORE_INDEX'}) {
+			    # Called only as 'OID_BASE.6' (jump directly to OID_BASE.6.1.2 because of the index).
+			    $tmp[1] = 2;
+			} else {
+			    $tmp[1] = 1; # Show index!
+			}
+			for(my $i=2; $i <= 2; $i++) { $tmp[$i] = 1; }
+
 		    } elsif(!defined($tmp[3]) || !defined($tmp[4])) {
-			# Called with 'OID_BASE.6.1.x'
-			for(my $i=3; $i <= 4; $i++) { $tmp[$i] = 1; }
+			# Called only as 'OID_BASE.6.1.x'
+			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
+			    # The index, skip it!
+			    &no_value();
+			    next;
+			} else {
+			    for(my $i=3; $i <= 4; $i++) { $tmp[$i] = 1; }
+			}
+
 		    } else {
-			$tmp[4]++;
+			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
+			    # The index, skip it!
+			    &no_value();
+			    next;
+			} else {
+			    $tmp[4]++;
+			}
 		    }
 # }}} # OID_BASE.6
 
 		} elsif($tmp[0] == 7) {
 		    # {{{ OID_BASE.7
 		    if(!defined($tmp[1]) || !defined($tmp[2])) {
-			# Called with 'OID_BASE.7'
-			for(my $i=1; $i <= 5; $i++) { $tmp[$i] = 1; }
+			if($CFG{'IGNORE_INDEX'}) {
+			    # Called only as 'OID_BASE.7' (jump directly to OID_BASE.7.1.2 because of the index).
+			    $tmp[1] = 2;
+			} else {
+			    $tmp[1] = 1;
+			}
+			for(my $i=2; $i <= 5; $i++) { $tmp[$i] = 1; }
+
 		    } elsif(!defined($tmp[3]) || !defined($tmp[4]) || !defined($tmp[5])) {
-			# Called with 'OID_BASE.7.1.x'
-			for(my $i=3; $i <= 4; $i++) { $tmp[$i] = 1; }
+			# Called only as 'OID_BASE.7.1.x'
+			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
+			    # The index, skip it!
+			    &no_value();
+			    next;
+			} else {
+			    for(my $i=3; $i <= 4; $i++) { $tmp[$i] = 1; }
+			}
+
 		    } else {
-			$tmp[5]++;
+			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
+			    # The index, skip it!
+			    &no_value();
+			    next;
+			} else {
+			    $tmp[5]++;
+			}
 		    }
 # }}} # OID_BASE.7
 
 		} elsif($tmp[0] == 8) {
 		    # {{{ OID_BASE.8
-		    if(!defined($tmp[1])) {
-			for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
-		    } elsif(!defined($tmp[2])) {
+		    if(!defined($tmp[1]) || !defined($tmp[2])) {
+			if($CFG{'IGNORE_INDEX'}) {
+			    # Called only as 'OID_BASE.8' (jump directly to OID_BASE.7.1.2 because of the index).
+			    $tmp[1] = 2;
+			} else {
+			    $tmp[1] = 1;
+			}
 			for(my $i=2; $i <= 3; $i++) { $tmp[$i] = 1; }
+
 		    } elsif(!defined($tmp[3])) {
-			$tmp[3] = 1;
+			# Called with 'OID_BASE.8.1.x'
+			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
+			    # The index, skip it!
+			    &no_value();
+			    next;
+			} else {
+			    $tmp[3] = 1;
+			}
+
 		    } elsif($tmp[3] >= $TYPES_STATS) {
 			# No more status counters
-			if($tmp[2] == 1) {
-			    # OID_BASE.8.1.1.x -> OID_BASE.8.1.2.1
-			    $tmp[2]++;
-			    $tmp[3] = 1;
+			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
+			    # The index, skip it!
+			    &no_value();
+			    next;
 			} else {
 			    # OID_BASE.8.1.2.x -> OID_BASE.9.1.1.1.1.1
-			    $tmp[0]++;
-			    for(my $i=1; $i <= 5; $i++) { $tmp[$i] = 1; }
+			    $tmp[0]++; # Go to OID_BASE.9
+			    $tmp[1] = 1;
+			    if($CFG{'IGNORE_INDEX'}) {
+				$tmp[2] = 2; # Skip 'OID_BASE.9.1.1' => Index!
+			    } else {
+				$tmp[2] = 1; # Show Index!
+			    }
+			    for(my $i=3; $i <= 5; $i++) { $tmp[$i] = 1; }
 			}
+
 		    } else {
-			$tmp[3]++;
+			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
+			    # The index, skip it!
+			    &no_value();
+			    next;
+			} else {
+			    $tmp[3]++;
+			}
 		    }
 # }}} # OID_BASE.8
 
 		} elsif($tmp[0] == 9) {
 		    # {{{ OID_BASE.9
 		    if(!defined($tmp[1]) || !defined($tmp[2])) {
-			for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
-
-		    } elsif($tmp[2] == 1) {
-			if(!defined($tmp[3])) {
-			    # Called with 'OID_BASE.9.1.1' - index
-			    for(my $i=3; $i <= 4; $i++) { $tmp[$i] = 1; }
-			} elsif(!defined($tmp[4])) {
-			    # Called with 'OID_BASE.9.1.1.x' - index
-			    $tmp[4] = 1;
+			if($CFG{'IGNORE_INDEX'}) {
+			    # Called only as 'OID_BASE.6' (jump directly to OID_BASE.6.1.2 because of the index).
+			    $tmp[1] = 2;
 			} else {
-			    $tmp[5]++;
+			    $tmp[1] = 1;
 			}
+			for(my $i=2; $i <= 3; $i++) { $tmp[$i] = 1; }
+
+		    } elsif(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
+			# The index, skip it!
+			&no_value();
+			next;
 
 		    } elsif($tmp[2] > $TYPES_STATS+2) { # Offset two because of index etc.
 			# End of the line for the OID_BASE.9.1.x -> OID_BASE.10.1.1.1
@@ -2720,7 +2832,7 @@ if($ALL) {
 		# {{{ Call functions, recursively (1)
 		&echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 		if(!&call_print($next1, $next3)) {
-		    # Reached the end of OID_BASE.6.1.1.1.1 => OID_BASE.6.1.1.2.1
+		    # Reached the end of OID_BASE.6.1.x.1.1 => OID_BASE.6.1.x.2.1
 		    # {{{ Figure out the NEXT value from the input
 		    if($tmp[0] == 6) {
 			$tmp[3]++;
@@ -2742,12 +2854,12 @@ if($ALL) {
 		    # {{{ Call functions, recursively (-1)
 		    &echo(0, ">> No OID at that level (-1) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 		    if(!&call_print($next1, $next3)) {
-			# Reached the end of OID_BASE.6.1.1.x => OID_BASE.6.1.2.1.1
+			# Reached the end of OID_BASE.6.1.x => OID_BASE.6.1.x+1.1.1
 			# {{{ Figure out the NEXT value from the input
 			if($tmp[0] == 6) {
 			    $tmp[2]++;
 			    for(my $i=3; $i <= 4; $i++) { $tmp[$i] = 1; }
-			    
+
 			    if($tmp[2] >= 6) {
 				# No such branch OID_BASE.7.1.6 => OID_BASE.8.1.1.1.1.1
 				$tmp[0]++;
@@ -2780,7 +2892,7 @@ if($ALL) {
 				} else {
 				    $tmp[2]++;
 				    for(my $i=3; $i <= 5; $i++) { $tmp[$i] = 1; }
-				    
+
 				    if(($tmp[0] == 7) && ($tmp[2] >= 3)) {
 					# No such branch OID_BASE.7.1.3 => OID_BASE.8.1.1.1
 					$tmp[0]++;
@@ -2798,9 +2910,13 @@ if($ALL) {
 			    if(!&call_print($next1, $next3)) {
 				# Reached the end of the OID_BASE.7.1.2 => OID_BASE.8.1.1.1
 				# {{{ Figure out the NEXT value from the input
-				$tmp[0]++;
+				$tmp[0]++;   # Go to OID_BASE.8
 				$tmp[1] = 1;
-				$tmp[2] = 1;
+				if($CFG{'IGNORE_INDEX'}) {
+				    $tmp[2] = 2; # Skip 'OID_BASE.8.1.1' => Index!
+				} else {
+				    $tmp[2] = 1; # Show Index!
+				}
 				$tmp[3] = 1;
 
 				if($tmp[0] == 9) {
@@ -2824,16 +2940,34 @@ if($ALL) {
 # }}} OID_BASE.[6-8]
 
 	    } elsif(($tmp[0] >= 10) && ($tmp[0] <= 11)) {
-		# {{{ ------------------------------------- OID_BASE.[10-11] 
+		# {{{ ------------------------------------- OID_BASE.{10,11} 
 		# {{{ Figure out the NEXT value from the input
-		if(!defined($tmp[1])) {
-		    for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
-		} elsif(!defined($tmp[2])) {
+		if(!defined($tmp[1]) || !defined($tmp[2])) {
+		    if($CFG{'IGNORE_INDEX'}) {
+			# Called only as 'OID_BASE.{10,11}' (jump directly to OID_BASE.{10,11}.1.2 because of the index).
+			$tmp[1] = 2;
+		    } else {
+			$tmp[1] = 1;
+		    }
 		    for(my $i=2; $i <= 3; $i++) { $tmp[$i] = 1; }
+
 		} elsif(!defined($tmp[3])) {
-		    $tmp[3] = 1;
+		    # Called with 'OID_BASE.{10,11}.1.x'
+		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
+			# The index, skip it!
+			&no_value();
+			next;
+		    } else {
+			$tmp[3] = 1;
+		    }
 		} else {
-		    $tmp[3]++;
+		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
+			# The index, skip it!
+			&no_value();
+			next;
+		    } else {
+			$tmp[3]++;
+		    }
 		}
 		
 		# How to call call_print()
@@ -2868,8 +3002,14 @@ if($ALL) {
 			if($tmp[0] == 10) {
 			    if($tmp[2] >= $TYPES_POOL) {
 				# No more values in OID_BASE.10.1.x -> OID_BASE.11.1.1.1
-				$tmp[0]++;
-				for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
+				$tmp[0]++; # Go to OID_BASE.11
+				$tmp[1] = 1;
+				if($CFG{'IGNORE_INDEX'}) {
+				    $tmp[2] = 2; # Skip 'OID_BASE.11.1.1' => Index!
+				} else {
+				    $tmp[2] = 1; # Show Index!
+				}
+				$tmp[3] = 1;
 			    }
 			}
 		    
