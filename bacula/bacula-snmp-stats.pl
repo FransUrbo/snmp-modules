@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bacula-snmp-stats.pl,v 1.18 2006-01-19 11:36:43 turbo Exp $
+# {{{ $Id: bacula-snmp-stats.pl,v 1.19 2006-01-20 13:17:25 turbo Exp $
 # Extract job statistics for a bacula backup server.
 # Only tested with a MySQL backend, but is general
 # enough to work with the PostgreSQL backend as well.
@@ -2298,6 +2298,8 @@ sub get_timestring {
 
 # {{{ Open logfile for debugging
 sub open_log {
+    die("DEBUG_FILE not set in config file!\n") if(!$CFG{'DEBUG_FILE'});
+
     if(!open(LOG, ">> ".$CFG{'DEBUG_FILE'})) {
 	&echo(0, "Can't open logfile '".$CFG{'DEBUG_FILE'}."', $!\n") if($CFG{'DEBUG'});
 	return 0;

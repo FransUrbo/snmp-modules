@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.14 2006-01-16 15:01:05 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.15 2006-01-20 13:17:25 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -490,6 +490,8 @@ sub get_timestring {
 
 # {{{ Open logfile for debugging
 sub open_log {
+    die("DEBUG_FILE not set in config file!\n") if(!$CFG{'DEBUG_FILE'});
+
     if(!open(LOG, ">> ".$CFG{'DEBUG_FILE'})) {
 	&echo(0, "Can't open logfile '".$CFG{'DEBUG_FILE'}."', $!\n") if($CFG{'DEBUG'});
 	return 0;
