@@ -30,7 +30,7 @@ bind9_tarball: $(BIND9_INSTDIR)
 	  cp bind9/bind9-snmp-stats.pl $(TMPDIR)/$(BIND9_INSTDIR)/; \
 	  cp bind9/bind9-stats*.xml $(TMPDIR)/$(BIND9_INSTDIR)/; \
 	  cp bind9/cacti_host_template_bind9_snmp_machine.xml $(TMPDIR)/$(BIND9_INSTDIR)/; \
-	  cp bind9/README.txt bind9/UPGRADE.txt $(TMPDIR)/$(BIND9_INSTDIR)/; \
+	  cp bind9/{README,UPGRADE}.txt bind9/snmp*.stub $(TMPDIR)/$(BIND9_INSTDIR)/; \
 	  cd $(TMPDIR)/; \
 	  tar czf bind9-snmp_$(BIND9_VERSION).tgz `find $(BIND9_INSTDIR) -type f`; \
 	  tar cjf bind9-snmp_$(BIND9_VERSION).tar.bz2 `find $(BIND9_INSTDIR) -type f`; \
