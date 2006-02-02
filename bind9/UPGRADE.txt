@@ -1,3 +1,7 @@
+NOTE: Always make sure that the MIB is of the correct version of all your
+      Bind9/SNMP installations!
+      The current version of the MIB is: '1.14 2005/11/01 10:52:59'.
+
 If upgrading from 1.x:
 * Some people have had problems getting statistics in previous versions.
   This is/was because of a number of problems which should be fixed in
