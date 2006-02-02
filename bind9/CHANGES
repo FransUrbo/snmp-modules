@@ -1,3 +1,8 @@
+bind9-snmp 1.6 TO BE ANNOUNCED
+	Bug fixes
+	Misc changes
+	  + Document the need to make sure the MIB is the correct version.
+
 bind9-snmp 1.5 Release (Jan 16 2006)
 	Bug fixes
 	  + Rewrite the note/documentation about the config file. More and better info.
