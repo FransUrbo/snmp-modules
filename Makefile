@@ -11,6 +11,9 @@ BIND9_INSTDIR := bind9-snmp-$(BIND9_VERSION)
 BACULA_VERSION := $(shell cat bacula/.version | sed 's@\ .*@@')
 BACULA_INSTDIR := bacula-snmp-$(BACULA_VERSION)
 
+SYSTEM_VERSION := $(shell cat system/.version | sed 's@\ .*@@')
+SYSTEM_INSTDIR := system-snmp-$(SYSTEM_VERSION)
+
 PACKAGE_VERSION := $(shell cat package/.version | sed 's@\ .*@@')
 PACKAGE_INSTDIR := package-snmp-$(PACKAGE_VERSION)
 
@@ -28,6 +31,13 @@ $(BACULA_INSTDIR):
 	  fi; \
 	  mkdir -p $(TMPDIR)/$(BACULA_INSTDIR); \
 	  echo "Instdir:   "$(TMPDIR)/$(BACULA_INSTDIR))
+
+$(SYSTEM_INSTDIR):
+	@(if [ -f $(TMPDIR) ]; then \
+	    rm -f $(TMPDIR); \
+	  fi; \
+	  mkdir -p $(TMPDIR)/$(SYSTEM_INSTDIR); \
+	  echo "Instdir:   "$(TMPDIR)/$(SYSTEM_INSTDIR))
 
 $(PACKAGE_INSTDIR):
 	@(if [ -f $(TMPDIR) ]; then \
@@ -70,6 +80,21 @@ bacula_changes:
 	  cat bacula/CHANGES | sed "s@TO BE ANNOUNCED@Release \($(DATE)\)@" > bacula/CHANGES.new; \
 	  mv bacula/CHANGES.new bacula/CHANGES; \
 	  cvs commit -m "New release - $(BACULA_VERSION)" bacula/CHANGES)
+
+# ---------------------------------
+system_tarball: $(SYSTEM_INSTDIR)
+	@(cp BAYOUR-COM-MIB.txt BayourCOM_SNMP.pm $(TMPDIR)/$(SYSTEM_INSTDIR)/; \
+	  cp system/system-snmp-stats.pl $(TMPDIR)/$(SYSTEM_INSTDIR)/; \
+	  cd $(TMPDIR); \
+	  tar czf system-snmp_$(SYSTEM_VERSION).tgz `find $(SYSTEM_INSTDIR) -type f`; \
+	  tar cjf system-snmp_$(SYSTEM_VERSION).tar.bz2 `find $(SYSTEM_INSTDIR) -type f`; \
+	  zip system-snmp_$(SYSTEM_VERSION).zip `find $(SYSTEM_INSTDIR) -type f` > /dev/null)
+
+system_changes:
+	@(echo "Date: $(DATE)"; \
+	  cat system/CHANGES | sed "s@TO BE ANNOUNCED@Release \($(DATE)\)@" > system/CHANGES.new; \
+	  mv system/CHANGES.new system/CHANGES; \
+	  cvs commit -m "New release - $(SYSTEM_VERSION)" system/CHANGES)
 
 # ---------------------------------
 package_tarball: $(PACKAGE_INSTDIR)
