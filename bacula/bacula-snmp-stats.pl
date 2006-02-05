@@ -1,13 +1,16 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bacula-snmp-stats.pl,v 1.20 2006-01-20 13:27:12 turbo Exp $
+# {{{ $Id: bacula-snmp-stats.pl,v 1.21 2006-02-05 11:40:01 turbo Exp $
 # Extract job statistics for a bacula backup server.
 # Only tested with a MySQL backend, but is general
 # enough to work with the PostgreSQL backend as well.
 #
 # Uses the perl module DBI for database access.
+#
 # Require the file "/etc/bacula/.conn_details"
-# with the following defines:
+# If the location of the config file isn't good enough for you,
+# feel free to change that here.
+my $CFG_FILE = "/etc/bacula/.conn_details";
 #
 #   Optional arguments
 #	DEBUG=4
@@ -42,7 +45,7 @@ $|=1;
 
 use strict; 
 use DBI;
-use POSIX qw(strftime);
+use BayourCOM_SNMP;
 
 $ENV{PATH} = "/bin:/usr/bin:/usr/sbin";
 my %CFG;
@@ -343,44 +346,6 @@ $SIG{'ALRM'} = \&load_information;
 # ====================================================
 # =====    R E T R E I V E  F U N C T I O N S    =====
 
-# {{{ Load the information needed to connect to the MySQL server.
-sub get_config {
-    my $option = shift;
-    my($line, $key, $value);
-
-    $option = 0 if(!defined($option));
-
-    if(-e "/etc/bacula/.conn_details") {
-	open(CFG, "< /etc/bacula/.conn_details") || die("Can't open /etc/bacula/.conn_details, $!");
-	while(!eof(CFG)) {
-	    $line = <CFG>; chomp($line);
-	    ($key, $value) = split('=', $line);
-
-	    if(!$option) {
-		# Get all options
-		$CFG{$key} = $value;
-	    } elsif($option eq $key) {
-		# Get only this option
-		$CFG{$key} = $value;
-	    }
-	}
-	close(CFG);
-    }
-
-    # Just incase any of these isn't set, initialize the variable.
-    $CFG{'USERNAME'}	 = '' if(!defined($CFG{'USERNAME'}));
-    $CFG{'PASSWORD'}	 = '' if(!defined($CFG{'PASSWORD'}));
-    $CFG{'DB'}		 = '' if(!defined($CFG{'DB'}));
-    $CFG{'HOST'}	 = '' if(!defined($CFG{'HOST'}));
-    $CFG{'CATALOG'}	 = '' if(!defined($CFG{'CATALOG'}));
-    $CFG{'DEBUG'}	 = 0  if(!defined($CFG{'DEBUG'}));
-    $CFG{'IGNORE_INDEX'} = 1  if(!defined($CFG{'IGNORE_INDEX'}));
-
-    # A debug value from the environment overrides!
-    $CFG{'DEBUG'} = $ENV{'DEBUG_BACULA'} if(defined($ENV{'DEBUG_BACULA'}));
-}
-# }}}
-
 # {{{ Open a connection to the SQL database.
 my $dbh = 0;
 sub sql_connect {
@@ -577,7 +542,7 @@ sub get_info_stats {
 
 	if($CFG{'DEBUG'} > 4) {
 	    my $tmp = join(':', @row);
-	    &echo(0, "ROW[$status]: '$tmp'\n");
+	    BayourCOM_SNMP::echo(0, "ROW[$status]: '$tmp'\n");
 	}
 
 	# {{{ Extract date and time
@@ -617,7 +582,7 @@ sub get_info_stats {
 	$status++; # Increase number of status counters
     }
 
-    &echo(0, "=> Number of status counters: $status\n") if($CFG{'DEBUG'} >= 4);
+    BayourCOM_SNMP::echo(0, "=> Number of status counters: $status\n") if($CFG{'DEBUG'} >= 4);
     return($status, %status);
 }
 # }}}
@@ -683,15 +648,15 @@ sub get_info_jobs {
 # {{{ OID_BASE.1.0		Output total number of clients
 sub print_amount_clients {
     if($CFG{'DEBUG'}) {
-	&echo(0, "=> OID_BASE.totalClients.0\n") if($CFG{'DEBUG'} > 1);
-	&echo(0, "$OID_BASE.1.0 = $CLIENTS\n");
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.totalClients.0\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "$OID_BASE.1.0 = $CLIENTS\n");
     }
 
-    &echo(1, "$OID_BASE.1.0\n");
-    &echo(1, "integer\n");
-    &echo(1, "$CLIENTS\n");
+    BayourCOM_SNMP::echo(1, "$OID_BASE.1.0\n");
+    BayourCOM_SNMP::echo(1, "integer\n");
+    BayourCOM_SNMP::echo(1, "$CLIENTS\n");
 
-    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+    BayourCOM_SNMP::echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
     return 1;
 }
 # }}}
@@ -699,15 +664,15 @@ sub print_amount_clients {
 # {{{ OID_BASE.2.0		Output total number of statistics
 sub print_amount_stats {
     if($CFG{'DEBUG'}) {
-	&echo(0, "=> OID_BASE.totalStats.0\n") if($CFG{'DEBUG'} > 1);
-	&echo(0, "$OID_BASE.2.0 = $STATUS\n");
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.totalStats.0\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "$OID_BASE.2.0 = $STATUS\n");
     }
 
-    &echo(1, "$OID_BASE.2.0\n");
-    &echo(1, "integer\n");
-    &echo(1, "$STATUS\n");
+    BayourCOM_SNMP::echo(1, "$OID_BASE.2.0\n");
+    BayourCOM_SNMP::echo(1, "integer\n");
+    BayourCOM_SNMP::echo(1, "$STATUS\n");
 
-    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+    BayourCOM_SNMP::echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
     return 1;
 }
 # }}}
@@ -715,15 +680,15 @@ sub print_amount_stats {
 # {{{ OID_BASE.3.0		Output total number of pools
 sub print_amount_pools {
     if($CFG{'DEBUG'}) {
-	&echo(0, "=> OID_BASE.totalPools.0\n") if($CFG{'DEBUG'} > 1);
-	&echo(0, "$OID_BASE.3.0 = $POOLS\n");
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.totalPools.0\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "$OID_BASE.3.0 = $POOLS\n");
     }
 
-    &echo(1, "$OID_BASE.3.0\n");
-    &echo(1, "integer\n");
-    &echo(1, "$POOLS\n");
+    BayourCOM_SNMP::echo(1, "$OID_BASE.3.0\n");
+    BayourCOM_SNMP::echo(1, "integer\n");
+    BayourCOM_SNMP::echo(1, "$POOLS\n");
 
-    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+    BayourCOM_SNMP::echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
     return 1;
 }
 # }}}
@@ -731,15 +696,15 @@ sub print_amount_pools {
 # {{{ OID_BASE.4.0		Output total number of pools
 sub print_amount_medias {
     if($CFG{'DEBUG'}) {
-	&echo(0, "=> OID_BASE.totalMedias.0\n") if($CFG{'DEBUG'} > 1);
-	&echo(0, "$OID_BASE.4.0 = $MEDIAS\n");
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.totalMedias.0\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "$OID_BASE.4.0 = $MEDIAS\n");
     }
 
-    &echo(1, "$OID_BASE.4.0\n");
-    &echo(1, "integer\n");
-    &echo(1, "$MEDIAS\n");
+    BayourCOM_SNMP::echo(1, "$OID_BASE.4.0\n");
+    BayourCOM_SNMP::echo(1, "integer\n");
+    BayourCOM_SNMP::echo(1, "$MEDIAS\n");
 
-    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+    BayourCOM_SNMP::echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
     return 1;
 }
 # }}}
@@ -749,7 +714,7 @@ sub print_amount_medias {
 sub print_clients_index {
     my $client_no = shift; # Client number
     my $success = 0;
-    &echo(0, "=> OID_BASE.clientTable.clientEntry.IndexClients\n") if($CFG{'DEBUG'} > 1);
+    BayourCOM_SNMP::echo(0, "=> OID_BASE.clientTable.clientEntry.IndexClients\n") if($CFG{'DEBUG'} > 1);
 
     if(defined($client_no)) {
 	# {{{ Specific client name
@@ -759,16 +724,16 @@ sub print_clients_index {
 		my $key_name = $keys_client{$key_nr};
 		$key_nr =~ s/^0//;
 		$key_nr -= 1; # This is the index - offset one!
-		&echo(0, "=> OID_BASE.clientTable.clientEntry.$key_name.clientName\n") if($CFG{'DEBUG'} > 1);
+		BayourCOM_SNMP::echo(0, "=> OID_BASE.clientTable.clientEntry.$key_name.clientName\n") if($CFG{'DEBUG'} > 1);
 		
 		my $client_nr = 1;
 		foreach my $client_name (sort keys %CLIENTS) {
 		    if($client_nr == $client_no) {
-			&echo(0, "$OID_BASE.5.1.$key_nr.$client_nr = $client_nr\n") if($CFG{'DEBUG'});
+			BayourCOM_SNMP::echo(0, "$OID_BASE.5.1.$key_nr.$client_nr = $client_nr\n") if($CFG{'DEBUG'});
 			
-			&echo(1, "$OID_BASE.5.1.$key_nr.$client_nr\n");
-			&echo(1, "integer\n");
-			&echo(1, "$client_nr\n");
+			BayourCOM_SNMP::echo(1, "$OID_BASE.5.1.$key_nr.$client_nr\n");
+			BayourCOM_SNMP::echo(1, "integer\n");
+			BayourCOM_SNMP::echo(1, "$client_nr\n");
 			
 			$success = 1;
 		    }
@@ -782,11 +747,11 @@ sub print_clients_index {
 	# {{{ ALL client names
 	my $client_nr = 1;
 	foreach my $client_name (sort keys %CLIENTS) {
-	    &echo(0, "$OID_BASE.5.1.1.$client_nr = $client_nr\n") if($CFG{'DEBUG'});
+	    BayourCOM_SNMP::echo(0, "$OID_BASE.5.1.1.$client_nr = $client_nr\n") if($CFG{'DEBUG'});
 	    
-	    &echo(1, "$OID_BASE.5.1.1..$client_nr\n");
-	    &echo(1, "integer\n");
-	    &echo(1, "$client_nr\n");
+	    BayourCOM_SNMP::echo(1, "$OID_BASE.5.1.1..$client_nr\n");
+	    BayourCOM_SNMP::echo(1, "integer\n");
+	    BayourCOM_SNMP::echo(1, "$client_nr\n");
 	    
 	    $success = 1;
 	    $client_nr++;
@@ -794,7 +759,7 @@ sub print_clients_index {
 # }}}
     }
 
-    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+    BayourCOM_SNMP::echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
     return $success;
 }
 # }}}
@@ -811,20 +776,20 @@ sub print_clients_name {
 	    if($key_nr == $value) {
 		my $key_name = $keys_client{$key_nr};
 		$key_nr =~ s/^0//;
-		&echo(0, "=> OID_BASE.clientTable.clientEntry.$key_name.clientName\n") if($CFG{'DEBUG'} > 1);
+		BayourCOM_SNMP::echo(0, "=> OID_BASE.clientTable.clientEntry.$key_name.clientName\n") if($CFG{'DEBUG'} > 1);
 		
 		my $client_nr = 1;
 		foreach my $client_name (sort keys %CLIENTS) {
 		    if($client_nr == $value_no) {
-			&echo(0, "$OID_BASE.5.1.$key_nr.$client_nr = ".$CLIENTS{$client_name}{$key_name}."\n") if($CFG{'DEBUG'});
+			BayourCOM_SNMP::echo(0, "$OID_BASE.5.1.$key_nr.$client_nr = ".$CLIENTS{$client_name}{$key_name}."\n") if($CFG{'DEBUG'});
 			
-			&echo(1, "$OID_BASE.5.1.$key_nr.$client_nr\n");
+			BayourCOM_SNMP::echo(1, "$OID_BASE.5.1.$key_nr.$client_nr\n");
 			if(($key_name eq 'auto_prune') || ($key_name eq 'file_retention') || ($key_name eq 'job_retention')) {
-			    &echo(1, "integer\n");
+			    BayourCOM_SNMP::echo(1, "integer\n");
 			} else {
-			    &echo(1, "string\n");
+			    BayourCOM_SNMP::echo(1, "string\n");
 			}
-			&echo(1, $CLIENTS{$client_name}{$key_name}."\n");
+			BayourCOM_SNMP::echo(1, $CLIENTS{$client_name}{$key_name}."\n");
 			
 			$success = 1;
 		    }
@@ -839,27 +804,27 @@ sub print_clients_name {
 	foreach my $key_nr (sort keys %keys_client) {
 	    my $key_name = $keys_client{$key_nr};
 	    $key_nr =~ s/^0//;
-	    &echo(0, "=> OID_BASE.clientTable.clientEntry.$key_name.clientName\n") if($CFG{'DEBUG'} > 1);
+	    BayourCOM_SNMP::echo(0, "=> OID_BASE.clientTable.clientEntry.$key_name.clientName\n") if($CFG{'DEBUG'} > 1);
 	    
 	    my $client_nr = 1;
 	    foreach my $client_name (sort keys %CLIENTS) {
-		&echo(0, "$OID_BASE.5.1.$key_nr.$client_nr = ".$CLIENTS{$client_name}{$key_name}."\n") if($CFG{'DEBUG'});
+		BayourCOM_SNMP::echo(0, "$OID_BASE.5.1.$key_nr.$client_nr = ".$CLIENTS{$client_name}{$key_name}."\n") if($CFG{'DEBUG'});
 		
-		&echo(1, "$OID_BASE.5.1.$key_nr.$client_nr\n");
+		BayourCOM_SNMP::echo(1, "$OID_BASE.5.1.$key_nr.$client_nr\n");
 		if($key_name eq 'auto_prune') {
-		    &echo(1, "integer\n");
+		    BayourCOM_SNMP::echo(1, "integer\n");
 		} elsif(($key_name eq 'file_retention') || ($key_name eq 'job_retention')) {
-		    &echo(1, "counter\n");
+		    BayourCOM_SNMP::echo(1, "counter\n");
 		} else {
-		    &echo(1, "string\n");
+		    BayourCOM_SNMP::echo(1, "string\n");
 		}
-		&echo(1, $CLIENTS{$client_name}{$key_name}."\n");
+		BayourCOM_SNMP::echo(1, $CLIENTS{$client_name}{$key_name}."\n");
 
 		$success = 1;
 		$client_nr++;
 	    }
 
-	    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+	    BayourCOM_SNMP::echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
 	}
 # }}}
     }
@@ -877,17 +842,17 @@ sub print_jobs_names_index {
     if(defined($job_no)) {
 	# {{{ Specific client name
 	my $client_name_num = 1;
-	&echo(0, "=> OID_BASE.jobsNameTable.jobsNameEntry.IndexJobNames\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.jobsNameTable.jobsNameEntry.IndexJobNames\n") if($CFG{'DEBUG'} > 1);
 	foreach my $client_name (sort keys %JOBS) {
 	    if($client_name_num == $CLIENT_NO) {
 		my $job_name_num = 1;
 		foreach my $job_name (sort keys %{ $JOBS{$client_name} }) {
 		    if($job_name_num == $job_no) {
-			&echo(0, "$OID_BASE.6.1.1.$client_name_num.$job_name_num = $job_name_num\n") if($CFG{'DEBUG'});
+			BayourCOM_SNMP::echo(0, "$OID_BASE.6.1.1.$client_name_num.$job_name_num = $job_name_num\n") if($CFG{'DEBUG'});
 			
-			&echo(1, "$OID_BASE.6.1.1.$client_name_num.$job_name_num\n");
-			&echo(1, "integer\n");
-			&echo(1, "$job_name_num\n");
+			BayourCOM_SNMP::echo(1, "$OID_BASE.6.1.1.$client_name_num.$job_name_num\n");
+			BayourCOM_SNMP::echo(1, "integer\n");
+			BayourCOM_SNMP::echo(1, "$job_name_num\n");
 			
 			$success = 1;
 		    }
@@ -901,15 +866,15 @@ sub print_jobs_names_index {
     } else {
 	# {{{ ALL clients, all job status
 	my $client_name_num = 1;
-	&echo(0, "=> OID_BASE.jobsNameTable.jobsNameEntry.clientName.IndexJobNames\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.jobsNameTable.jobsNameEntry.clientName.IndexJobNames\n") if($CFG{'DEBUG'} > 1);
 	foreach my $client_name (sort keys %JOBS) {
 	    my $job_name_num = 1;
 	    foreach my $job_name (sort keys %{ $JOBS{$client_name} }) {
-		&echo(0, "$OID_BASE.6.1.1.$client_name_num.$job_name_num = $job_name_num\n") if($CFG{'DEBUG'});
+		BayourCOM_SNMP::echo(0, "$OID_BASE.6.1.1.$client_name_num.$job_name_num = $job_name_num\n") if($CFG{'DEBUG'});
 		
-		&echo(1, "$OID_BASE.6.1.1.$client_name_num.$job_name_num\n");
-		&echo(1, "integer\n");
-		&echo(1, "$job_name_num\n");
+		BayourCOM_SNMP::echo(1, "$OID_BASE.6.1.1.$client_name_num.$job_name_num\n");
+		BayourCOM_SNMP::echo(1, "integer\n");
+		BayourCOM_SNMP::echo(1, "$job_name_num\n");
 		
 		$success = 1;
 		$job_name_num++;
@@ -920,7 +885,7 @@ sub print_jobs_names_index {
 # }}}
     }
 
-    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+    BayourCOM_SNMP::echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
     return $success;
 }
 # }}}
@@ -938,7 +903,7 @@ sub print_jobs_names {
 		my $key_name = $keys_jobs{$key_nr};
 		$key_nr =~ s/^0//;
 		
-		&echo(0, "=> OID_BASE.jobsNameTable.jobsNameEntry.$key_name.clientName.jobName\n") if($CFG{'DEBUG'} > 1);
+		BayourCOM_SNMP::echo(0, "=> OID_BASE.jobsNameTable.jobsNameEntry.$key_name.clientName.jobName\n") if($CFG{'DEBUG'} > 1);
 		
 		my $client_name_num = 1;
 		foreach my $client_name (sort keys %JOBS) {
@@ -946,15 +911,15 @@ sub print_jobs_names {
 			my $job_name_num = 1;
 			foreach my $job_name (sort keys %{ $JOBS{$client_name} }) {
 			    if($job_name_num == $job_no) {
-				&echo(0, "$OID_BASE.6.1.$key_nr.$client_name_num.$job_name_num = ".$JOBS{$client_name}{$job_name}{$key_name}."\n") if($CFG{'DEBUG'});
+				BayourCOM_SNMP::echo(0, "$OID_BASE.6.1.$key_nr.$client_name_num.$job_name_num = ".$JOBS{$client_name}{$job_name}{$key_name}."\n") if($CFG{'DEBUG'});
 				
-				&echo(1, "$OID_BASE.6.1.$key_nr.$client_name_num.$job_name_num\n");
+				BayourCOM_SNMP::echo(1, "$OID_BASE.6.1.$key_nr.$client_name_num.$job_name_num\n");
 				if($key_nr == 5) {
-				    &echo(1, "string\n");
+				    BayourCOM_SNMP::echo(1, "string\n");
 				} else {
-				    &echo(1, "string\n");
+				    BayourCOM_SNMP::echo(1, "string\n");
 				}
-				&echo(1, $JOBS{$client_name}{$job_name}{$key_name}."\n");
+				BayourCOM_SNMP::echo(1, $JOBS{$client_name}{$job_name}{$key_name}."\n");
 				
 				$success = 1;
 			    }
@@ -974,17 +939,17 @@ sub print_jobs_names {
 	    my $key_name = $keys_jobs{$key_nr};
 	    $key_nr =~ s/^0//;
 
-	    &echo(0, "=> OID_BASE.jobsNameTable.jobsNameEntry.$key_name.clientName.jobName\n") if($CFG{'DEBUG'} > 1);
+	    BayourCOM_SNMP::echo(0, "=> OID_BASE.jobsNameTable.jobsNameEntry.$key_name.clientName.jobName\n") if($CFG{'DEBUG'} > 1);
 
 	    my $client_name_num = 1;
 	    foreach my $client_name (sort keys %JOBS) {
 		my $job_name_num = 1;
 		foreach my $job_name (sort keys %{ $JOBS{$client_name} }) {
-		    &echo(0, "$OID_BASE.6.1.$key_nr.$client_name_num.$job_name_num = ".$JOBS{$client_name}{$job_name}{$key_name}."\n") if($CFG{'DEBUG'});
+		    BayourCOM_SNMP::echo(0, "$OID_BASE.6.1.$key_nr.$client_name_num.$job_name_num = ".$JOBS{$client_name}{$job_name}{$key_name}."\n") if($CFG{'DEBUG'});
 		    
-		    &echo(1, "$OID_BASE.6.1.$key_nr.$client_name_num.$job_name_num\n");
-		    &echo(1, "string\n");
-		    &echo(1, "$job_name\n");
+		    BayourCOM_SNMP::echo(1, "$OID_BASE.6.1.$key_nr.$client_name_num.$job_name_num\n");
+		    BayourCOM_SNMP::echo(1, "string\n");
+		    BayourCOM_SNMP::echo(1, "$job_name\n");
 		    
 		    $success = 1;
 		    $job_name_num++;
@@ -993,7 +958,7 @@ sub print_jobs_names {
 		$client_name_num++;
 	    }
 
-	    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+	    BayourCOM_SNMP::echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
 	}
 # }}}
     }
@@ -1011,7 +976,7 @@ sub print_jobs_ids_index {
     if(defined($job_id_no)) {
 	# {{{ Specific client name
 	my $client_name_num = 1;
-	&echo(0, "=> OID_BASE.jobsIDTable.jobsIDEntry.IndexJobIDs\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.jobsIDTable.jobsIDEntry.IndexJobIDs\n") if($CFG{'DEBUG'} > 1);
 	foreach my $client_name (sort keys %CLIENTS) {
 	    if($client_name_num == $CLIENT_NO) {
 		my $job_name_num = 1;
@@ -1020,11 +985,11 @@ sub print_jobs_ids_index {
 			my $job_id_num = 1;
 			foreach my $job_id (sort keys %{ $STATUS{$client_name}{$job_name} }) {
 			    if($job_id_num == $job_id_no) {
-				&echo(0, "$OID_BASE.7.1.1.$client_name_num.$job_name_num.$job_id_num = $job_id_num\n") if($CFG{'DEBUG'});
+				BayourCOM_SNMP::echo(0, "$OID_BASE.7.1.1.$client_name_num.$job_name_num.$job_id_num = $job_id_num\n") if($CFG{'DEBUG'});
 				
-				&echo(1, "$OID_BASE.7.1.1.$client_name_num.$job_name_num.$job_id_num\n");
-				&echo(1, "integer\n");
-				&echo(1, "$job_id_num\n");
+				BayourCOM_SNMP::echo(1, "$OID_BASE.7.1.1.$client_name_num.$job_name_num.$job_id_num\n");
+				BayourCOM_SNMP::echo(1, "integer\n");
+				BayourCOM_SNMP::echo(1, "$job_id_num\n");
 				
 				$success = 1;
 			    }
@@ -1043,17 +1008,17 @@ sub print_jobs_ids_index {
     } else {
 	# {{{ ALL clients, all job status
 	my $client_name_num = 1;
-	&echo(0, "=> OID_BASE.jobsIDTable.jobsIDEntry.IndexJobIDs\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.jobsIDTable.jobsIDEntry.IndexJobIDs\n") if($CFG{'DEBUG'} > 1);
 	foreach my $client_name (sort keys %CLIENTS) {
 	    my $job_name_num = 1;
 	    foreach my $job_name (sort keys %{ $STATUS{$client_name} }) {
 		my $job_id_num = 1;
 		foreach my $job_id (sort keys %{ $STATUS{$client_name}{$job_name} }) {
-		    &echo(0, "$OID_BASE.7.1.1.$client_name_num.$job_name_num.$job_id_num = $job_id_num\n") if($CFG{'DEBUG'});
+		    BayourCOM_SNMP::echo(0, "$OID_BASE.7.1.1.$client_name_num.$job_name_num.$job_id_num = $job_id_num\n") if($CFG{'DEBUG'});
 		    
-		    &echo(1, "$OID_BASE.7.1.1.$client_name_num.$job_name_num.$job_id_num\n");
-		    &echo(1, "integer\n");
-		    &echo(1, "$job_id_num\n");
+		    BayourCOM_SNMP::echo(1, "$OID_BASE.7.1.1.$client_name_num.$job_name_num.$job_id_num\n");
+		    BayourCOM_SNMP::echo(1, "integer\n");
+		    BayourCOM_SNMP::echo(1, "$job_id_num\n");
 		    
 		    $success = 1;
 		    $job_id_num++;
@@ -1067,7 +1032,7 @@ sub print_jobs_ids_index {
 # }}}
     }
 
-    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+    BayourCOM_SNMP::echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
     return $success;
 }
 # }}}
@@ -1080,24 +1045,24 @@ sub print_jobs_ids {
     if(defined($job_name_no)) {
 	# {{{ Specific client name
 	my $client_name_num = 1;
-	&echo(0, "=> OID_BASE.jobsIDTable.jobsIDEntry.clientID.jobName.jobID\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.jobsIDTable.jobsIDEntry.clientID.jobName.jobID\n") if($CFG{'DEBUG'} > 1);
 	foreach my $client_name (sort keys %CLIENTS) {
 	    if($client_name_num == $CLIENT_NO) {
 		my $job_name_num = 1;
-		&echo(0, "=> Client name: '$client_name'\n") if($CFG{'DEBUG'} > 3);
+		BayourCOM_SNMP::echo(0, "=> Client name: '$client_name'\n") if($CFG{'DEBUG'} > 3);
 		foreach my $job_name (sort keys %{ $STATUS{$client_name} }) {
 		    if($job_name_num == $JOB_NO) {
 			my $job_id_num = 1;
-			&echo(0, "=>   Job name: '$job_name'\n") if($CFG{'DEBUG'} > 3);
+			BayourCOM_SNMP::echo(0, "=>   Job name: '$job_name'\n") if($CFG{'DEBUG'} > 3);
 			foreach my $job_id (sort keys %{ $STATUS{$client_name}{$job_name} }) {
 			    if($job_id_num == $job_name_no) {
-				&echo(0, "=>     Job ID: '$job_id'\n") if($CFG{'DEBUG'} > 3);
+				BayourCOM_SNMP::echo(0, "=>     Job ID: '$job_id'\n") if($CFG{'DEBUG'} > 3);
 				
-				&echo(0, "$OID_BASE.7.1.2.$client_name_num.$job_name_num.$job_id_num = $job_id\n") if($CFG{'DEBUG'});
+				BayourCOM_SNMP::echo(0, "$OID_BASE.7.1.2.$client_name_num.$job_name_num.$job_id_num = $job_id\n") if($CFG{'DEBUG'});
 				
-				&echo(1, "$OID_BASE.7.1.2.$client_name_num.$job_name_num.$job_id_num\n");
-				&echo(1, "string\n");
-				&echo(1, "$job_id\n");
+				BayourCOM_SNMP::echo(1, "$OID_BASE.7.1.2.$client_name_num.$job_name_num.$job_id_num\n");
+				BayourCOM_SNMP::echo(1, "string\n");
+				BayourCOM_SNMP::echo(1, "$job_id\n");
 				
 				$success = 1;
 			    }
@@ -1116,21 +1081,21 @@ sub print_jobs_ids {
     } else {
 	# {{{ ALL clients, all job status
 	my $client_name_num = 1;
-	&echo(0, "=> OID_BASE.jobsIDTable.jobsIDEntry.clientID.jobName.jobID\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.jobsIDTable.jobsIDEntry.clientID.jobName.jobID\n") if($CFG{'DEBUG'} > 1);
 	foreach my $client_name (sort keys %CLIENTS) {
 	    my $job_name_num = 1;
-	    &echo(0, "=> Client name: '$client_name'\n") if($CFG{'DEBUG'} > 3);
+	    BayourCOM_SNMP::echo(0, "=> Client name: '$client_name'\n") if($CFG{'DEBUG'} > 3);
 	    foreach my $job_name (sort keys %{ $STATUS{$client_name} }) {
 		my $job_id_num = 1;
-		&echo(0, "=>   Job name: '$job_name'\n") if($CFG{'DEBUG'} > 3);
+		BayourCOM_SNMP::echo(0, "=>   Job name: '$job_name'\n") if($CFG{'DEBUG'} > 3);
 		foreach my $job_id (sort keys %{ $STATUS{$client_name}{$job_name} }) {
-		    &echo(0, "=>     Job ID: '$job_id'\n") if($CFG{'DEBUG'} > 3);
+		    BayourCOM_SNMP::echo(0, "=>     Job ID: '$job_id'\n") if($CFG{'DEBUG'} > 3);
 		    
-		    &echo(0, "$OID_BASE.7.1.2.$client_name_num.$job_name_num.$job_id_num = $job_id\n") if($CFG{'DEBUG'});
+		    BayourCOM_SNMP::echo(0, "$OID_BASE.7.1.2.$client_name_num.$job_name_num.$job_id_num = $job_id\n") if($CFG{'DEBUG'});
 		    
-		    &echo(1, "$OID_BASE.7.1.2.$client_name_num.$job_name_num\n");
-		    &echo(1, "string\n");
-		    &echo(1, "$job_id\n");
+		    BayourCOM_SNMP::echo(1, "$OID_BASE.7.1.2.$client_name_num.$job_name_num\n");
+		    BayourCOM_SNMP::echo(1, "string\n");
+		    BayourCOM_SNMP::echo(1, "$job_id\n");
 		    
 		    $success = 1;
 		    $job_id_num++;
@@ -1144,7 +1109,7 @@ sub print_jobs_ids {
 # }}}
     }
 
-    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+    BayourCOM_SNMP::echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
     return $success;
 }
 # }}}
@@ -1156,13 +1121,13 @@ sub print_jobs_status_counters_index {
     my $success = 0;
     my($i, $max);
 
-    &echo(0, "=> OID_BASE.statsTable.statsEntry.statsTypeName\n") if($CFG{'DEBUG'} > 1);
+    BayourCOM_SNMP::echo(0, "=> OID_BASE.statsTable.statsEntry.statsTypeName\n") if($CFG{'DEBUG'} > 1);
 
     if(defined($key_nr)) {
 	# {{{ One specific type name
 	my $value = sprintf("%02d", $key_nr+1); # This is the index - offset one!
 	if(!$keys_stats{$value}) {
-	    &echo(0, "=> No such status type ($key_nr)\n") if($CFG{'DEBUG'} > 1);
+	    BayourCOM_SNMP::echo(0, "=> No such status type ($key_nr)\n") if($CFG{'DEBUG'} > 1);
 	    return 0;
 	}
 
@@ -1178,17 +1143,17 @@ sub print_jobs_status_counters_index {
 
     # {{{ Output index
     for(; $i <= $max; $i++) {
-	&echo(0, "$OID_BASE.8.1.1.$i = $i\n") if($CFG{'DEBUG'});
+	BayourCOM_SNMP::echo(0, "$OID_BASE.8.1.1.$i = $i\n") if($CFG{'DEBUG'});
 
-	&echo(1, "$OID_BASE.8.1.1.$i\n");
-	&echo(1, "integer\n");
-	&echo(1, "$i\n");
+	BayourCOM_SNMP::echo(1, "$OID_BASE.8.1.1.$i\n");
+	BayourCOM_SNMP::echo(1, "integer\n");
+	BayourCOM_SNMP::echo(1, "$i\n");
 
 	$success = 1;
     }
 # }}}
 
-    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+    BayourCOM_SNMP::echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
     return $success;
 }
 # }}}
@@ -1199,7 +1164,7 @@ sub print_jobs_status_counters {
     my $success = 0;
     my($i, $max);
 
-    &echo(0, "=> OID_BASE.statsTable.statsEntry.statsTypeName\n") if($CFG{'DEBUG'} > 1);
+    BayourCOM_SNMP::echo(0, "=> OID_BASE.statsTable.statsEntry.statsTypeName\n") if($CFG{'DEBUG'} > 1);
 
     if(defined($key_nr)) {
 	# {{{ One specific type name
@@ -1218,17 +1183,17 @@ sub print_jobs_status_counters {
 	my $value = sprintf("%02d", $i+1);
 	my $key_name = $keys_stats{$value};
 
-	&echo(0, "$OID_BASE.8.1.2.$i = $key_name\n") if($CFG{'DEBUG'});
+	BayourCOM_SNMP::echo(0, "$OID_BASE.8.1.2.$i = $key_name\n") if($CFG{'DEBUG'});
 
-	&echo(1, "$OID_BASE.8.1.2.$i\n");
-	&echo(1, "string\n");
-	&echo(1, "$key_name\n");
+	BayourCOM_SNMP::echo(1, "$OID_BASE.8.1.2.$i\n");
+	BayourCOM_SNMP::echo(1, "string\n");
+	BayourCOM_SNMP::echo(1, "$key_name\n");
 
 	$success = 1;
     }
 # }}}
 
-    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+    BayourCOM_SNMP::echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
     return $success;
 }
 # }}}
@@ -1239,7 +1204,7 @@ sub print_jobs_status_index {
     my $key_nr = shift;
     my $success = 0;
 
-    &echo(0, "=> OID_BASE.statsTable.statsEntry.IndexStats\n") if($CFG{'DEBUG'} > 1);
+    BayourCOM_SNMP::echo(0, "=> OID_BASE.statsTable.statsEntry.IndexStats\n") if($CFG{'DEBUG'} > 1);
 
     if(defined($key_nr)) {
 	# {{{ One specific status index number
@@ -1252,11 +1217,11 @@ sub print_jobs_status_index {
 			my $job_id_num = 1; # Job ID number
 			foreach my $job_id (sort keys %{ $STATUS{$client_name}{$job_name} }) {
 			    if($job_id_num == $key_nr) {
-				&echo(0, "$OID_BASE.9.1.1.$client_name_num.$job_name_num.$job_id_num = $job_id_num\n") if($CFG{'DEBUG'});
+				BayourCOM_SNMP::echo(0, "$OID_BASE.9.1.1.$client_name_num.$job_name_num.$job_id_num = $job_id_num\n") if($CFG{'DEBUG'});
 				
-				&echo(1, "$OID_BASE.9.1.1.$client_name_num.$job_name_num.$job_id_num\n");
-				&echo(1, "integer\n");
-				&echo(1, "$job_id_num\n");
+				BayourCOM_SNMP::echo(1, "$OID_BASE.9.1.1.$client_name_num.$job_name_num.$job_id_num\n");
+				BayourCOM_SNMP::echo(1, "integer\n");
+				BayourCOM_SNMP::echo(1, "$job_id_num\n");
 				
 				$success = 1;
 			    }
@@ -1280,11 +1245,11 @@ sub print_jobs_status_index {
 	    foreach my $job_name (sort keys %{ $STATUS{$client_name} }) {
 		my $job_id_num = 1; # Job ID number
 		foreach my $job_id (sort keys %{ $STATUS{$client_name}{$job_name} }) {
-		    &echo(0, "$OID_BASE.9.1.1.$client_name_num.$job_name_num.$job_id_num = $job_id_num\n") if($CFG{'DEBUG'});
+		    BayourCOM_SNMP::echo(0, "$OID_BASE.9.1.1.$client_name_num.$job_name_num.$job_id_num = $job_id_num\n") if($CFG{'DEBUG'});
 		    
-		    &echo(1, "$OID_BASE.9.1.1.$client_name_num.$job_name_num.$job_id_num\n");
-		    &echo(1, "integer\n");
-		    &echo(1, "$job_id_num\n");
+		    BayourCOM_SNMP::echo(1, "$OID_BASE.9.1.1.$client_name_num.$job_name_num.$job_id_num\n");
+		    BayourCOM_SNMP::echo(1, "integer\n");
+		    BayourCOM_SNMP::echo(1, "$job_id_num\n");
 		    
 		    $success = 1;
 		    $job_id_num++;
@@ -1298,7 +1263,7 @@ sub print_jobs_status_index {
 # }}}
     }
 
-    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+    BayourCOM_SNMP::echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
     return $success;
 }
 # }}}
@@ -1311,7 +1276,7 @@ sub print_jobs_status {
     if(defined($CLIENT_NO)) {
 	# {{{ Status for a specific client, specific job ID and a specific type
 	if(!$CLIENTS[$CLIENT_NO]) {
-	    &echo(0, "=> No value in this object\n") if($CFG{'DEBUG'} > 1);
+	    BayourCOM_SNMP::echo(0, "=> No value in this object\n") if($CFG{'DEBUG'} > 1);
 	    return 0;
 	}
 
@@ -1330,18 +1295,18 @@ sub print_jobs_status {
 				my $job_id_num = 1; # Job ID number
 				foreach my $job_id (sort keys %{ $STATUS{$client_name}{$job_name} }) {
 				    if($job_id_num == $job_status_nr) {
-					&echo(0, "=> OID_BASE.statsTable.statsEntry.$key_name.clientId.jobNr\n") if($CFG{'DEBUG'} > 1);
+					BayourCOM_SNMP::echo(0, "=> OID_BASE.statsTable.statsEntry.$key_name.clientId.jobNr\n") if($CFG{'DEBUG'} > 1);
 
-					&echo(0, "$OID_BASE.9.1.$key_nr.$client_name_num.$job_name_num.$job_id_num = ".
+					BayourCOM_SNMP::echo(0, "$OID_BASE.9.1.$key_nr.$client_name_num.$job_name_num.$job_id_num = ".
 					      $STATUS{$client_name}{$job_name}{$job_id}{$key_name}."\n") if($CFG{'DEBUG'});
 					
-					&echo(1, "$OID_BASE.9.1.$key_nr.$client_name_num.$job_name_num.$job_id_num\n");
+					BayourCOM_SNMP::echo(1, "$OID_BASE.9.1.$key_nr.$client_name_num.$job_name_num.$job_id_num\n");
 					if(($key_name eq 'start_date') || ($key_name eq 'end_date') || ($key_name eq 'type')) {
-					    &echo(1, "string\n");
+					    BayourCOM_SNMP::echo(1, "string\n");
 					} else {
-					    &echo(1, "integer\n");
+					    BayourCOM_SNMP::echo(1, "integer\n");
 					}
-					&echo(1, $STATUS{$client_name}{$job_name}{$job_id}{$key_name}."\n");
+					BayourCOM_SNMP::echo(1, $STATUS{$client_name}{$job_name}{$job_id}{$key_name}."\n");
 					
 					return 1;
 				    }
@@ -1364,7 +1329,7 @@ sub print_jobs_status {
 	foreach my $key_nr (sort keys %keys_stats) {
 	    my $key_name = $keys_stats{$key_nr};
 	    $key_nr =~ s/^0//;
-	    &echo(0, "=> OID_BASE.statsTable.statsEntry.$key_name.clientId.jobNr\n") if($CFG{'DEBUG'} > 1);
+	    BayourCOM_SNMP::echo(0, "=> OID_BASE.statsTable.statsEntry.$key_name.clientId.jobNr\n") if($CFG{'DEBUG'} > 1);
 
 	    my $client_name_num = 1; # Client number
 	    foreach my $client_name (sort keys %CLIENTS) {
@@ -1372,18 +1337,18 @@ sub print_jobs_status {
 		foreach my $job_name (sort keys %{ $STATUS{$client_name} }) {
 		    my $job_id_num = 1; # Job ID number
 		    foreach my $job_id (sort keys %{ $STATUS{$client_name}{$job_name} }) {
-			&echo(0, "$OID_BASE.9.1.$key_nr.$client_name_num.$job_name_num.$job_id_num = ".
+			BayourCOM_SNMP::echo(0, "$OID_BASE.9.1.$key_nr.$client_name_num.$job_name_num.$job_id_num = ".
 			      $STATUS{$client_name}{$job_name}{$job_id}{$key_name}."\n") if($CFG{'DEBUG'});
 
-			&echo(1, "$OID_BASE.9.1.$key_nr.$client_name_num.$job_name_num.$job_id_num\n");
+			BayourCOM_SNMP::echo(1, "$OID_BASE.9.1.$key_nr.$client_name_num.$job_name_num.$job_id_num\n");
 			if(($key_name eq 'start_date') || ($key_name eq 'end_date') || ($key_name eq 'type')) {
-			    &echo(1, "string\n");
+			    BayourCOM_SNMP::echo(1, "string\n");
 			} elsif($key_name eq 'bytes') {
-			    &echo(1, "counter\n");
+			    BayourCOM_SNMP::echo(1, "counter\n");
 			} else {
-			    &echo(1, "integer\n");
+			    BayourCOM_SNMP::echo(1, "integer\n");
 			}
-			&echo(1, $STATUS{$client_name}{$job_name}{$job_id}{$key_name}."\n");
+			BayourCOM_SNMP::echo(1, $STATUS{$client_name}{$job_name}{$job_id}{$key_name}."\n");
 			
 			$success = 1;
 			$job_id_num++;
@@ -1395,7 +1360,7 @@ sub print_jobs_status {
 		$client_name_num++;
 	    }
 
-	    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+	    BayourCOM_SNMP::echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
 	}
 # }}}
     }
@@ -1410,12 +1375,12 @@ sub print_pool_index {
     my $pool_no = shift; # Pool number
     my($i, $max);
     my $success = 0;
-    &echo(0, "=> OID_BASE.poolsTable.poolsEntry.IndexPools\n") if($CFG{'DEBUG'} > 1);
+    BayourCOM_SNMP::echo(0, "=> OID_BASE.poolsTable.poolsEntry.IndexPools\n") if($CFG{'DEBUG'} > 1);
 
     if(defined($pool_no)) {
 	# {{{ Specific pool index
 	if($pool_no > $POOLS) {
-	    &echo(0, "=> No value in this object ($pool_no)\n") if($CFG{'DEBUG'});
+	    BayourCOM_SNMP::echo(0, "=> No value in this object ($pool_no)\n") if($CFG{'DEBUG'});
 	    return 0;
 	}
     
@@ -1431,17 +1396,17 @@ sub print_pool_index {
 
     # {{{ Output index
     for(; $i <= $max; $i++) {
-	&echo(0, "$OID_BASE.10.1.1.$i = $i\n") if($CFG{'DEBUG'});
+	BayourCOM_SNMP::echo(0, "$OID_BASE.10.1.1.$i = $i\n") if($CFG{'DEBUG'});
 
-	&echo(1, "$OID_BASE.10.1.1.$i\n");
-	&echo(1, "integer\n");
-	&echo(1, "$i\n");
+	BayourCOM_SNMP::echo(1, "$OID_BASE.10.1.1.$i\n");
+	BayourCOM_SNMP::echo(1, "integer\n");
+	BayourCOM_SNMP::echo(1, "$i\n");
 
 	$success = 1;
     }
 # }}}
 
-    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+    BayourCOM_SNMP::echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
     return $success;
 }
 # }}}
@@ -1450,7 +1415,7 @@ sub print_pool_index {
 sub print_pool_names {
     my $pool_no = shift; # Pool number
     my $success = 0;
-    &echo(0, "=> OID_BASE.poolTable.poolEntry.key.jobid\n") if($CFG{'DEBUG'} > 1);
+    BayourCOM_SNMP::echo(0, "=> OID_BASE.poolTable.poolEntry.key.jobid\n") if($CFG{'DEBUG'} > 1);
 
     if(defined($pool_no)) {
 	# {{{ Specific pool index
@@ -1463,22 +1428,22 @@ sub print_pool_names {
 		my $pool_nr = 1;
 		foreach my $pool_id (sort keys %POOLS) {
 		    if($pool_nr == $pool_no) {
-			&echo(0, "=> OID_BASE.poolTable.poolEntry->$pool_id.$key_name\n") if($CFG{'DEBUG'} > 1);
+			BayourCOM_SNMP::echo(0, "=> OID_BASE.poolTable.poolEntry->$pool_id.$key_name\n") if($CFG{'DEBUG'} > 1);
 
-			&echo(0, "$OID_BASE.10.1.$key_nr.$pool_nr = ".$POOLS{$pool_id}{$key_name}."\n") if($CFG{'DEBUG'});
+			BayourCOM_SNMP::echo(0, "$OID_BASE.10.1.$key_nr.$pool_nr = ".$POOLS{$pool_id}{$key_name}."\n") if($CFG{'DEBUG'});
 			
-			&echo(1, "$OID_BASE.10.1.$key_nr.$pool_nr\n");
+			BayourCOM_SNMP::echo(1, "$OID_BASE.10.1.$key_nr.$pool_nr\n");
 
 			# OID_BASE.10.1.{3,16,17} is strings, all others integers!
 			if(($key_name eq 'id') ||
 			   ($key_name eq 'type') ||
 			   ($key_name eq 'label_format'))
 			{
-			    &echo(1, "string\n");
+			    BayourCOM_SNMP::echo(1, "string\n");
 			} else {
-			    &echo(1, "integer\n");
+			    BayourCOM_SNMP::echo(1, "integer\n");
 			}
-			&echo(1, $POOLS{$pool_id}{$key_name}."\n");
+			BayourCOM_SNMP::echo(1, $POOLS{$pool_id}{$key_name}."\n");
 			
 			$success = 1;
 		    }
@@ -1496,23 +1461,23 @@ sub print_pool_names {
 	    
 	    my $pool_nr = 1;
 	    foreach my $pool_id (sort keys %POOLS) {
-		&echo(0, "$OID_BASE.10.1.$key_nr.$pool_nr = ".$POOLS{$pool_id}{$key_name}."\n") if($CFG{'DEBUG'});
+		BayourCOM_SNMP::echo(0, "$OID_BASE.10.1.$key_nr.$pool_nr = ".$POOLS{$pool_id}{$key_name}."\n") if($CFG{'DEBUG'});
 		
-		&echo(1, "$OID_BASE.10.1.$key_nr.$pool_nr\n");
+		BayourCOM_SNMP::echo(1, "$OID_BASE.10.1.$key_nr.$pool_nr\n");
 		if(($key_name eq 'id') ||
 		   ($key_name eq 'type') ||
 		   ($key_name eq 'label_format'))
 		{
-		    &echo(1, "string\n");
+		    BayourCOM_SNMP::echo(1, "string\n");
 		} elsif(($key_name eq 'vol_retention') ||
 			($key_name eq 'vol_use_duration') ||
 			($key_name eq 'max_bytes'))
 		{
-		    &echo(1, "counter\n");
+		    BayourCOM_SNMP::echo(1, "counter\n");
 		} else {
-		    &echo(1, "integer\n");
+		    BayourCOM_SNMP::echo(1, "integer\n");
 		}
-		&echo(1, $POOLS{$pool_id}{$key_name}."\n");
+		BayourCOM_SNMP::echo(1, $POOLS{$pool_id}{$key_name}."\n");
 		
 		$success = 1;
 	    }
@@ -1522,7 +1487,7 @@ sub print_pool_names {
 # }}}
     }
 
-    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+    BayourCOM_SNMP::echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
     return $success;
 }
 # }}}
@@ -1533,12 +1498,12 @@ sub print_media_index {
     my $media_no = shift; # Media number
     my($i, $max);
     my $success = 0;
-    &echo(0, "=> OID_BASE.mediaTable.mediaEntry.IndexMedia\n") if($CFG{'DEBUG'} > 1);
+    BayourCOM_SNMP::echo(0, "=> OID_BASE.mediaTable.mediaEntry.IndexMedia\n") if($CFG{'DEBUG'} > 1);
 
     if(defined($media_no)) {
 	# {{{ Specific media index
 	if($media_no > $MEDIAS) {
-	    &echo(0, "=> No value in this object ($media_no)\n") if($CFG{'DEBUG'});
+	    BayourCOM_SNMP::echo(0, "=> No value in this object ($media_no)\n") if($CFG{'DEBUG'});
 	    return 0;
 	}
     
@@ -1554,17 +1519,17 @@ sub print_media_index {
 
     # {{{ Output index
     for(; $i <= $max; $i++) {
-	&echo(0, "$OID_BASE.11.1.1.$i = $i\n") if($CFG{'DEBUG'});
+	BayourCOM_SNMP::echo(0, "$OID_BASE.11.1.1.$i = $i\n") if($CFG{'DEBUG'});
 
-	&echo(1, "$OID_BASE.11.1.1.$i\n");
-	&echo(1, "integer\n");
-	&echo(1, "$i\n");
+	BayourCOM_SNMP::echo(1, "$OID_BASE.11.1.1.$i\n");
+	BayourCOM_SNMP::echo(1, "integer\n");
+	BayourCOM_SNMP::echo(1, "$i\n");
 
 	$success = 1;
     }
 # }}}
 
-    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+    BayourCOM_SNMP::echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
     return $success;
 }
 # }}}
@@ -1581,25 +1546,25 @@ sub print_media_names {
 	    if($key_nr == $value) {
 		my $key_name = $keys_media{$key_nr};
 		$key_nr =~ s/^0//;
-		&echo(0, "=> OID_BASE.mediaTable.mediaEntry.$key_name\n") if($CFG{'DEBUG'} > 1);
+		BayourCOM_SNMP::echo(0, "=> OID_BASE.mediaTable.mediaEntry.$key_name\n") if($CFG{'DEBUG'} > 1);
 
 		my $media_nr = 1;
 		foreach my $media_id (sort keys %MEDIAS) {
 		    if($media_nr == $media_no) {
-			&echo(0, "$OID_BASE.11.1.$key_nr.$media_nr = ".$MEDIAS{$media_id}{$key_name}."\n") if($CFG{'DEBUG'});
+			BayourCOM_SNMP::echo(0, "$OID_BASE.11.1.$key_nr.$media_nr = ".$MEDIAS{$media_id}{$key_name}."\n") if($CFG{'DEBUG'});
 			
-			&echo(1, "$OID_BASE.11.1.$key_nr.$media_nr\n");
+			BayourCOM_SNMP::echo(1, "$OID_BASE.11.1.$key_nr.$media_nr\n");
 			if(($key_name eq 'name') ||
 			   ($key_name eq 'type') ||
 			   ($key_name eq 'first_written') ||
 			   ($key_name eq 'last_written') ||
 			   ($key_name eq 'label_date'))
 			{
-			    &echo(1, "string\n");
+			    BayourCOM_SNMP::echo(1, "string\n");
 			} else {
-			    &echo(1, "integer\n");
+			    BayourCOM_SNMP::echo(1, "integer\n");
 			}
-			&echo(1, $MEDIAS{$media_id}{$key_name}."\n");
+			BayourCOM_SNMP::echo(1, $MEDIAS{$media_id}{$key_name}."\n");
 			
 			$success = 1;
 		    }
@@ -1615,20 +1580,20 @@ sub print_media_names {
 	    my $key_name = $keys_media{$key_nr};
 	    $key_nr =~ s/^0//;
 
-	    &echo(0, "=> OID_BASE.mediaTable.mediaEntry.$key_name\n") if($CFG{'DEBUG'} > 1);
+	    BayourCOM_SNMP::echo(0, "=> OID_BASE.mediaTable.mediaEntry.$key_name\n") if($CFG{'DEBUG'} > 1);
 	    
 	    my $media_nr = 1;
 	    foreach my $media_id (sort keys %MEDIAS) {
-		&echo(0, "$OID_BASE.11.1.$key_nr.$media_nr = ".$MEDIAS{$media_id}{$key_name}."\n") if($CFG{'DEBUG'});
+		BayourCOM_SNMP::echo(0, "$OID_BASE.11.1.$key_nr.$media_nr = ".$MEDIAS{$media_id}{$key_name}."\n") if($CFG{'DEBUG'});
 		
-		&echo(1, "$OID_BASE.11.1.$key_nr.$media_nr\n");
+		BayourCOM_SNMP::echo(1, "$OID_BASE.11.1.$key_nr.$media_nr\n");
 		if(($key_name eq 'name') ||
 		   ($key_name eq 'type') ||
 		   ($key_name eq 'first_written') ||
 		   ($key_name eq 'last_written') ||
 		   ($key_name eq 'label_date'))
 		{
-		    &echo(1, "string\n");
+		    BayourCOM_SNMP::echo(1, "string\n");
 		} elsif(($key_name eq 'bytes') ||
 			($key_name eq 'capacity') ||
 			($key_name eq 'retention') ||
@@ -1637,17 +1602,17 @@ sub print_media_names {
 			($key_name eq 'read_time') ||
 			($key_name eq 'write_time'))
 		{
-		    &echo(1, "counter\n");
+		    BayourCOM_SNMP::echo(1, "counter\n");
 		} else {
-		    &echo(1, "integer\n");
+		    BayourCOM_SNMP::echo(1, "integer\n");
 		}
-		&echo(1, $MEDIAS{$media_id}{$key_name}."\n");
+		BayourCOM_SNMP::echo(1, $MEDIAS{$media_id}{$key_name}."\n");
 		
 		$success = 1;
 		$media_nr++;
 	    }
 
-	    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+	    BayourCOM_SNMP::echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
 	}
 # }}}
     }
@@ -1665,7 +1630,7 @@ sub write_client_autoprune {
     my $arg_type = shift;
     my $arg_val  = shift;
 
-    &echo(0, "=> write_client_autoprune($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> write_client_autoprune($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
 
     return 2 if($arg_type ne 'integer');
 
@@ -1674,17 +1639,17 @@ sub write_client_autoprune {
 
     # Prepare query
     if(!($sth = $dbh->prepare($QUERY))) {
-	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	BayourCOM_SNMP::echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
 
     # Execute query
     if(!$sth->execute) {
-	&echo(0, "Could not execute query: $sth->errstr\n");
+	BayourCOM_SNMP::echo(0, "Could not execute query: $sth->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
 # }}}
 
     return(0);
@@ -1697,7 +1662,7 @@ sub write_client_retentionfile {
     my $arg_type = shift;
     my $arg_val  = shift;
 
-    &echo(0, "=> write_client_retentionfile($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> write_client_retentionfile($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
 
     return 2 if($arg_type ne 'integer');
 
@@ -1706,17 +1671,17 @@ sub write_client_retentionfile {
 
     # Prepare query
     if(!($sth = $dbh->prepare($QUERY))) {
-	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	BayourCOM_SNMP::echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
 
     # Execute query
     if(!$sth->execute) {
-	&echo(0, "Could not execute query: $sth->errstr\n");
+	BayourCOM_SNMP::echo(0, "Could not execute query: $sth->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
 # }}}
 
     return(0);
@@ -1729,7 +1694,7 @@ sub write_client_retentionjob {
     my $arg_type = shift;
     my $arg_val  = shift;
 
-    &echo(0, "=> write_client_retentionjob($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> write_client_retentionjob($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
 
     return 2 if($arg_type ne 'integer');
 
@@ -1738,17 +1703,17 @@ sub write_client_retentionjob {
 
     # Prepare query
     if(!($sth = $dbh->prepare($QUERY))) {
-	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	BayourCOM_SNMP::echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
 
     # Execute query
     if(!$sth->execute) {
-	&echo(0, "Could not execute query: $sth->errstr\n");
+	BayourCOM_SNMP::echo(0, "Could not execute query: $sth->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
 # }}}
 
     return(0);
@@ -1761,7 +1726,7 @@ sub write_pools_useonce {
     my $arg_type = shift;
     my $arg_val  = shift;
 
-    &echo(0, "=> write_pools_useonce($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> write_pools_useonce($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
 
     return 2 if($arg_type ne 'integer');
 
@@ -1770,17 +1735,17 @@ sub write_pools_useonce {
 
     # Prepare query
     if(!($sth = $dbh->prepare($QUERY))) {
-	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	BayourCOM_SNMP::echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
 
     # Execute query
     if(!$sth->execute) {
-	&echo(0, "Could not execute query: $sth->errstr\n");
+	BayourCOM_SNMP::echo(0, "Could not execute query: $sth->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
 # }}}
 
     return(0);
@@ -1793,7 +1758,7 @@ sub write_pools_usecatalog {
     my $arg_type = shift;
     my $arg_val  = shift;
 
-    &echo(0, "=> write_pools_usecatalog($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> write_pools_usecatalog($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
 
     return 2 if($arg_type ne 'integer');
 
@@ -1802,17 +1767,17 @@ sub write_pools_usecatalog {
 
     # Prepare query
     if(!($sth = $dbh->prepare($QUERY))) {
-	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	BayourCOM_SNMP::echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
 
     # Execute query
     if(!$sth->execute) {
-	&echo(0, "Could not execute query: $sth->errstr\n");
+	BayourCOM_SNMP::echo(0, "Could not execute query: $sth->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
 # }}}
 
     return(0);
@@ -1825,7 +1790,7 @@ sub write_pools_acceptanyvolume {
     my $arg_type = shift;
     my $arg_val  = shift;
 
-    &echo(0, "=> write_pools_acceptanyvolume($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> write_pools_acceptanyvolume($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
 
     return 2 if($arg_type ne 'integer');
 
@@ -1834,17 +1799,17 @@ sub write_pools_acceptanyvolume {
 
     # Prepare query
     if(!($sth = $dbh->prepare($QUERY))) {
-	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	BayourCOM_SNMP::echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
 
     # Execute query
     if(!$sth->execute) {
-	&echo(0, "Could not execute query: $sth->errstr\n");
+	BayourCOM_SNMP::echo(0, "Could not execute query: $sth->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
 # }}}
 
     return(0);
@@ -1857,7 +1822,7 @@ sub write_pools_retention {
     my $arg_type = shift;
     my $arg_val  = shift;
 
-    &echo(0, "=> write_pools_retention($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> write_pools_retention($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
 
     return 2 if($arg_type ne 'integer');
 
@@ -1866,17 +1831,17 @@ sub write_pools_retention {
 
     # Prepare query
     if(!($sth = $dbh->prepare($QUERY))) {
-	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	BayourCOM_SNMP::echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
 
     # Execute query
     if(!$sth->execute) {
-	&echo(0, "Could not execute query: $sth->errstr\n");
+	BayourCOM_SNMP::echo(0, "Could not execute query: $sth->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
 # }}}
 
     return(0);
@@ -1889,7 +1854,7 @@ sub write_pools_duration {
     my $arg_type = shift;
     my $arg_val  = shift;
 
-    &echo(0, "=> write_pools_duration($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> write_pools_duration($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
 
     return 2 if($arg_type ne 'integer');
 
@@ -1898,17 +1863,17 @@ sub write_pools_duration {
 
     # Prepare query
     if(!($sth = $dbh->prepare($QUERY))) {
-	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	BayourCOM_SNMP::echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
 
     # Execute query
     if(!$sth->execute) {
-	&echo(0, "Could not execute query: $sth->errstr\n");
+	BayourCOM_SNMP::echo(0, "Could not execute query: $sth->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
 # }}}
 
     return(0);
@@ -1921,7 +1886,7 @@ sub write_pools_maxjobs {
     my $arg_type = shift;
     my $arg_val  = shift;
 
-    &echo(0, "=> write_pools_maxjobs($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> write_pools_maxjobs($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
 
     return 2 if($arg_type ne 'integer');
 
@@ -1930,17 +1895,17 @@ sub write_pools_maxjobs {
 
     # Prepare query
     if(!($sth = $dbh->prepare($QUERY))) {
-	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	BayourCOM_SNMP::echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
 
     # Execute query
     if(!$sth->execute) {
-	&echo(0, "Could not execute query: $sth->errstr\n");
+	BayourCOM_SNMP::echo(0, "Could not execute query: $sth->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
 # }}}
 
     return(0);
@@ -1953,7 +1918,7 @@ sub write_pools_maxfiles {
     my $arg_type = shift;
     my $arg_val  = shift;
 
-    &echo(0, "=> write_pools_maxfiles($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> write_pools_maxfiles($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
 
     return 2 if($arg_type ne 'integer');
 
@@ -1962,17 +1927,17 @@ sub write_pools_maxfiles {
 
     # Prepare query
     if(!($sth = $dbh->prepare($QUERY))) {
-	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	BayourCOM_SNMP::echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
 
     # Execute query
     if(!$sth->execute) {
-	&echo(0, "Could not execute query: $sth->errstr\n");
+	BayourCOM_SNMP::echo(0, "Could not execute query: $sth->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
 # }}}
 
     return(0);
@@ -1985,7 +1950,7 @@ sub write_pools_maxbytes {
     my $arg_type = shift;
     my $arg_val  = shift;
 
-    &echo(0, "=> write_pools_maxbytes($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> write_pools_maxbytes($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
 
     return 2 if($arg_type ne 'integer');
 
@@ -1994,17 +1959,17 @@ sub write_pools_maxbytes {
 
     # Prepare query
     if(!($sth = $dbh->prepare($QUERY))) {
-	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	BayourCOM_SNMP::echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
 
     # Execute query
     if(!$sth->execute) {
-	&echo(0, "Could not execute query: $sth->errstr\n");
+	BayourCOM_SNMP::echo(0, "Could not execute query: $sth->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
 # }}}
 
     return(0);
@@ -2017,7 +1982,7 @@ sub write_pools_autoprune {
     my $arg_type = shift;
     my $arg_val  = shift;
 
-    &echo(0, "=> write_pools_autoprune($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> write_pools_autoprune($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
 
     return 2 if($arg_type ne 'integer');
 
@@ -2026,17 +1991,17 @@ sub write_pools_autoprune {
 
     # Prepare query
     if(!($sth = $dbh->prepare($QUERY))) {
-	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	BayourCOM_SNMP::echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
 
     # Execute query
     if(!$sth->execute) {
-	&echo(0, "Could not execute query: $sth->errstr\n");
+	BayourCOM_SNMP::echo(0, "Could not execute query: $sth->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
 # }}}
 
     return(0);
@@ -2049,7 +2014,7 @@ sub write_pools_recycle {
     my $arg_type = shift;
     my $arg_val  = shift;
 
-    &echo(0, "=> write_pools_recycle($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> write_pools_recycle($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
 
     return 2 if($arg_type ne 'integer');
 
@@ -2058,17 +2023,17 @@ sub write_pools_recycle {
 
     # Prepare query
     if(!($sth = $dbh->prepare($QUERY))) {
-	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	BayourCOM_SNMP::echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
 
     # Execute query
     if(!$sth->execute) {
-	&echo(0, "Could not execute query: $sth->errstr\n");
+	BayourCOM_SNMP::echo(0, "Could not execute query: $sth->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
 # }}}
 
     return(0);
@@ -2081,7 +2046,7 @@ sub write_pools_type {
     my $arg_type = shift;
     my $arg_val  = shift;
 
-    &echo(0, "=> write_pools_type($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> write_pools_type($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
 
     return 2 if($arg_type ne 'string');
 
@@ -2090,17 +2055,17 @@ sub write_pools_type {
 
     # Prepare query
     if(!($sth = $dbh->prepare($QUERY))) {
-	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	BayourCOM_SNMP::echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
 
     # Execute query
     if(!$sth->execute) {
-	&echo(0, "Could not execute query: $sth->errstr\n");
+	BayourCOM_SNMP::echo(0, "Could not execute query: $sth->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
 # }}}
 
     return(0);
@@ -2113,7 +2078,7 @@ sub write_pools_labelformat {
     my $arg_type = shift;
     my $arg_val  = shift;
 
-    &echo(0, "=> write_pools_labelformat($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> write_pools_labelformat($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
 
     return 2 if($arg_type ne 'string');
 
@@ -2122,17 +2087,17 @@ sub write_pools_labelformat {
 
     # Prepare query
     if(!($sth = $dbh->prepare($QUERY))) {
-	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	BayourCOM_SNMP::echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
 
     # Execute query
     if(!$sth->execute) {
-	&echo(0, "Could not execute query: $sth->errstr\n");
+	BayourCOM_SNMP::echo(0, "Could not execute query: $sth->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
 # }}}
 
     return(0);
@@ -2145,7 +2110,7 @@ sub write_pools_enabled {
     my $arg_type = shift;
     my $arg_val  = shift;
 
-    &echo(0, "=> write_pools_enabled($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> write_pools_enabled($arg_sub, $arg_type, $arg_val)\n") if($CFG{'DEBUG'} > 3);
 
     return 2 if($arg_type ne 'integer');
 
@@ -2154,17 +2119,17 @@ sub write_pools_enabled {
 
     # Prepare query
     if(!($sth = $dbh->prepare($QUERY))) {
-	&echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
+	BayourCOM_SNMP::echo(0, "=> ERROR: Could not prepare SQL query: $dbh->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query prepared: '$QUERY'\n") if($CFG{'DEBUG'} > 3);
 
     # Execute query
     if(!$sth->execute) {
-	&echo(0, "Could not execute query: $sth->errstr\n");
+	BayourCOM_SNMP::echo(0, "Could not execute query: $sth->errstr\n");
 	return(2);
     }
-    &echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> SQL query executed\n") if($CFG{'DEBUG'} > 3);
 # }}}
 
     return(0);
@@ -2173,20 +2138,6 @@ sub write_pools_enabled {
 
 # ====================================================
 # =====        M I S C  F U N C T I O N S        =====
-
-# {{{ Show usage
-sub help {
-    my $name = `basename $0`; chomp($name);
-
-    &echo(0, "Usage: $name [option] [oid]\n");
-    &echo(0, "Options: --debug|-d	Run in debug mode\n");
-    &echo(0, "         --all|-a	Get all information\n");
-    &echo(0, "         -n		Get next OID ('oid' required)\n");
-    &echo(0, "         -g		Get specified OID ('oid' required)\n");
-
-    exit 1 if($CFG{'DEBUG'});
-}
-# }}}
 
 # {{{ Calculate how long a job took
 sub calculate_duration {
@@ -2223,7 +2174,7 @@ sub call_print {
     # Make sure that the argument variable is initialized
     $func_arg =  '' if(!$func_arg);
 
-    &echo(0, "=> call_print($func_nr, $func_arg)\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> call_print($func_nr, $func_arg)\n") if($CFG{'DEBUG'} > 3);
     my $func = $functions{$func_nr};
     if($func) {
 	$function = "print_".$func;
@@ -2231,7 +2182,7 @@ sub call_print {
 	foreach my $oid (sort keys %functions) {
 	    # Take the very first match
 	    if($oid =~ /^$func_nr/) {
-		&echo(0, "=> '$oid =~ /^$func_nr/'\n") if($CFG{'DEBUG'} > 2);
+		BayourCOM_SNMP::echo(0, "=> '$oid =~ /^$func_nr/'\n") if($CFG{'DEBUG'} > 2);
 		$function = "print_".$functions{$oid};
 		last;
 	    }
@@ -2239,7 +2190,7 @@ sub call_print {
     }
 
     if(defined($function)) {
-	&echo(0, "=> Calling function '$function($func_arg)'\n") if($CFG{'DEBUG'} > 2);
+	BayourCOM_SNMP::echo(0, "=> Calling function '$function($func_arg)'\n") if($CFG{'DEBUG'} > 2);
 	
 	$function = \&{$function}; # Because of 'use strict' above...
 	&$function($func_arg);
@@ -2257,12 +2208,12 @@ sub call_write {
     my $func_arg  = shift;
     my $function;
 
-    &echo(0, "=> call_write($func_base, $func_sub, $func_type, $func_arg)\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> call_write($func_base, $func_sub, $func_type, $func_arg)\n") if($CFG{'DEBUG'} > 3);
     my $func = $writables{$OID_BASE.".".$func_base};
     return 1 if(!defined($func));
 
     $function = "write_".$func;
-    &echo(0, "=> Calling function '$function($func_sub, $func_type, $func_arg)'\n") if($CFG{'DEBUG'} > 2);
+    BayourCOM_SNMP::echo(0, "=> Calling function '$function($func_sub, $func_type, $func_arg)'\n") if($CFG{'DEBUG'} > 2);
 
     $function = \&{$function}; # Because of 'use strict' above...
     return(&$function($func_sub, $func_type, $func_arg));
@@ -2280,60 +2231,14 @@ sub output_extra_debugging {
     }
     $string .= "\n";
 
-    &echo(0, $string);
+    BayourCOM_SNMP::echo(0, $string);
 }
 # }}} # Extra debugging
-
-# {{{ Find the current date and time
-# Returns a string something like: '10/8-96 16:27'
-sub get_timestring {
-    my($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime;
-
-    return POSIX::strftime("20%y-%m-%d %H:%M:%S",
-			    $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst);
-}
-# }}}
-
-# {{{ Open logfile for debugging
-sub open_log {
-    die("DEBUG_FILE not set in config file!\n") if(!$CFG{'DEBUG_FILE'});
-
-    if(!open(LOG, ">> ".$CFG{'DEBUG_FILE'})) {
-	&echo(0, "Can't open logfile '".$CFG{'DEBUG_FILE'}."', $!\n") if($CFG{'DEBUG'});
-	return 0;
-    } else {
-	return 1;
-    }
-}
-# }}}
-
-# {{{ Log output
-sub echo {
-    my $stdout = shift;
-    my $string = shift;
-    my $log_opened = 0;
-
-    # Open logfile if debugging OR running from snmpd.
-    if($CFG{'DEBUG'}) {
-	if(&open_log()) {
-	    $log_opened = 1;
-	    open(STDERR, ">&LOG") if(($CFG{'DEBUG'} <= 2) || $ENV{'MIBDIRS'});
-	}
-    }
-
-    if($stdout) {
-	print $string;
-    } elsif($log_opened) {
-	print LOG &get_timestring()," " if($CFG{'DEBUG'} > 2);
-	print LOG $string;
-    }
-}
-# }}}
 
 # {{{ Load all information needed
 sub load_information {
     # Load configuration file and connect to SQL server.
-    &get_config();
+    %CFG = BayourCOM_SNMP::get_config($CFG_FILE);
     &sql_connect();
 
     # Get client information
@@ -2361,15 +2266,6 @@ sub load_information {
 
     # Schedule an alarm once every hour to re-read information.
     alarm(60*60);
-}
-# }}}
-
-# {{{ Return 'no such value'
-sub no_value {
-    &echo(0, "=> No value in this object - exiting!\n") if($CFG{'DEBUG'} > 1);
-    
-    &echo(1, "NONE\n");
-    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -2427,7 +2323,7 @@ sub get_next_oid {
 	$string .= ", " if($string);
 	$string .= "JOB_NO=$JOB_NO" if(defined($JOB_NO));
 	
-	&echo(0, "=> get_next_oid(): $string\n");
+	BayourCOM_SNMP::echo(0, "=> get_next_oid(): $string\n");
     }
 
     return($next1, $next2, $next3);
@@ -2444,7 +2340,7 @@ sub END {
 # ====================================================
 # =====          P R O C E S S  A R G S          =====
 
-&echo(0, "=> OID_BASE => '$OID_BASE'\n") if($CFG{'DEBUG'});
+BayourCOM_SNMP::echo(0, "=> OID_BASE => '$OID_BASE'\n") if($CFG{'DEBUG'});
 
 # {{{ Calculate number of base counters and Load information
 foreach (keys %keys_client) { $TYPES_CLIENT++; }
@@ -2460,7 +2356,7 @@ foreach (keys %keys_media)  { $TYPES_MEDIA++;  }
 my $ALL = 0;
 for(my $i=0; $ARGV[$i]; $i++) {
     if($ARGV[$i] eq '--help' || $ARGV[$i] eq '-h' || $ARGV[$i] eq '?' ) {
-	&help();
+	BayourCOM_SNMP::help();
     } elsif($ARGV[$i] eq '--debug' || $ARGV[$i] eq '-d') {
 	$CFG{'DEBUG'}++;
     } elsif($ARGV[$i] eq '--all' || $ARGV[$i] eq '-a') {
@@ -2541,7 +2437,7 @@ if($ALL) {
 	}
 
 	# Re-get the DEBUG config option (so that we don't have to restart process).
-	get_config('DEBUG');
+	%CFG = BayourCOM_SNMP::get_config($CFG_FILE, 'DEBUG');
 
 	# {{{ Get all run arguments - next/specfic OID
 	my $arg = $_; chomp($arg);
@@ -2555,7 +2451,7 @@ if($ALL) {
 	$oid =~ s/OID_BASE//;  # Remove the OID base (if we're debugging)
 	$oid =~ s/^\.//;       # Remove the first dot if it exists - it's in the way!
 
-	&echo(0, "=> ARG='$arg  $OID_BASE.$oid'\n") if($CFG{'DEBUG'} >= 2);
+	BayourCOM_SNMP::echo(0, "=> ARG='$arg  $OID_BASE.$oid'\n") if($CFG{'DEBUG'} >= 2);
 	
 	my @tmp = split('\.', $oid);
 	&output_extra_debugging(@tmp) if($CFG{'DEBUG'} > 2);
@@ -2587,7 +2483,7 @@ if($ALL) {
 			# How to call call_print()
 			my($next1, $next2, $next3) = get_next_oid(@tmp);
 
-			&echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
+			BayourCOM_SNMP::echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 			&call_print($next1, $next3);
 		    } else {
 			&call_print($OID_BASE.".".$tmp[0]);
@@ -2612,7 +2508,7 @@ if($ALL) {
 		    # Called only as 'OID_BASE.5.1.x'
 		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			# The index, skip it!
-			&no_value();
+			BayourCOM_SNMP::no_value();
 			next;
 		    } else {
 			$tmp[3] = 1;
@@ -2625,7 +2521,7 @@ if($ALL) {
 		    } elsif($tmp[3] >= $CLIENTS) {
 			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
                             # The index, skip it!
-                            &no_value();
+                            BayourCOM_SNMP::no_value();
                             next;
                         } else {
 			    # We've reached the end of the OID_BASE.5.1.x.y -> OID_BASE.5.1.x+1.1
@@ -2636,7 +2532,7 @@ if($ALL) {
 			# Get OID_BASE.5.1.x.y+1
 			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			    # The index, skip it!
-			    &no_value();
+			    BayourCOM_SNMP::no_value();
 			    next;
 			} else {
 			    $tmp[3]++;
@@ -2648,7 +2544,7 @@ if($ALL) {
 		my($next1, $next2, $next3) = get_next_oid(@tmp);
 # }}} # Figure out next value
 
-		&echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
+		BayourCOM_SNMP::echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 		if(!&call_print($next1, $next3)) {
 		    # OID_BASE.5.1.2.4 => OID_BASE.5.1.2.5 => OID_BASE.5.1.3.1
 		    # {{{ Figure out the NEXT value from the input
@@ -2665,7 +2561,7 @@ if($ALL) {
 		    my($next1, $next2, $next3) = get_next_oid(@tmp);
 # }}} # Figure out next value
 
-		    &echo(0, ">> No OID at that level (-1) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
+		    BayourCOM_SNMP::echo(0, ">> No OID at that level (-1) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 		    &call_print($next1, $next3);
 		}
 # }}} # OID_BASE.5
@@ -2688,7 +2584,7 @@ if($ALL) {
 			# Called only as 'OID_BASE.6.1.x'
 			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			    # The index, skip it!
-			    &no_value();
+			    BayourCOM_SNMP::no_value();
 			    next;
 			} else {
 			    for(my $i=3; $i <= 4; $i++) { $tmp[$i] = 1; }
@@ -2697,7 +2593,7 @@ if($ALL) {
 		    } else {
 			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			    # The index, skip it!
-			    &no_value();
+			    BayourCOM_SNMP::no_value();
 			    next;
 			} else {
 			    $tmp[4]++;
@@ -2720,7 +2616,7 @@ if($ALL) {
 			# Called only as 'OID_BASE.7.1.x'
 			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			    # The index, skip it!
-			    &no_value();
+			    BayourCOM_SNMP::no_value();
 			    next;
 			} else {
 			    for(my $i=3; $i <= 4; $i++) { $tmp[$i] = 1; }
@@ -2729,7 +2625,7 @@ if($ALL) {
 		    } else {
 			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			    # The index, skip it!
-			    &no_value();
+			    BayourCOM_SNMP::no_value();
 			    next;
 			} else {
 			    $tmp[5]++;
@@ -2752,7 +2648,7 @@ if($ALL) {
 			# Called with 'OID_BASE.8.1.x'
 			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			    # The index, skip it!
-			    &no_value();
+			    BayourCOM_SNMP::no_value();
 			    next;
 			} else {
 			    $tmp[3] = 1;
@@ -2762,7 +2658,7 @@ if($ALL) {
 			# No more status counters
 			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			    # The index, skip it!
-			    &no_value();
+			    BayourCOM_SNMP::no_value();
 			    next;
 			} else {
 			    # OID_BASE.8.1.2.x -> OID_BASE.9.1.1.1.1.1
@@ -2779,7 +2675,7 @@ if($ALL) {
 		    } else {
 			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			    # The index, skip it!
-			    &no_value();
+			    BayourCOM_SNMP::no_value();
 			    next;
 			} else {
 			    $tmp[3]++;
@@ -2800,7 +2696,7 @@ if($ALL) {
 
 		    } elsif(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			# The index, skip it!
-			&no_value();
+			BayourCOM_SNMP::no_value();
 			next;
 
 		    } elsif($tmp[2] > $TYPES_STATS+2) { # Offset two because of index etc.
@@ -2830,7 +2726,7 @@ if($ALL) {
 # }}} # Figure out next value
 
 		# {{{ Call functions, recursively (1)
-		&echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
+		BayourCOM_SNMP::echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 		if(!&call_print($next1, $next3)) {
 		    # Reached the end of OID_BASE.6.1.x.1.1 => OID_BASE.6.1.x.2.1
 		    # {{{ Figure out the NEXT value from the input
@@ -2852,7 +2748,7 @@ if($ALL) {
 # }}} # Figure out next value
 
 		    # {{{ Call functions, recursively (-1)
-		    &echo(0, ">> No OID at that level (-1) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
+		    BayourCOM_SNMP::echo(0, ">> No OID at that level (-1) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 		    if(!&call_print($next1, $next3)) {
 			# Reached the end of OID_BASE.6.1.x => OID_BASE.6.1.x+1.1.1
 			# {{{ Figure out the NEXT value from the input
@@ -2876,7 +2772,7 @@ if($ALL) {
 # }}} # Next value
 
 			# {{{ Call functions, recursively (-2)
-			&echo(0, ">> No OID at that level (-2) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
+			BayourCOM_SNMP::echo(0, ">> No OID at that level (-2) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 			if(!&call_print($next1, $next3)) {
 			    # Reached the end of the OID_BASE.6.1.2 => OID_BASE.7.1.1.1.1.1
 			    # {{{ Figure out the NEXT value from the input
@@ -2906,7 +2802,7 @@ if($ALL) {
 # }}} # Next value
 
 			    # {{{ Call functions, recursively (-3)
-			    &echo(0, ">> No OID at that level (-3) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
+			    BayourCOM_SNMP::echo(0, ">> No OID at that level (-3) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 			    if(!&call_print($next1, $next3)) {
 				# Reached the end of the OID_BASE.7.1.2 => OID_BASE.8.1.1.1
 				# {{{ Figure out the NEXT value from the input
@@ -2927,7 +2823,7 @@ if($ALL) {
 				my($next1, $next2, $next3) = get_next_oid(@tmp);
 # }}} # Next value
 				
-				&echo(0, ">> No OID at that level (-4) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
+				BayourCOM_SNMP::echo(0, ">> No OID at that level (-4) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 				&call_print($next1, $next3);
 			    }
 # }}} # Call functions -> -3
@@ -2955,7 +2851,7 @@ if($ALL) {
 		    # Called with 'OID_BASE.{10,11}.1.x'
 		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			# The index, skip it!
-			&no_value();
+			BayourCOM_SNMP::no_value();
 			next;
 		    } else {
 			$tmp[3] = 1;
@@ -2963,7 +2859,7 @@ if($ALL) {
 		} else {
 		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			# The index, skip it!
-			&no_value();
+			BayourCOM_SNMP::no_value();
 			next;
 		    } else {
 			$tmp[3]++;
@@ -2975,7 +2871,7 @@ if($ALL) {
 # }}} Figure out next value
 		
 		# {{{ Call functions, recursively (1)
-		&echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
+		BayourCOM_SNMP::echo(0, ">> Get next OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 		if(!&call_print($next1, $next3)) {
 		    # {{{ Figure out the NEXT value from the input
 		    if(($tmp[0] == 10) && ($tmp[3] >= $POOLS)) {
@@ -2984,7 +2880,7 @@ if($ALL) {
 			$tmp[3] = 1;
 
 		    } elsif(($tmp[0] == 11) && ($tmp[2] > $TYPES_MEDIA)) {
-			&no_value();
+			BayourCOM_SNMP::no_value();
 
 		    } else {
 			$tmp[2]++;
@@ -2996,7 +2892,7 @@ if($ALL) {
 # }}} # Get next value
 
 		    # {{{ Call functions, recursivly (-1)
-		    &echo(0, ">> No OID at that level (-1) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
+		    BayourCOM_SNMP::echo(0, ">> No OID at that level (-1) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 		    if(!&call_print($next1, $next3)) {
 			# {{{ Figure out the NEXT value from the input
 			if($tmp[0] == 10) {
@@ -3018,7 +2914,7 @@ if($ALL) {
 # }}} # Get next value
 
 			# {{{ Call functions, recursivly (-2)
-			&echo(0, ">> No OID at that level (-2) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
+			BayourCOM_SNMP::echo(0, ">> No OID at that level (-2) - get next branch OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} >= 2);
 			&call_print($next1, $next3);
 # }}} # Call functions (-2)
 		    }
@@ -3029,8 +2925,8 @@ if($ALL) {
 
 	    } else {
 		# {{{ ------------------------------------- Unknown OID      
-		&echo(0, "Error: No such OID '$OID_BASE' . '$oid'.\n") if($CFG{'DEBUG'});
-		&echo(0, "\n") if($CFG{'DEBUG'} > 1);
+		BayourCOM_SNMP::echo(0, "Error: No such OID '$OID_BASE' . '$oid'.\n") if($CFG{'DEBUG'});
+		BayourCOM_SNMP::echo(0, "\n") if($CFG{'DEBUG'} > 1);
 		next;
 # }}} # No such OID
 	    }
@@ -3047,9 +2943,9 @@ if($ALL) {
 		($next1, $next2, $next3) = get_next_oid(@tmp);
 	    }
 
-	    &echo(0, "=> Get this OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} > 2);
+	    BayourCOM_SNMP::echo(0, "=> Get this OID: $next1$next2.$next3\n") if($CFG{'DEBUG'} > 2);
 	    if(!&call_print($next1, $next3)) {
-		&no_value();
+		BayourCOM_SNMP::no_value();
 		next;
 	    }
 # }}} # Get _this_ OID
@@ -3057,27 +2953,27 @@ if($ALL) {
 	    # {{{ Set a value
 	    my $input  = <>; chomp($input);
 	    my ($type, $value) = split(' ', $input);
-	    &echo(0, "=> Type: '$type', Value: '$value'\n") if($CFG{'DEBUG'} > 3);
+	    BayourCOM_SNMP::echo(0, "=> Type: '$type', Value: '$value'\n") if($CFG{'DEBUG'} > 3);
 
 	    my $code = &call_write($tmp[0].".1.".$tmp[2], $tmp[3], $type, $value);
 	    if($code == 0) {
-		&echo(0, "=> Successfully modified object\n") if($CFG{'DEBUG'} > 2);
-		&echo(1, "\n");
+		BayourCOM_SNMP::echo(0, "=> Successfully modified object\n") if($CFG{'DEBUG'} > 2);
+		BayourCOM_SNMP::echo(1, "\n");
 	    } elsif($code == 1) {
-		&echo(0, "=> ERROR: Object not writable\n");
-		&echo(1, "not-writable\n");
+		BayourCOM_SNMP::echo(0, "=> ERROR: Object not writable\n");
+		BayourCOM_SNMP::echo(1, "not-writable\n");
 	    } elsif($code == 2) {
-		&echo(0, "=> ERROR: Input of wrong type (='$type')\n");
-		&echo(1, "wrong-type\n");
+		BayourCOM_SNMP::echo(0, "=> ERROR: Input of wrong type (='$type')\n");
+		BayourCOM_SNMP::echo(1, "wrong-type\n");
 	    } else {
-		&echo(0, "=> ERROR: Generic failure\n");
+		BayourCOM_SNMP::echo(0, "=> ERROR: Generic failure\n");
 	    }
 
 	    next;
 # }}} # Set a value
 	}
 
-	&echo(0, "\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "\n") if($CFG{'DEBUG'} > 1);
     }
 # }}}
 }
