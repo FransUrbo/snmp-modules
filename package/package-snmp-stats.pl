@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: package-snmp-stats.pl,v 1.1 2006-02-05 11:51:08 turbo Exp $
+# {{{ $Id: package-snmp-stats.pl,v 1.2 2006-02-05 18:48:52 turbo Exp $
 # Extract information about packages installed on the system.
 #
 # Copyright 2005 Turbo Fredriksson <turbo@bayour.com>.
@@ -17,13 +17,14 @@ my $CFG_FILE = "/etc/dpkg/.packagesnmp";
 #
 #   Optional arguments
 #	DEBUG=4
-#	DEBUG_FILE=/var/log/bind9-snmp-stats.log
+#	DEBUG_FILE=/var/log/package-snmp-stats.log
 #	IGNORE_INDEX=1
 #
 #   Required options
 #	PKG_MGR=/usr/bin/dpkg
-#	PKG_INFO=-l
+#	PKG_INFO="-l \*"
 #	PKG_STAT=-s
+#	PKG_INFO_HEAD_CNT=5
 # }}}
 
 # {{{ Include libraries and setup global variables
@@ -35,7 +36,7 @@ use POSIX qw(strftime);
 use BayourCOM_SNMP;
 
 $ENV{PATH} = "/bin:/usr/bin:/usr/sbin";
-my %CFG;
+our %CFG;
 
 my $OID_BASE;
 $OID_BASE = "OID_BASE"; # When debugging, it's easier to type this than the full OID
@@ -43,6 +44,21 @@ if($ENV{'MIBDIRS'}) {
     # ALWAYS override this if we're running through the SNMP daemon!
     $OID_BASE = ".1.3.6.1.4.1.8767.2.5"; # .iso.org.dod.internet.private.enterprises.bayourcom.snmp.packageStats
 }
+
+my %PKG;  # Package information.
+
+my %functions = (# Package stats
+		 "$OID_BASE.1.1.1" => "package_stats_index",
+		 "$OID_BASE.1.1.2" => "package_stats_data",	# name
+
+		 # Package info
+		 "$OID_BASE.2.1.1" => "package_info_index",
+		 "$OID_BASE.2.1.2" => "package_info_data");	# prio
+
+my @DATA_STATS = ('Package', 'Version', , 'Description');
+my @DATA_INFO  = ('Priority', 'Section', 'Maintainer',
+		  'Source', 'Depends', 'Recommends',
+		  'Suggests', 'Size', 'MD5sum');
 # }}}
 
 # {{{ OID tree
@@ -75,17 +91,238 @@ if($ENV{'MIBDIRS'}) {
 # ====================================================
 # =====    R E T R E I V E  F U N C T I O N S    =====
 
+# {{{ Get all packages and their info
+sub get_packages {
+    my($i, $line, $nr);
+    my($pkg_count) = 0;
+
+    &echo(0, "CMD: '".$CFG{'PKG_LIST'}."'\n") if($CFG{'DEBUG'} >= 4);
+    if($CFG{'PKG_LIST'} =~ /\ /) {
+	open(PKG, "$CFG{'PKG_LIST'} |")
+	    || die("Can't get a list of packages, $!\n");
+    } else {
+	open(PKG, $CFG{'PKG_LIST'})
+	    || die("Can't get a list of packages, $!\n");
+    }
+
+    while(! eof(PKG)) {
+	$line = <PKG>; chomp($line);
+
+	if(($line =~ /^[a-zA-Z]/) && ($line !~ /^Conffiles:/i)) {
+	    my ($key, $value) = split(": ", $line);
+	    $key =~ s/: //;
+
+	    if($key eq "Package") {
+		$pkg_count++;
+		$nr = sprintf("%06d", $pkg_count);
+		&echo(0, "=> $nr:\n") if($CFG{'DEBUG'} >= 4);
+	    }
+
+	    &echo(0, "=>   $key: $value\n") if($CFG{'DEBUG'} >= 4);
+	    $PKG{$nr}{$key} = $value;
+	}
+    }
+
+    close(PKG);
+}
+# }}}
 
 # ====================================================
 # =====       P R I N T  F U N C T I O N S       =====
+
+# {{{ OID_BASE.1.1.1.x		Output basic package information - index
+sub print_package_stats_index {
+    my $package_no = shift;
+    my $success = 0;
+    my $nr;
+
+    &echo(0, "=> OID_BASE.packageStatsTable.packageStatsEntry.packageIndexStats\n") if($CFG{'DEBUG'} > 1);
+
+    if(defined($package_no)) {
+	# {{{ Specific package
+# }}}
+    } else {
+	# {{{ ALL packages
+	foreach my $package_nr (sort keys %PKG) {
+	    $nr = strip_zeros($package_nr);
+
+	    &echo(0, "$OID_BASE.1.1.1.$nr = $nr\n") if($CFG{'DEBUG'});
+
+	    &echo(1, "$OID_BASE.1.1.1.$nr\n");
+	    &echo(1, "integer\n");
+	    &echo(1, "$nr\n");
+
+	    $success = 1;
+	}
+# }}}
+    }
+
+    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+    return $success;
+}
+# }}}
+
+# {{{ OID_BASE.1.1.[2-4].x	Output basic package information - name
+sub print_package_stats_data {
+    my $package_no = shift;
+    my $package_info_type = shift;
+    my $success = 0;
+
+    if(defined($package_no)) {
+	# {{{ Specific package
+# }}}
+    } else {
+	# {{{ ALL packages
+	my $type_counter = 2;
+	foreach my $type (@DATA_STATS) {
+	    &echo(0, "=> OID_BASE.packageStatsTable.packageStatsEntry.$type\n") if($CFG{'DEBUG'} > 1);
+
+	    foreach my $package_nr (sort keys %PKG) {
+		my $nr = strip_zeros($package_nr);
+
+		if($PKG{$package_nr}{$type}) {
+		    my $package_data = $PKG{$package_nr}{$type};
+		    
+		    &echo(0, "$OID_BASE.1.1.$type_counter.$nr = $package_data\n") if($CFG{'DEBUG'});
+
+		    &echo(1, "$OID_BASE.1.1.$type_counter.$nr\n");
+		    &echo(1, "string\n");
+		    &echo(1, "$package_data\n");
+
+		    $success = 1;
+		} else {
+		    &echo(0, "$OID_BASE.1.1.$type_counter.$nr = n/a\n") if($CFG{'DEBUG'});
+
+		    &echo(1, "$OID_BASE.1.1.$type_counter.$nr\n");
+		    &echo(1, "string\n");
+		    &echo(1, "n/a\n");
+		}
+	    }
+
+	    $type_counter++;
+
+	    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+	}
+# }}}
+    }
+
+    return $success;
+}
+# }}}
+
+
+# {{{ OID_BASE.2.1.1.x		Output extra package information - index
+sub print_package_info_index {
+    my $package_no = shift;
+    my($success) = 0;
+    my($nr);
+
+    &echo(0, "=> OID_BASE.packageInfoTable.packageInfoEntry.packageIndexInfo\n") if($CFG{'DEBUG'} > 1);
+
+    if(defined($package_no)) {
+	# {{{ Specific package
+# }}}
+    } else {
+	# {{{ ALL packages
+	foreach my $package_nr (sort keys %PKG) {
+	    $nr = strip_zeros($package_nr);
+
+	    &echo(0, "$OID_BASE.2.1.1.$nr = $nr\n") if($CFG{'DEBUG'});
+
+	    &echo(1, "$OID_BASE.2.1.1.$nr\n");
+	    &echo(1, "integer\n");
+	    &echo(1, "$nr\n");
+
+	    $success = 1;
+	    $package_nr++;
+	}
+# }}}
+    }
+
+    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+    return $success;
+}
+# }}}
+
+# {{{ OID_BASE.2.1.[2-10].x	Output extra package information - priority
+sub print_package_info_data {
+    my $package_no = shift;
+    my $package_info_type = shift;
+    my $success = 0;
+
+    if(defined($package_no)) {
+	# {{{ Specific package
+# }}}
+    } else {
+	# {{{ ALL packages
+	my $type_counter = 2;
+	foreach my $type (@DATA_INFO) {
+	    &echo(0, "=> OID_BASE.packageInfoTable.packageInfoEntry.$type\n") if($CFG{'DEBUG'} > 1);
+
+	    foreach my $package_nr (sort keys %PKG) {
+		my $nr = strip_zeros($package_nr);
+
+		if($PKG{$package_nr}{$type}) {
+		    my $package_data = $PKG{$package_nr}{$type};
+		    
+		    &echo(0, "$OID_BASE.1.1.$type_counter.$nr = $package_data\n") if($CFG{'DEBUG'});
+
+		    &echo(1, "$OID_BASE.1.1.$type_counter.$nr\n");
+		    &echo(1, "string\n");
+		    &echo(1, "$package_data\n");
+
+		    $success = 1;
+		} else {
+		    &echo(0, "$OID_BASE.1.1.$type_counter.$nr = n/a\n") if($CFG{'DEBUG'});
+
+		    &echo(1, "$OID_BASE.1.1.$type_counter.$nr\n");
+		    &echo(1, "string\n");
+		    &echo(1, "n/a\n");
+		}
+	    }
+
+	    $type_counter++;
+
+	    &echo(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
+	}
+# }}}
+    }
+
+    return $success;
+}
+# }}}
 
 
 # ====================================================
 # =====        M I S C  F U N C T I O N S        =====
 
+# {{{ Log output wrapper
+sub echo {
+    my $stdout = shift;
+    my $string = shift;
+
+    BayourCOM_SNMP::echo($stdout, $string);
+}
+# }}}
+
+# {{{ Strip zeros
+sub strip_zeros {
+    my $value = shift;
+    my $nr = $value;
+
+    while($nr =~ /^0/) {
+	$nr =~ s/^0//;
+    }
+
+    return($nr);
+}
+# }}}
 
 # ====================================================
 # =====          P R O C E S S  A R G S          =====
+
+%CFG = BayourCOM_SNMP::get_config($CFG_FILE);
+&get_packages();
 
 BayourCOM_SNMP::echo(0, "=> OID_BASE => '$OID_BASE'\n") if($CFG{'DEBUG'});
 
@@ -114,6 +351,8 @@ if($ALL) {
 # }}}
 } else {
     # {{{ Go through the commands sent on STDIN
+    my($arg, $oid, @tmp);
+
     while(<>) {
 	if (m!^PING!){
 	    print "PONG\n";
