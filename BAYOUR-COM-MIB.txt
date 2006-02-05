@@ -1,5 +1,5 @@
 BAYOUR-COM-MIB DEFINITIONS ::= BEGIN
--- $Id: BAYOUR-COM-MIB.txt,v 1.14 2005-11-01 10:52:59 turbo Exp $
+-- $Id: BAYOUR-COM-MIB.txt,v 1.15 2006-02-05 11:36:11 turbo Exp $
 
 -- This is my very first MIB! A lot of it is taken from the IF-MIB
 -- by the IETF Interfaces MIB Working Group (200006140000).
@@ -13,7 +13,7 @@ IMPORTS
 
 -- {{{ bayourCom Module identity
 bayourCom MODULE-IDENTITY
-  LAST-UPDATED                         "200510301440Z"  -- October 30, 2005
+  LAST-UPDATED                         "200602051008Z"  -- February 5, 2006
   ORGANIZATION                         "Bayour.COM"
   CONTACT-INFO                         "Postal:      Turbo Fredriksson
                                                      Naverlursgatan 8
@@ -23,6 +23,11 @@ bayourCom MODULE-IDENTITY
                                         Tel:         +46 704-697645
                                         E-Mail:      turbo@bayour.com"
   DESCRIPTION                          "The MIB module defines the Bayour.COM Bind9 and Bacula statistics."
+
+  REVISION                             "200602051008Z"  -- February 5, 2006
+  DESCRIPTION                          "* Add the packageStats information and conformance stuff.
+                                        * Add some more folding tags.
+                                        * Correct the folding tags informational OID numbers."
 
   REVISION                             "200510311440Z"  -- October 31, 2005
   DESCRIPTION                          "Change all Counter32's in baculaStats to Integer32's. I've missunderstood
@@ -108,6 +113,7 @@ bayourCom MODULE-IDENTITY
 -- }}}
 
     -- {{{ Textual conventions
+    -- {{{ CounterIndex
     CounterIndex                       ::= TEXTUAL-CONVENTION
       DISPLAY-HINT                     "d"
       STATUS                           current
@@ -119,7 +125,9 @@ bayourCom MODULE-IDENTITY
                                         entity's network management system to the next
                                         re-initialization."
       SYNTAX                            Integer32 (0..2147483647)
+-- }}}
 
+    -- {{{ TrueFalse
     TrueFalse                          ::= TEXTUAL-CONVENTION
       STATUS                           current
       DESCRIPTION                      "True or False values:
@@ -130,7 +138,9 @@ bayourCom MODULE-IDENTITY
                                          false(0),
                                          true(1)
                                        }
+-- }}}
 
+    -- {{{ Status
     Status                             ::= TEXTUAL-CONVENTION
       STATUS                           current
       DESCRIPTION                      "Job status values:
@@ -144,7 +154,9 @@ bayourCom MODULE-IDENTITY
                                          t(3),
                                          f(4)
                                        }
+-- }}}
 
+    -- {{{ Level
     Level                              ::= TEXTUAL-CONVENTION
       STATUS                           current
       DESCRIPTION                      "Job level values:
@@ -156,7 +168,9 @@ bayourCom MODULE-IDENTITY
                                          f(2),
                                          i(3)
                                        }
+-- }}}
 
+    -- {{{ VolumeStatus
     VolumeStatus                       ::= TEXTUAL-CONVENTION
       STATUS                           current
       DESCRIPTION                      "Volume status values:
@@ -185,12 +199,13 @@ bayourCom MODULE-IDENTITY
                                          cleaning(11)
                                        }
 -- }}}
+-- }}}
 
     -- {{{ .1.3.6.1.4.1.8767.2.0 conformance
     conformance                        OBJECT IDENTIFIER ::= { snmp 0 }
-      -- {{{ .1.3.6.1.4.1.8767.2.0.1 b9stCompliance
+      -- {{{ .1.3.6.1.4.1.8767.2.0.1 bind9Conformance
       bind9Conformance                 OBJECT IDENTIFIER ::= { conformance 1 }
-        -- =============================================================================
+        -- {{{ .1.3.6.1.4.1.8767.2.0.1.1 b9stCompliance
         b9stCompliance                 MODULE-COMPLIANCE
           STATUS                       current
           DESCRIPTION                  "The compliance statement for SNMP entities which have
@@ -198,8 +213,9 @@ bayourCom MODULE-IDENTITY
           MODULE  -- this module
           MANDATORY-GROUPS             { b9stGroupTotals, b9stGroupDomains }
           ::= { bind9Conformance 1 }
+-- }}}
 
-        -- {{{ .1.3.6.1.4.1.8767.2.0.2 b9stGroups
+        -- {{{ .1.3.6.1.4.1.8767.2.0.1.2 b9stGroups
         b9stGroups                     OBJECT IDENTIFIER ::= { bind9Conformance 2 }
           b9stGroupTotals              OBJECT-GROUP
             OBJECTS                    { b9stNumberTotals, b9stCounterName, b9stCounterTotal,
@@ -222,6 +238,7 @@ bayourCom MODULE-IDENTITY
 
       -- {{{ .1.3.6.1.4.1.8767.2.0.2 baculaConformance
       baculaConformance                OBJECT IDENTIFIER ::= { conformance 2 }
+        -- {{{ .1.3.6.1.4.1.8767.2.0.2.1 baculaCompliance
         baculaCompliance               MODULE-COMPLIANCE
           STATUS                       current
           DESCRIPTION                  "The compliance statement for SNMP entities which have
@@ -231,8 +248,9 @@ bayourCom MODULE-IDENTITY
                                          baculaGroupCounters, baculaGroupStats, baculaGroupPools,
                                          baculaGroupMedia }
           ::= { baculaConformance 1 }
+-- }}}
 
-        -- {{{ .1.3.6.1.4.1.8767.2.0.2.1 baculaGroups
+        -- {{{ .1.3.6.1.4.1.8767.2.0.2.2 baculaGroups
         baculaGroups                   OBJECT IDENTIFIER ::= { baculaConformance 2 }
           baculaGroupClients           OBJECT-GROUP
             OBJECTS                    { baculaTotalClients, baculaClientName, baculaClientUname,
@@ -308,6 +326,7 @@ bayourCom MODULE-IDENTITY
 
       -- {{{ .1.3.6.1.4.1.8767.2.0.3 systemConformance
       systemConformance                OBJECT IDENTIFIER ::= { conformance 3 }
+        -- {{{ .1.3.6.1.4.1.8767.2.0.3.1 systemCompliance
         systemCompliance               MODULE-COMPLIANCE
           STATUS                       current
           DESCRIPTION                  "The compliance statement for SNMP entities which have
@@ -316,8 +335,9 @@ bayourCom MODULE-IDENTITY
           MANDATORY-GROUPS             { systemGroupMemory, systemGroupCPU, systemGroupLoad,
                                          systemGroupMisc }
           ::= { systemConformance 1 }
+-- }}}
 
-        -- {{{ .1.3.6.1.4.1.8767.2.0.3.1 systemgroups
+        -- {{{ .1.3.6.1.4.1.8767.2.0.3.2 systemgroups
         systemGroups                   OBJECT IDENTIFIER ::= { systemConformance 2 }
           systemGroupMemory            OBJECT-GROUP
             OBJECTS                    { systemMemoryTotal, systemMemoryUsed, systemMemoryBuffered,
@@ -350,6 +370,37 @@ bayourCom MODULE-IDENTITY
             DESCRIPTION                "A collection of objects providing information
                                         applicable to misc system statistics."
             ::= { systemGroups 4 }
+-- }}}
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.0.4 packageConformance
+      packageConformance               OBJECT IDENTIFIER ::= { conformance 4 }
+        -- {{{ .1.3.6.1.4.1.8767.2.0.4.1 packageCompliance
+        packageCompliance              MODULE-COMPLIANCE
+          STATUS                       current
+          DESCRIPTION                  "The compliance statement for SNMP entities which have
+                                        package status information."
+          MODULE                       -- this module
+          MANDATORY-GROUPS             {  packageStatsGroup, packageInfoGroup }
+          ::= { packageConformance 1 }
+-- }}}
+
+        -- {{{ .1.3.6.1.4.1.8767.2.0.4.2 packageGroups
+        packageGroups                  OBJECT IDENTIFIER ::= { packageConformance 2 }
+          packageStatsGroup            OBJECT-GROUP
+            OBJECTS                    { packageName, packageVersion, packageDesc, packageStatus }
+            STATUS                     current
+            DESCRIPTION                "A collection of objects providing information
+                                        applicable to Package statistics."
+            ::= { packageGroups 1 }
+
+          packageInfoGroup             OBJECT-GROUP
+            OBJECTS                    { packagePriority, packageSection, packageMaintainer,
+                                         packageSource, packageDepends, packageRecommends }
+            STATUS                     current
+            DESCRIPTION                "A collection of objects providing information
+                                        applicable to Package information."
+            ::= { packageGroups 2 }
 -- }}}
 -- }}}
 -- }}}
@@ -1305,7 +1356,7 @@ bayourCom MODULE-IDENTITY
 
     -- {{{ .1.3.6.1.4.1.8767.2.4 systemStats
     systemStats                        OBJECT IDENTIFIER ::= { snmp 4 }
-      -- {{{ .1.3.6.1.4.1.8767.2.3.1   systemUptime
+      -- {{{ .1.3.6.1.4.1.8767.2.4.1   systemUptime
       systemUptime                     OBJECT-TYPE
         SYNTAX                         Integer32
         MAX-ACCESS                     read-only
@@ -1314,7 +1365,7 @@ bayourCom MODULE-IDENTITY
         ::= { systemStats 1 }
 -- }}}
 
-      -- {{{ .1.3.6.1.4.1.8767.2.3.2   systemMemoryTable
+      -- {{{ .1.3.6.1.4.1.8767.2.4.2   systemMemoryTable
       systemMemoryTable                OBJECT-TYPE
         SYNTAX                         SEQUENCE OF SystemMemoryTableEntry
         MAX-ACCESS                     not-accessible
@@ -1391,7 +1442,7 @@ bayourCom MODULE-IDENTITY
             ::= { systemMemoryEntry 7 }
 -- }}}
 
-      -- {{{ .1.3.6.1.4.1.8767.2.3.3   systemCPUTable
+      -- {{{ .1.3.6.1.4.1.8767.2.4.3   systemCPUTable
       systemCPUTable                   OBJECT-TYPE
         SYNTAX                         SEQUENCE OF SystemCPUTableEntry
         MAX-ACCESS                     not-accessible
@@ -1501,7 +1552,7 @@ bayourCom MODULE-IDENTITY
             ::= { systemCPUEntry 11 }
 -- }}}
 
-      -- {{{ .1.3.6.1.4.1.8767.2.3.4   systemLoadTable
+      -- {{{ .1.3.6.1.4.1.8767.2.4.4   systemLoadTable
       systemLoadTable                  OBJECT-TYPE
         SYNTAX                         SEQUENCE OF SystemLoadTableEntry
         MAX-ACCESS                     not-accessible
@@ -1553,6 +1604,147 @@ bayourCom MODULE-IDENTITY
             DESCRIPTION                "."
             ::= { systemLoadEntry 4 }
 
+-- }}}
+-- }}}
+
+    -- {{{ .1.3.6.1.4.1.8767.2.5 packageStats
+    packageStats                       OBJECT IDENTIFIER ::= { snmp 5 }
+      -- {{{ .1.3.6.1.4.1.8767.2.5.1 packageStatsTable
+      packageStatsTable                    OBJECT-TYPE
+        SYNTAX                             SEQUENCE OF PackageStatsEntry
+        MAX-ACCESS                         not-accessible
+        STATUS                             current
+        DESCRIPTION                        "A list of package statistic information."
+        ::= { packageStats 1 }
+
+        packageStatsEntry                  OBJECT-TYPE
+          SYNTAX                           PackageStatsEntry
+          MAX-ACCESS                       not-accessible
+          STATUS                           current
+          DESCRIPTION                      "Package statistics table"
+          INDEX                            { packageIndexStats }
+          ::= { packageStatsTable 1 }
+
+          PackageStatsEntry                ::= SEQUENCE {
+            packageIndexStats              CounterIndex,
+
+            packageName                    DisplayString,
+            packageVersion                 DisplayString,
+            packageDesc                    DisplayString,
+            packageStatus                  DisplayString
+          }
+
+          packageIndexStats                OBJECT-TYPE
+            SYNTAX                         CounterIndex
+            MAX-ACCESS                     not-accessible
+            STATUS                         current
+            DESCRIPTION                    "Reference Index for each counter."
+            ::= { packageStatsEntry 1 }
+
+          packageName                      OBJECT-TYPE
+            SYNTAX                         DisplayString
+            MAX-ACCESS                     read-only
+            STATUS                         current
+            DESCRIPTION                    "Name of package"
+            ::= { packageStatsEntry 2 }
+
+          packageVersion                   OBJECT-TYPE
+            SYNTAX                         DisplayString
+            MAX-ACCESS                     read-only
+            STATUS                         current
+            DESCRIPTION                    "xx"
+            ::= { packageStatsEntry 3 }
+
+          packageDesc                      OBJECT-TYPE
+            SYNTAX                         DisplayString
+            MAX-ACCESS                     read-only
+            STATUS                         current
+            DESCRIPTION                    "xx"
+            ::= { packageStatsEntry 4 }
+
+          packageStatus                    OBJECT-TYPE
+            SYNTAX                         DisplayString
+            MAX-ACCESS                     read-only
+            STATUS                         current
+            DESCRIPTION                    "xx"
+            ::= { packageStatsEntry 5 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.5.2 packageInfoTable
+      packageInfoTable                     OBJECT-TYPE
+        SYNTAX                             SEQUENCE OF PackageInfoEntry
+        MAX-ACCESS                         not-accessible
+        STATUS                             current
+        DESCRIPTION                        "Package statistics table"
+        ::= { packageStats 2 }
+
+        packageInfoEntry                   OBJECT-TYPE
+          SYNTAX                           PackageInfoEntry
+          MAX-ACCESS                       not-accessible
+          STATUS                           current
+          DESCRIPTION                      "Package statistics table"
+          INDEX                            { packageIndexInfo }
+          ::= { packageInfoTable 1 }
+
+          PackageInfoEntry                ::= SEQUENCE {
+            packageIndexInfo              CounterIndex,
+
+            packagePriority               DisplayString,
+            packageSection                DisplayString,
+            packageMaintainer             DisplayString,
+            packageSource                 DisplayString,
+            packageDepends                DisplayString,
+            packageRecommends             DisplayString
+          }
+
+          packageIndexInfo                 OBJECT-TYPE
+            SYNTAX                         CounterIndex
+            MAX-ACCESS                     not-accessible
+            STATUS                         current
+            DESCRIPTION                    "Reference Index for each counter."
+            ::= { packageInfoEntry 1 }
+
+          packagePriority                  OBJECT-TYPE
+            SYNTAX                         DisplayString
+            MAX-ACCESS                     read-only
+            STATUS                         current
+            DESCRIPTION                    "xx"
+            ::= { packageInfoEntry 2 }
+
+          packageSection                   OBJECT-TYPE
+            SYNTAX                         DisplayString
+            MAX-ACCESS                     read-only
+            STATUS                         current
+            DESCRIPTION                    "xx"
+            ::= { packageInfoEntry 3 }
+
+          packageMaintainer                OBJECT-TYPE
+            SYNTAX                         DisplayString
+            MAX-ACCESS                     read-only
+            STATUS                         current
+            DESCRIPTION                    "xx"
+            ::= { packageInfoEntry 4 }
+
+          packageSource                    OBJECT-TYPE
+            SYNTAX                         DisplayString
+            MAX-ACCESS                     read-only
+            STATUS                         current
+            DESCRIPTION                    "xx"
+            ::= { packageInfoEntry 5 }
+
+          packageDepends                   OBJECT-TYPE
+            SYNTAX                         DisplayString
+            MAX-ACCESS                     read-only
+            STATUS                         current
+            DESCRIPTION                    "xx"
+            ::= { packageInfoEntry 6 }
+
+          packageRecommends                OBJECT-TYPE
+            SYNTAX                         DisplayString
+            MAX-ACCESS                     read-only
+            STATUS                         current
+            DESCRIPTION                    "xx"
+            ::= { packageInfoEntry 7 }
 -- }}}
 -- }}}
 END
