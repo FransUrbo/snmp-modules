@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.15 2006-01-20 13:17:25 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.16 2006-02-05 11:42:15 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -51,7 +51,7 @@ my $CFG_FILE = "/etc/bind/.bindsnmp";
 $|=1;
 
 use strict; 
-use POSIX qw(strftime);
+use BayourCOM_SNMP;
 
 $ENV{PATH}   = "/bin:/usr/bin:/usr/sbin";
 my %CFG;
@@ -122,15 +122,15 @@ sub print_b9stNumberTotals {
     my $j = shift;
 
     if($CFG{'DEBUG'}) {
-	&echo(0, "=> OID_BASE.b9stNumberTotals.0\n") if($CFG{'DEBUG'} > 1);
-	&echo(0, "$OID_BASE.1.0 = $count_counters\n");
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.b9stNumberTotals.0\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "$OID_BASE.1.0 = $count_counters\n");
     }
 
-    &echo(1, "$OID_BASE.1.0\n");
-    &echo(1, "integer\n");
-    &echo(1, "$count_counters\n");
+    BayourCOM_SNMP::echo(1, "$OID_BASE.1.0\n");
+    BayourCOM_SNMP::echo(1, "integer\n");
+    BayourCOM_SNMP::echo(1, "$count_counters\n");
 
-    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
+    BayourCOM_SNMP::echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -139,15 +139,15 @@ sub print_b9stNumberDomains {
     my $j = shift;
 
     if($CFG{'DEBUG'}) {
-	&echo(0, "=> OID_BASE.b9stNumberDomains.0\n") if($CFG{'DEBUG'} > 1);
-	&echo(0, "$OID_BASE.2.0 = $count_domains\n");
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.b9stNumberDomains.0\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "$OID_BASE.2.0 = $count_domains\n");
     }
 
-    &echo(1, "$OID_BASE.2.0\n");
-    &echo(1, "integer\n");
-    &echo(1, "$count_domains\n");
+    BayourCOM_SNMP::echo(1, "$OID_BASE.2.0\n");
+    BayourCOM_SNMP::echo(1, "integer\n");
+    BayourCOM_SNMP::echo(1, "$count_domains\n");
 
-    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
+    BayourCOM_SNMP::echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -158,26 +158,26 @@ sub print_b9stTotalsIndex {
     my %cnts;
 
     if($j) {
-	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.$j\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.$j\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ($j => $counters{$j});
     } elsif(defined($j)) {
-	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.x\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.x\n") if($CFG{'DEBUG'} > 1);
 	%cnts = %counters;
     } else {
-	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.1\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.1\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ("1" => $counters{"1"});
     }
 
     foreach $j (keys %cnts) {
 	$j =~ s/^0//;
-	&echo(0, "$OID_BASE.3.1.1.$j = $j\n") if($CFG{'DEBUG'});
+	BayourCOM_SNMP::echo(0, "$OID_BASE.3.1.1.$j = $j\n") if($CFG{'DEBUG'});
 	
-	&echo(1, "$OID_BASE.3.1.1.$j\n");
-	&echo(1, "integer\n");
-	&echo(1, "$j\n");
+	BayourCOM_SNMP::echo(1, "$OID_BASE.3.1.1.$j\n");
+	BayourCOM_SNMP::echo(1, "integer\n");
+	BayourCOM_SNMP::echo(1, "$j\n");
     }
 
-    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
+    BayourCOM_SNMP::echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -188,25 +188,25 @@ sub print_b9stCounterName {
     my %cnts;
 
     if($j) {
-	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.$j\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.$j\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ($j => $counters{$j});
     } elsif(defined($j)) {
-	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.x\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.x\n") if($CFG{'DEBUG'} > 1);
 	%cnts = %counters;
     } else {
-	&echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.1\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.1\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ("1" => $counters{"1"});
     }
 
     foreach $j (keys %cnts) {
-	&echo(0, "$OID_BASE.3.1.2.$j = ".$counters{$j}."\n") if($CFG{'DEBUG'});
+	BayourCOM_SNMP::echo(0, "$OID_BASE.3.1.2.$j = ".$counters{$j}."\n") if($CFG{'DEBUG'});
 
-	&echo(1, "$OID_BASE.3.1.2.$j\n");
-	&echo(1, "string\n");
-	&echo(1, $counters{$j}."\n");
+	BayourCOM_SNMP::echo(1, "$OID_BASE.3.1.2.$j\n");
+	BayourCOM_SNMP::echo(1, "string\n");
+	BayourCOM_SNMP::echo(1, $counters{$j}."\n");
     }
 
-    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
+    BayourCOM_SNMP::echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -237,21 +237,21 @@ sub print_b9stCounterTypeTotal {
     }
 
     my $type_name = ucfirst($types{$type_nr-2});
-    &echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounter$type_name.x\n") if($CFG{'DEBUG'} > 1);
+    BayourCOM_SNMP::echo(0, "=> OID_BASE.b9stTotalsTable.b9stCounter$type_name.x\n") if($CFG{'DEBUG'} > 1);
 
     my $counter;
     foreach $nr (keys %cnts) {
 	$counter  = $counters{$nr};
-	&echo(0, "   DATA{$counter}{$type}\n") if($CFG{'DEBUG'} >= 4);
+	BayourCOM_SNMP::echo(0, "   DATA{$counter}{$type}\n") if($CFG{'DEBUG'} >= 4);
 
-	&echo(0, "$OID_BASE.3.1.$type_nr.$nr = ".$DATA{$counter}{$type}."\n") if($CFG{'DEBUG'});
+	BayourCOM_SNMP::echo(0, "$OID_BASE.3.1.$type_nr.$nr = ".$DATA{$counter}{$type}."\n") if($CFG{'DEBUG'});
 
-	&echo(1, "$OID_BASE.3.1.$type_nr.$nr\n");
-	&echo(1, "integer\n");
-	&echo(1, $DATA{$counter}{$type}."\n");
+	BayourCOM_SNMP::echo(1, "$OID_BASE.3.1.$type_nr.$nr\n");
+	BayourCOM_SNMP::echo(1, "integer\n");
+	BayourCOM_SNMP::echo(1, $DATA{$counter}{$type}."\n");
     }
 
-    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
+    BayourCOM_SNMP::echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -306,20 +306,20 @@ sub print_b9stCounterTypeDomains {
     }
 
     my $type_name = ucfirst($counters{$type_nr-2});
-    &echo(0, "=> OID_BASE.b9stDomainsTable.b9stCounter$type_name.x\n") if($CFG{'DEBUG'} > 1);
+    BayourCOM_SNMP::echo(0, "=> OID_BASE.b9stDomainsTable.b9stCounter$type_name.x\n") if($CFG{'DEBUG'} > 1);
 
     foreach my $i (sort keys %cnts) {
 	my ($domain, $value) = split(':', $cnts{$i}{$type});
 
 	$i =~ s/^0//;
-	&echo(0, "$OID_BASE.4.1.$type_nr.$i = $value\n") if($CFG{'DEBUG'});
+	BayourCOM_SNMP::echo(0, "$OID_BASE.4.1.$type_nr.$i = $value\n") if($CFG{'DEBUG'});
 
-	&echo(1, "$OID_BASE.4.1.$type_nr.$i\n");
-	&echo(1, "integer\n");
-	&echo(1, "$value\n");
+	BayourCOM_SNMP::echo(1, "$OID_BASE.4.1.$type_nr.$i\n");
+	BayourCOM_SNMP::echo(1, "integer\n");
+	BayourCOM_SNMP::echo(1, "$value\n");
     }
 
-    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
+    BayourCOM_SNMP::echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -372,26 +372,26 @@ sub print_b9stDomainsIndex {
     my %cnts;
 
     if($j) {
-	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.$j\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.$j\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ($j => $DOMAINS{$j});
     } elsif(defined($j)) {
-	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.x\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.x\n") if($CFG{'DEBUG'} > 1);
 	%cnts = %DOMAINS;
     } else {
-	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.1\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.1\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ("1" => $DOMAINS{"1"});
     }
 
     foreach $j (sort keys %cnts) {
 	$j =~ s/^0//;
-	&echo(0, "$OID_BASE.4.1.1.$j = $j\n") if($CFG{'DEBUG'});
+	BayourCOM_SNMP::echo(0, "$OID_BASE.4.1.1.$j = $j\n") if($CFG{'DEBUG'});
 
-	&echo(1, "$OID_BASE.4.1.1.$j\n");
-	&echo(1, "integer\n");
-	&echo(1, "$j\n");
+	BayourCOM_SNMP::echo(1, "$OID_BASE.4.1.1.$j\n");
+	BayourCOM_SNMP::echo(1, "integer\n");
+	BayourCOM_SNMP::echo(1, "$j\n");
     }
 
-    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
+    BayourCOM_SNMP::echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -401,17 +401,17 @@ sub print_b9stDomainName {
     my %cnts;
 
     if($j) {
-	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.$j\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.$j\n") if($CFG{'DEBUG'} > 1);
 
 	my $i = $j;
 	$j = sprintf("%02d", $j);
 
 	%cnts = ($j => $DOMAINS{$j});
     } elsif(defined($j)) {
-	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.x\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.x\n") if($CFG{'DEBUG'} > 1);
 	%cnts = %DOMAINS;
     } else {
-	&echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.1\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.1\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ("1" => $DOMAINS{"1"});
     }
 
@@ -419,14 +419,14 @@ sub print_b9stDomainName {
 	my $domain = (split(':', $cnts{$j}{"success"}))[0];
 
 	$j =~ s/^0//;
-	&echo(0, "$OID_BASE.4.1.2.$j = $domain\n") if($CFG{'DEBUG'});
+	BayourCOM_SNMP::echo(0, "$OID_BASE.4.1.2.$j = $domain\n") if($CFG{'DEBUG'});
 
-	&echo(1, "$OID_BASE.4.1.2.$j\n");
-	&echo(1, "string\n");
-	&echo(1, "$domain\n");
+	BayourCOM_SNMP::echo(1, "$OID_BASE.4.1.2.$j\n");
+	BayourCOM_SNMP::echo(1, "string\n");
+	BayourCOM_SNMP::echo(1, "$domain\n");
     }
 
-    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
+    BayourCOM_SNMP::echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -441,7 +441,7 @@ sub call_func_total {
     
     my $func = "print_b9st".$prints_total{$func_nr};
     $func_arg = '' if(!defined($func_arg));
-    &echo(0, "=> Calling function '$func($func_arg)'\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> Calling function '$func($func_arg)'\n") if($CFG{'DEBUG'} > 3);
 
     $func = \&{$func}; # Because of 'use strict' above...
     &$func($func_arg);
@@ -455,7 +455,7 @@ sub call_func_domain {
     
     my $func = "print_b9st".$prints_domain{$func_nr};
     $func_arg = '' if(!defined($func_arg));
-    &echo(0, "=> Calling function '$func($func_arg)'\n") if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::echo(0, "=> Calling function '$func($func_arg)'\n") if($CFG{'DEBUG'} > 3);
 
     $func = \&{$func}; # Because of 'use strict' above...
     &$func($func_arg);
@@ -474,127 +474,30 @@ sub output_extra_debugging {
     }
     $string .= "\n";
 
-    &echo(0, $string);
+    BayourCOM_SNMP::echo(0, $string);
 }
 # }}} # Extra debugging
-
-# {{{ Find the current date and time
-# Returns a string something like: '10/8-96 16:27'
-sub get_timestring {
-    my($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime;
-
-    return POSIX::strftime("20%y-%m-%d %H:%M:%S",
-			    $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst);
-}
-# }}}
-
-# {{{ Open logfile for debugging
-sub open_log {
-    die("DEBUG_FILE not set in config file!\n") if(!$CFG{'DEBUG_FILE'});
-
-    if(!open(LOG, ">> ".$CFG{'DEBUG_FILE'})) {
-	&echo(0, "Can't open logfile '".$CFG{'DEBUG_FILE'}."', $!\n") if($CFG{'DEBUG'});
-	return 0;
-    } else {
-	return 1;
-    }
-}
-# }}}
-
-# {{{ Log output
-sub echo {
-    my $stdout = shift;
-    my $string = shift;
-    my $log_opened = 0;
-
-    # Open logfile if debugging OR running from snmpd.
-    if($CFG{'DEBUG'}) {
-	if(&open_log()) {
-	    $log_opened = 1;
-	    open(STDERR, ">&LOG") if(($CFG{'DEBUG'} <= 2) || $ENV{'MIBDIRS'});
-	}
-    }
-
-    if($stdout) {
-	print $string;
-    } elsif($log_opened) {
-	print LOG &get_timestring()," " if($CFG{'DEBUG'} > 2);
-	print LOG $string;
-    }
-}
-# }}}
-
-# {{{ Return 'no such value'
-sub no_value {
-    my $reason = shift;
-
-    if(defined($reason)) {
-	$reason = " ($reason)";
-    } else {
-	$reason = '';
-    }
-
-    &echo(0, "=> No value in this object$reason - exiting!\n") if($CFG{'DEBUG'} > 1);
-    
-    &echo(1, "NONE\n");
-    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
-}
-# }}}
-
-# {{{ Load configuration file
-sub get_config {
-    my $option = shift;
-    my($line, $key, $value);
-
-    $option = 0 if(!defined($option));
-
-    if(-e $CFG_FILE) {
-	open(CFG, "< ".$CFG_FILE) || die("Can't open ".$CFG_FILE.", $!");
-	while(!eof(CFG)) {
-	    $line = <CFG>; chomp($line);
-	    next if($line !~ /^[A-Z]/);
-
-	    ($key, $value) = split('=', $line);
-
-	    if(!$option) {
-		# Get all options
-		$CFG{$key} = $value;
-	    } elsif($option eq $key) {
-		# Get only this option
-		$CFG{$key} = $value;
-	    }
-	}
-	close(CFG);
-    }
-
-    $CFG{'DEBUG'} = 0  if(!defined($CFG{'DEBUG'}));
-    $CFG{'IGNORE_INDEX'} = 1 if(!defined($CFG{'IGNORE_INDEX'}));
-
-    # A debug value from the environment overrides!
-    $CFG{'DEBUG'} = $ENV{'DEBUG_BIND9'} if(defined($ENV{'DEBUG_BIND9'}));
-}
-# }}}
 
 # {{{ Load all information needed
 sub load_information {
     # Load configuration file
-    &get_config();
+    %CFG = BayourCOM_SNMP::get_config($CFG_FILE);
 
-    &echo(0, "=> Dumping Bind9 stats\n") if($CFG{'RNDC'} && ($CFG{'DEBUG'} > 1));
+    BayourCOM_SNMP::echo(0, "=> Dumping Bind9 stats\n") if($CFG{'RNDC'} && ($CFG{'DEBUG'} > 1));
     system($CFG{'RNDC'}." stats") if($CFG{'RNDC'});
     
     my $tmp =  $CFG{'STATS_FILE'};
     $tmp =~ s/\W/_/g;
     my $delta  =  $CFG{'DELTA_DIR'}.$tmp.".offset" if($CFG{'DELTA_DIR'});
     
-    &echo(0, "=> Loading statistics file '".$CFG{'STATS_FILE'}."'\n") if($CFG{'DEBUG'} > 1);
+    BayourCOM_SNMP::echo(0, "=> Loading statistics file '".$CFG{'STATS_FILE'}."'\n") if($CFG{'DEBUG'} > 1);
     open(DUMP, $CFG{'STATS_FILE'}) || die($CFG{'STATS_FILE'}.": $!");
     
     if(-e $delta && $CFG{'RNDC'}) {
 	# Only open the delta file if RNDC is set.
 	open(D, $delta) || die "can't open delta file '$delta' for '".$CFG{'STATS_FILE'}."': $!";
 
-	&echo(0, "=> Opening delta file '$delta'\n") if($CFG{'DEBUG'} > 1);
+	BayourCOM_SNMP::echo(0, "=> Opening delta file '$delta'\n") if($CFG{'DEBUG'} > 1);
 	my $file_offset = <D>;
 	chomp $file_offset;
 	close(D);
@@ -611,17 +514,17 @@ sub load_information {
 	my ($what, $nr, $domain, $direction) = split(/\s+/, $_, 4);
 	
 	if (!$domain) {
-	    &echo(0, "DATA{$what}{total} += $nr\n") if($CFG{'DEBUG'} >= 4);
+	    BayourCOM_SNMP::echo(0, "DATA{$what}{total} += $nr\n") if($CFG{'DEBUG'} >= 4);
 	    $DATA{$what}{"total"} += $nr;
 	} else {
-	    &echo(0, "DOMAINS{$domain}{$what} = $nr\n") if($CFG{'DEBUG'} >= 4);
+	    BayourCOM_SNMP::echo(0, "DOMAINS{$domain}{$what} = $nr\n") if($CFG{'DEBUG'} >= 4);
 	    $DOMAINS{$domain}{$what} = $nr;
 	    
 	    if ($domain =~ m/in-addr.arpa/) {
-		&echo(0, "DATA{$what}{reverse} += $nr\n") if($CFG{'DEBUG'} >= 4);
+		BayourCOM_SNMP::echo(0, "DATA{$what}{reverse} += $nr\n") if($CFG{'DEBUG'} >= 4);
 		$DATA{$what}{"reverse"} += $nr;
 	    } else {
-		&echo(0, "DATA{$what}{forward} += $nr\n") if($CFG{'DEBUG'} >= 4);
+		BayourCOM_SNMP::echo(0, "DATA{$what}{forward} += $nr\n") if($CFG{'DEBUG'} >= 4);
 		$DATA{$what}{"forward"} += $nr;
 	    }
 	}
@@ -648,11 +551,11 @@ sub load_information {
     my %tmp1;
     my %tmp2;
     if($CFG{'DEBUG'} >= 4) {
-	&echo(0, "\n");
-	&echo(0, "=> Going through and counting domains.\n");
+	BayourCOM_SNMP::echo(0, "\n");
+	BayourCOM_SNMP::echo(0, "=> Going through and counting domains.\n");
     }
     foreach my $domain (sort keys %DOMAINS) {
-	&echo(0, "load_information: domain='$domain' ($count_domains)\n") if($CFG{'DEBUG'} >= 4);
+	BayourCOM_SNMP::echo(0, "load_information: domain='$domain' ($count_domains)\n") if($CFG{'DEBUG'} >= 4);
 	if(!$tmp{$domain}) {
 	    $count_domains++;
 	    
@@ -673,23 +576,7 @@ sub load_information {
     # Schedule an alarm once every five minutes to re-read information.
     alarm(5*60);
 
-    &echo(0, "\n") if($CFG{'DEBUG'} > 1);
-}
-# }}}
-
-# {{{ Show usage
-sub help {
-    my $prog = `basename $0`;
-    chomp($prog);
-
-    print "Usage: $prog [option]\n";
-    print "Options:\n";
-    print "  -h|--help|?   Show this text\n";
-    print "  -a|--all      Output the whole MIB tree\n";
-    print "\n";
-    print "Debug mode can be changed dynamically by editing the file\n";
-    print "'/etc/bind/.bindsnmp'.\n";
-    exit(0);
+    BayourCOM_SNMP::echo(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -703,12 +590,12 @@ sub help {
 my $ALL = 0;
 for(my $i=0; $ARGV[$i]; $i++) {
     if($ARGV[$i] eq '--help' || $ARGV[$i] eq '-h' || $ARGV[$i] eq '?' ) {
-	&help();
+	BayourCOM_SNMP::help();
     } elsif($ARGV[$i] eq '--all' || $ARGV[$i] eq '-a') {
 	$ALL = 1;
     } else {
 	print "Unknown option '",$ARGV[$i],"'\n";
-	&help();
+	BayourCOM_SNMP::help();
     }
 }
 # }}}
@@ -739,11 +626,11 @@ if($ALL) {
 	}
 
 	# Re-get the DEBUG config option (so that we don't have to restart process).
-	get_config('DEBUG');
+	%CFG = BayourCOM_SNMP::get_config('DEBUG');
 	
 	# {{{ Get all run arguments - next/specfic OID
 	my $arg = $_; chomp($arg);
-	&echo(0, "=> ARG=$arg\n") if($CFG{'DEBUG'} > 2);
+	BayourCOM_SNMP::echo(0, "=> ARG=$arg\n") if($CFG{'DEBUG'} > 2);
 	
 	# Get next line from STDIN -> OID number.
 	# $arg == 'getnext' => Get next OID
@@ -752,12 +639,12 @@ if($ALL) {
 	$oid =~ s/$OID_BASE//; # Remove the OID base
 	$oid =~ s/OID_BASE//;  # Remove the OID base (if we're debugging)
 	$oid =~ s/^\.//;       # Remove the first dot if it exists - it's in the way!
-	&echo(0, "=> OID=$OID_BASE.$oid\n") if($CFG{'DEBUG'} > 2);
+	BayourCOM_SNMP::echo(0, "=> OID=$OID_BASE.$oid\n") if($CFG{'DEBUG'} > 2);
 	
 	my @tmp = split('\.', $oid);
 	&output_extra_debugging(@tmp) if($CFG{'DEBUG'} > 2);
 	
-	&echo(0, "=> count_counters=$count_counters, count_types=$count_types, count_domains=$count_domains\n") if($CFG{'DEBUG'} > 2);
+	BayourCOM_SNMP::echo(0, "=> count_counters=$count_counters, count_types=$count_types, count_domains=$count_domains\n") if($CFG{'DEBUG'} > 2);
 # }}} Get arguments
 	
 	if(!defined($tmp[0])) {
@@ -765,7 +652,7 @@ if($ALL) {
 	    if($arg eq 'getnext') {
 		&print_b9stNumberTotals(0);
 	    } else {
-		&no_value(); next;
+		BayourCOM_SNMP::no_value(); next;
 	    }
 # }}} # OID_BASE
 
@@ -781,7 +668,7 @@ if($ALL) {
 		if(defined($tmp[1])) {
 		    &print_b9stNumberTotals(0);
 		} else {
-		    &no_value(); next;
+		    BayourCOM_SNMP::no_value(); next;
 		}
 	    }
 # }}} # OID_BASE.1
@@ -802,7 +689,7 @@ if($ALL) {
 		if(defined($tmp[1])) {
 		    &print_b9stNumberDomains(0);
 		} else {
-		    &no_value(); next;
+		    BayourCOM_SNMP::no_value(); next;
 		}
 	    }
 # }}} # OID_BASE.2
@@ -822,15 +709,15 @@ if($ALL) {
 		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			&call_func_total(2, 1);
 		    } elsif($tmp[2] < $count_counters) {
-			&echo(0, "tmp[2] < $count_counters\n");
+			BayourCOM_SNMP::echo(0, "tmp[2] < $count_counters\n");
 			if($tmp[2] > 1) {
-			    &echo(0, "tmp[2] > 1\n");
+			    BayourCOM_SNMP::echo(0, "tmp[2] > 1\n");
 			    &call_func_total($tmp[2], 1);
 			} else {
-			    &echo(0, "tmp[2] < 1\n");
+			    BayourCOM_SNMP::echo(0, "tmp[2] < 1\n");
 			    if($CFG{'IGNORE_INDEX'}) {
 				&call_func_total($tmp[2]+1, 1);
-				#&no_value("index");
+				#BayourCOM_SNMP::no_value("index");
 			    } else {
 				&call_func_total($tmp[2], 1);
 			    }
@@ -842,10 +729,10 @@ if($ALL) {
 		    my $x = $tmp[3] + 1;
 		    
 		    if($x > $count_counters) {
-			&echo(0, "=> x > count_counters ($x > $count_counters)\n") if($CFG{'DEBUG'} > 2);
+			BayourCOM_SNMP::echo(0, "=> x > count_counters ($x > $count_counters)\n") if($CFG{'DEBUG'} > 2);
 			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			    &call_func_total($tmp[2]+1, 1);
-			    #&no_value("index");
+			    #BayourCOM_SNMP::no_value("index");
 			} else {
 			    if($prints_total{$tmp[2]+1}) {
 				&call_func_total($tmp[2]+1, 1);
@@ -856,9 +743,9 @@ if($ALL) {
 		    } else {
 			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			    &call_func_total($tmp[2]+1, 1);
-			    #&no_value("index");
+			    #BayourCOM_SNMP::no_value("index");
 			} else {
-			    &echo(0, "=> !($x > $count_counters) => call_func_total(".$tmp[2].", ".($tmp[3]+1).")\n") if($CFG{'DEBUG'} > 2);
+			    BayourCOM_SNMP::echo(0, "=> !($x > $count_counters) => call_func_total(".$tmp[2].", ".($tmp[3]+1).")\n") if($CFG{'DEBUG'} > 2);
 			    &call_func_total($tmp[2], $tmp[3]+1);
 			}
 		    }
@@ -867,11 +754,11 @@ if($ALL) {
 	    } else {
 		# {{{ CMD: get
 		if(!$tmp[3] || (($tmp[2] == 1) && $CFG{'IGNORE_INDEX'})) {
-		    &no_value();
+		    BayourCOM_SNMP::no_value();
 		} elsif($tmp[2] && $prints_total{$tmp[2]}) {
-		    &echo(0, "tmp[2] && prints_total{tmp[2]} (".$prints_total{$tmp[2]}.")\n");
+		    BayourCOM_SNMP::echo(0, "tmp[2] && prints_total{tmp[2]} (".$prints_total{$tmp[2]}.")\n");
 		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
-			&no_value("index");
+			BayourCOM_SNMP::no_value("index");
 		    } else {
 			&call_func_total($tmp[2], $tmp[3]);
 		    }
@@ -879,7 +766,7 @@ if($ALL) {
 		    &call_func_domain($tmp[2], $tmp[3]);
 		} else {
 		    # End of MIB.
-		    &no_value();
+		    BayourCOM_SNMP::no_value();
 		}
 # }}} # CMD: get
 	    }
@@ -910,13 +797,13 @@ if($ALL) {
 			    &call_func_domain($tmp[2]+1, 1);
 			} else {
 			    # End of MIB.
-			    &no_value();
+			    BayourCOM_SNMP::no_value();
 			}
 		    } else {
 			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
-			    &no_value("index");
+			    BayourCOM_SNMP::no_value("index");
 			} else {
-			    &echo(0, "=> $x < $count_domains\n") if($CFG{'DEBUG'} > 2);
+			    BayourCOM_SNMP::echo(0, "=> $x < $count_domains\n") if($CFG{'DEBUG'} > 2);
 			    &call_func_domain($tmp[2], $tmp[3]+1);
 			}
 		    }
@@ -926,12 +813,12 @@ if($ALL) {
 		# {{{ CMD: get
 		if($tmp[2] && $prints_domain{$tmp[2]}) {
 		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
-			&no_value();
+			BayourCOM_SNMP::no_value();
 		    } else {
 			&call_func_domain($tmp[2], $tmp[3]);
 		    }
 		} else {
-		    &no_value();
+		    BayourCOM_SNMP::no_value();
 		}
 # }}} # CMD: get
 	    }
@@ -939,7 +826,7 @@ if($ALL) {
 
 	} else {
 	    # {{{ ------------------------------------- OID_BASE.?              (Unknown OID)       
-	    &no_value();
+	    BayourCOM_SNMP::no_value();
 # }}}
 	}
     }
