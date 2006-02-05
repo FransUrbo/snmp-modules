@@ -1,4 +1,4 @@
-# {{{ $Id: BayourCOM_SNMP.pm,v 1.1 2006-02-05 11:37:11 turbo Exp $
+# {{{ $Id: BayourCOM_SNMP.pm,v 1.2 2006-02-05 11:49:59 turbo Exp $
 # Common functions used by Bayour.COM SNMP modules.
 #
 # Copyright 2005 Turbo Fredriksson <turbo@bayour.com>.
@@ -117,6 +117,21 @@ sub get_config {
     return(%CFG);
 }
 # }}}
+
+# {{{ Output some extra debugging
+sub output_extra_debugging {
+    my @tmp = @_;
+
+    my $string = "=> ";
+    for(my $i=0; defined($tmp[$i]); $i++) {
+	$string .= "tmp[$i]=".$tmp[$i];
+	$string .= ", " if(defined($tmp[$i+1]));
+    }
+    $string .= "\n";
+
+    BayourCOM_SNMP::echo(0, $string);
+}
+# }}} # Extra debugging
 
 1;
 __END__

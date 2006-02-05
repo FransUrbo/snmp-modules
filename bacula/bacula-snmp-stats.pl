@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bacula-snmp-stats.pl,v 1.21 2006-02-05 11:40:01 turbo Exp $
+# {{{ $Id: bacula-snmp-stats.pl,v 1.22 2006-02-05 11:50:01 turbo Exp $
 # Extract job statistics for a bacula backup server.
 # Only tested with a MySQL backend, but is general
 # enough to work with the PostgreSQL backend as well.
@@ -2220,21 +2220,6 @@ sub call_write {
 }
 # }}}
 
-# {{{ Output some extra debugging
-sub output_extra_debugging {
-    my @tmp = @_;
-
-    my $string = "=> ";
-    for(my $i=0; defined($tmp[$i]); $i++) {
-	$string .= "tmp[$i]=".$tmp[$i];
-	$string .= ", " if(defined($tmp[$i+1]));
-    }
-    $string .= "\n";
-
-    BayourCOM_SNMP::echo(0, $string);
-}
-# }}} # Extra debugging
-
 # {{{ Load all information needed
 sub load_information {
     # Load configuration file and connect to SQL server.
@@ -2273,7 +2258,7 @@ sub load_information {
 sub get_next_oid {
     my @tmp = @_;
 
-    &output_extra_debugging(@tmp) if($CFG{'DEBUG'} > 3);
+    BayourCOM_SNMP::output_extra_debugging(@tmp) if($CFG{'DEBUG'} > 3);
 
     # next1 => Base OID to use in call
     # next2 => next1.next2 => Full OID to retreive
@@ -2454,7 +2439,7 @@ if($ALL) {
 	BayourCOM_SNMP::echo(0, "=> ARG='$arg  $OID_BASE.$oid'\n") if($CFG{'DEBUG'} >= 2);
 	
 	my @tmp = split('\.', $oid);
-	&output_extra_debugging(@tmp) if($CFG{'DEBUG'} > 2);
+	BayourCOM_SNMP::output_extra_debugging(@tmp) if($CFG{'DEBUG'} > 2);
 # }}}
 	
 	if($arg eq 'getnext') {

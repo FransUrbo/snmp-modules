@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.16 2006-02-05 11:42:15 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.17 2006-02-05 11:50:01 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -463,21 +463,6 @@ sub call_func_domain {
 # }}}
 
 
-# {{{ Output some extra debugging
-sub output_extra_debugging {
-    my @tmp = @_;
-
-    my $string = "=> ";
-    for(my $i=0; defined($tmp[$i]); $i++) {
-	$string .= "tmp[$i]=".$tmp[$i];
-	$string .= ", " if(defined($tmp[$i+1]));
-    }
-    $string .= "\n";
-
-    BayourCOM_SNMP::echo(0, $string);
-}
-# }}} # Extra debugging
-
 # {{{ Load all information needed
 sub load_information {
     # Load configuration file
@@ -642,7 +627,7 @@ if($ALL) {
 	BayourCOM_SNMP::echo(0, "=> OID=$OID_BASE.$oid\n") if($CFG{'DEBUG'} > 2);
 	
 	my @tmp = split('\.', $oid);
-	&output_extra_debugging(@tmp) if($CFG{'DEBUG'} > 2);
+	BayourCOM_SNMP::output_extra_debugging(@tmp) if($CFG{'DEBUG'} > 2);
 	
 	BayourCOM_SNMP::echo(0, "=> count_counters=$count_counters, count_types=$count_types, count_domains=$count_domains\n") if($CFG{'DEBUG'} > 2);
 # }}} Get arguments
