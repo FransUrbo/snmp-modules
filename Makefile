@@ -4,13 +4,17 @@
 DATE    := $(shell date +"%b %e %Y")
 TMPDIR  := $(shell tempfile)
 
+# ---------------------------------
 BIND9_VERSION := $(shell cat bind9/.version | sed 's@\ .*@@')
 BIND9_INSTDIR := bind9-snmp-$(BIND9_VERSION)
 
 BACULA_VERSION := $(shell cat bacula/.version | sed 's@\ .*@@')
 BACULA_INSTDIR := bacula-snmp-$(BACULA_VERSION)
 
+PACKAGE_VERSION := $(shell cat package/.version | sed 's@\ .*@@')
+PACKAGE_INSTDIR := package-snmp-$(PACKAGE_VERSION)
 
+# ---------------------------------
 $(BIND9_INSTDIR):
 	@(if [ -f $(TMPDIR) ]; then \
 	    rm -f $(TMPDIR); \
@@ -25,8 +29,16 @@ $(BACULA_INSTDIR):
 	  mkdir -p $(TMPDIR)/$(BACULA_INSTDIR); \
 	  echo "Instdir:   "$(TMPDIR)/$(BACULA_INSTDIR))
 
+$(PACKAGE_INSTDIR):
+	@(if [ -f $(TMPDIR) ]; then \
+	    rm -f $(TMPDIR); \
+	  fi; \
+	  mkdir -p $(TMPDIR)/$(PACKAGE_INSTDIR); \
+	  echo "Instdir:   "$(TMPDIR)/$(PACKAGE_INSTDIR))
+
+# ---------------------------------
 bind9_tarball: $(BIND9_INSTDIR)
-	@(cp BAYOUR-COM-MIB.txt $(TMPDIR)/$(BIND9_INSTDIR)/; \
+	@(cp BAYOUR-COM-MIB.txt BayourCOM_SNMP.pm $(TMPDIR)/$(BIND9_INSTDIR)/; \
 	  cp bind9/bind9-snmp-stats.pl $(TMPDIR)/$(BIND9_INSTDIR)/; \
 	  cp bind9/bind9-stats*.xml $(TMPDIR)/$(BIND9_INSTDIR)/; \
 	  cp bind9/cacti_host_template_bind9_snmp_machine.xml $(TMPDIR)/$(BIND9_INSTDIR)/; \
@@ -42,8 +54,9 @@ bind9_changes:
 	  mv bind9/CHANGES.new bind9/CHANGES; \
 	  cvs commit -m "New release - $(BIND9_VERSION)" bind9/CHANGES)
 
+# ---------------------------------
 bacula_tarball: $(BACULA_INSTDIR)
-	@(cp BAYOUR-COM-MIB.txt $(TMPDIR)/$(BACULA_INSTDIR)/; \
+	@(cp BAYOUR-COM-MIB.txt BayourCOM_SNMP.pm $(TMPDIR)/$(BACULA_INSTDIR)/; \
 	  cp bacula/bacula-snmp-stats.pl $(TMPDIR)/$(BACULA_INSTDIR)/; \
 	  cp bacula/bacula-stats*.xml $(TMPDIR)/$(BACULA_INSTDIR)/; \
 	  cp bacula/cacti_data_query_snmp_local_bacula_statistics_*.xml $(TMPDIR)/$(BACULA_INSTDIR)/; \
@@ -57,6 +70,21 @@ bacula_changes:
 	  cat bacula/CHANGES | sed "s@TO BE ANNOUNCED@Release \($(DATE)\)@" > bacula/CHANGES.new; \
 	  mv bacula/CHANGES.new bacula/CHANGES; \
 	  cvs commit -m "New release - $(BACULA_VERSION)" bacula/CHANGES)
+
+# ---------------------------------
+package_tarball: $(PACKAGE_INSTDIR)
+	@(cp BAYOUR-COM-MIB.txt BayourCOM_SNMP.pm $(TMPDIR)/$(PACKAGE_INSTDIR)/; \
+	  cp package/package-snmp-stats.pl $(TMPDIR)/$(PACKAGE_INSTDIR)/; \
+	  cd $(TMPDIR); \
+	  tar czf package-snmp_$(PACKAGE_VERSION).tgz `find $(PACKAGE_INSTDIR) -type f`; \
+	  tar cjf package-snmp_$(PACKAGE_VERSION).tar.bz2 `find $(PACKAGE_INSTDIR) -type f`; \
+	  zip package-snmp_$(PACKAGE_VERSION).zip `find $(PACKAGE_INSTDIR) -type f` > /dev/null)
+
+package_changes:
+	@(echo "Date: $(DATE)"; \
+	  cat package/CHANGES | sed "s@TO BE ANNOUNCED@Release \($(DATE)\)@" > package/CHANGES.new; \
+	  mv package/CHANGES.new package/CHANGES; \
+	  cvs commit -m "New release - $(PACKAGE_VERSION)" package/CHANGES)
 
 check_mib:
 # Bug in the tool - Ignore: 'warning: index element.*should be not-accessible in SMIv2 MIB'
