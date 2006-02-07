@@ -70,6 +70,7 @@ bacula_tarball: $(BACULA_INSTDIR)
 	  cp bacula/bacula-snmp-stats.pl $(TMPDIR)/$(BACULA_INSTDIR)/; \
 	  cp bacula/bacula-stats*.xml $(TMPDIR)/$(BACULA_INSTDIR)/; \
 	  cp bacula/cacti_data_query_snmp_local_bacula_statistics_*.xml $(TMPDIR)/$(BACULA_INSTDIR)/; \
+	  cp bacula/snmp*.stub $(TMPDIR)/$(BACULA_INSTDIR)/; \
 	  cd $(TMPDIR); \
 	  tar czf bacula-snmp_$(BACULA_VERSION).tgz `find $(BACULA_INSTDIR) -type f`; \
 	  tar cjf bacula-snmp_$(BACULA_VERSION).tar.bz2 `find $(BACULA_INSTDIR) -type f`; \
@@ -85,6 +86,7 @@ bacula_changes:
 system_tarball: $(SYSTEM_INSTDIR)
 	@(cp BAYOUR-COM-MIB.txt BayourCOM_SNMP.pm $(TMPDIR)/$(SYSTEM_INSTDIR)/; \
 	  cp system/system-snmp-stats.pl $(TMPDIR)/$(SYSTEM_INSTDIR)/; \
+	  cp system/snmp*.stub $(TMPDIR)/$(SYSTEM_INSTDIR)/; \
 	  cd $(TMPDIR); \
 	  tar czf system-snmp_$(SYSTEM_VERSION).tgz `find $(SYSTEM_INSTDIR) -type f`; \
 	  tar cjf system-snmp_$(SYSTEM_VERSION).tar.bz2 `find $(SYSTEM_INSTDIR) -type f`; \
@@ -100,6 +102,7 @@ system_changes:
 package_tarball: $(PACKAGE_INSTDIR)
 	@(cp BAYOUR-COM-MIB.txt BayourCOM_SNMP.pm $(TMPDIR)/$(PACKAGE_INSTDIR)/; \
 	  cp package/package-snmp-stats.pl $(TMPDIR)/$(PACKAGE_INSTDIR)/; \
+	  cp package/snmp*.stub $(TMPDIR)/$(PACKAGE_INSTDIR)/; \
 	  cd $(TMPDIR); \
 	  tar czf package-snmp_$(PACKAGE_VERSION).tgz `find $(PACKAGE_INSTDIR) -type f`; \
 	  tar cjf package-snmp_$(PACKAGE_VERSION).tar.bz2 `find $(PACKAGE_INSTDIR) -type f`; \
