@@ -1,6 +1,10 @@
-bacula-snmp 1.3b TO BE ANNOUNCED
+bacula-snmp 1.4 TO BE ANNOUNCED
 	Bug fixes
 	  + There's no CounterXX - they should be Integer32's.
+
+	Misc changes
+	  + Remove some functions that are used in ALL my SNMP modules to a separate
+	    perl library (../BayourCOM_SNMP.pm).
 
 bacula-snmp 1.3 Release (Nov  1 2005)
 	Bug fixes

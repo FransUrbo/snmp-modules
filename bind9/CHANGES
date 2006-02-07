@@ -2,6 +2,8 @@ bind9-snmp 1.6 TO BE ANNOUNCED
 	Bug fixes
 	Misc changes
 	  + Document the need to make sure the MIB is the correct version.
+	  + Remove some functions that are used in ALL my SNMP modules to a separate
+	    perl library (../BayourCOM_SNMP.pm).
 
 bind9-snmp 1.5 Release (Jan 16 2006)
 	Bug fixes
