@@ -1,4 +1,4 @@
-bacula-snmp 1.4 TO BE ANNOUNCED
+bacula-snmp 1.4 Release (Feb  7 2006)
 	Bug fixes
 	  + There's no CounterXX - they should be Integer32's.
 
