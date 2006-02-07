@@ -1,5 +1,5 @@
 BAYOUR-COM-MIB DEFINITIONS ::= BEGIN
--- $Id: BAYOUR-COM-MIB.txt,v 1.15 2006-02-05 11:36:11 turbo Exp $
+-- $Id: BAYOUR-COM-MIB.txt,v 1.16 2006-02-07 10:10:19 turbo Exp $
 
 -- This is my very first MIB! A lot of it is taken from the IF-MIB
 -- by the IETF Interfaces MIB Working Group (200006140000).
@@ -396,7 +396,8 @@ bayourCom MODULE-IDENTITY
 
           packageInfoGroup             OBJECT-GROUP
             OBJECTS                    { packagePriority, packageSection, packageMaintainer,
-                                         packageSource, packageDepends, packageRecommends }
+                                         packageSource, packageDepends, packageRecommends,
+                                         packageSuggests, packageSize, packageMD5Sum }
             STATUS                     current
             DESCRIPTION                "A collection of objects providing information
                                         applicable to Package information."
@@ -1694,7 +1695,10 @@ bayourCom MODULE-IDENTITY
             packageMaintainer             DisplayString,
             packageSource                 DisplayString,
             packageDepends                DisplayString,
-            packageRecommends             DisplayString
+            packageRecommends             DisplayString,
+            packageSuggests               DisplayString,
+            packageSize                   DisplayString,
+            packageMD5Sum                 DisplayString
           }
 
           packageIndexInfo                 OBJECT-TYPE
@@ -1702,49 +1706,70 @@ bayourCom MODULE-IDENTITY
             MAX-ACCESS                     not-accessible
             STATUS                         current
             DESCRIPTION                    "Reference Index for each counter."
-            ::= { packageInfoEntry 1 }
+            ::= { packageInfoEntry  1 }
 
           packagePriority                  OBJECT-TYPE
             SYNTAX                         DisplayString
             MAX-ACCESS                     read-only
             STATUS                         current
             DESCRIPTION                    "xx"
-            ::= { packageInfoEntry 2 }
+            ::= { packageInfoEntry  2 }
 
           packageSection                   OBJECT-TYPE
             SYNTAX                         DisplayString
             MAX-ACCESS                     read-only
             STATUS                         current
             DESCRIPTION                    "xx"
-            ::= { packageInfoEntry 3 }
+            ::= { packageInfoEntry  3 }
 
           packageMaintainer                OBJECT-TYPE
             SYNTAX                         DisplayString
             MAX-ACCESS                     read-only
             STATUS                         current
             DESCRIPTION                    "xx"
-            ::= { packageInfoEntry 4 }
+            ::= { packageInfoEntry  4 }
 
           packageSource                    OBJECT-TYPE
             SYNTAX                         DisplayString
             MAX-ACCESS                     read-only
             STATUS                         current
             DESCRIPTION                    "xx"
-            ::= { packageInfoEntry 5 }
+            ::= { packageInfoEntry  5 }
 
           packageDepends                   OBJECT-TYPE
             SYNTAX                         DisplayString
             MAX-ACCESS                     read-only
             STATUS                         current
             DESCRIPTION                    "xx"
-            ::= { packageInfoEntry 6 }
+            ::= { packageInfoEntry  6 }
 
           packageRecommends                OBJECT-TYPE
             SYNTAX                         DisplayString
             MAX-ACCESS                     read-only
             STATUS                         current
             DESCRIPTION                    "xx"
-            ::= { packageInfoEntry 7 }
+            ::= { packageInfoEntry  7 }
+
+          packageSuggests                  OBJECT-TYPE
+            SYNTAX                         DisplayString
+            MAX-ACCESS                     read-only
+            STATUS                         current
+            DESCRIPTION                    "xx"
+            ::= { packageInfoEntry  8 }
+
+          packageSize                      OBJECT-TYPE
+            SYNTAX                         DisplayString
+            MAX-ACCESS                     read-only
+            STATUS                         current
+            DESCRIPTION                    "xx"
+            ::= { packageInfoEntry  9 }
+
+          packageMD5Sum                    OBJECT-TYPE
+            SYNTAX                         DisplayString
+            MAX-ACCESS                     read-only
+            STATUS                         current
+            DESCRIPTION                    "xx"
+            ::= { packageInfoEntry 10 }
 -- }}}
 -- }}}
 END
