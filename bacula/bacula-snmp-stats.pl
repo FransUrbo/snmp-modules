@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bacula-snmp-stats.pl,v 1.24 2006-02-07 10:23:59 turbo Exp $
+# {{{ $Id: bacula-snmp-stats.pl,v 1.25 2006-02-07 10:43:04 turbo Exp $
 # Extract job statistics for a bacula backup server.
 # Only tested with a MySQL backend, but is general
 # enough to work with the PostgreSQL backend as well.
@@ -2422,7 +2422,7 @@ if($ALL) {
 	}
 
 	# Re-get the DEBUG config option (so that we don't have to restart process).
-	%CFG = get_config($CFG_FILE, 'DEBUG');
+	$CFG{'DEBUG'} = get_config($CFG_FILE, 'DEBUG');
 
 	# {{{ Get all run arguments - next/specfic OID
 	my $arg = $_; chomp($arg);

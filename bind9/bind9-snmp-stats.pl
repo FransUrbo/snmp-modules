@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.18 2006-02-07 10:24:00 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.19 2006-02-07 10:43:05 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -611,7 +611,7 @@ if($ALL) {
 	}
 
 	# Re-get the DEBUG config option (so that we don't have to restart process).
-	%CFG = get_config('DEBUG');
+	$CFG{'DEBUG'} = get_config('DEBUG');
 	
 	# {{{ Get all run arguments - next/specfic OID
 	my $arg = $_; chomp($arg);
