@@ -1,4 +1,4 @@
-# {{{ $Id: BayourCOM_SNMP.pm,v 1.3 2006-02-05 18:45:37 turbo Exp $
+# {{{ $Id: BayourCOM_SNMP.pm,v 1.4 2006-02-07 10:17:02 turbo Exp $
 # Common functions used by Bayour.COM SNMP modules.
 #
 # Copyright 2005 Turbo Fredriksson <turbo@bayour.com>.
@@ -6,6 +6,13 @@
 # }}}
 package BayourCOM_SNMP;
 use POSIX qw(strftime);
+require Exporter;
+
+use vars qw(@EXPORT @ISA %CFG);
+
+%CFG = ();
+@ISA = qw(Exporter);
+@EXPORT = qw(help debug no_value get_config output_extra_debugging get_timestring open_log %CFG);
 
 # ----- INTERNAL
 
@@ -21,10 +28,10 @@ sub get_timestring {
 
 # {{{ Open logfile for debugging
 sub open_log {
-    die("DEBUG_FILE not set in config file!\n") if(!$main::CFG{'DEBUG_FILE'});
+    die("DEBUG_FILE not set in config file!\n") if(!$CFG{'DEBUG_FILE'});
 
-    if(!open(LOG, ">> ".$main::CFG{'DEBUG_FILE'})) {
-	&echo(0, "Can't open logfile '".$main::CFG{'DEBUG_FILE'}."', $!\n") if($main::CFG{'DEBUG'});
+    if(!open(LOG, ">> ".$CFG{'DEBUG_FILE'})) {
+	debug(0, "Can't open logfile '".$CFG{'DEBUG_FILE'}."', $!\n") if($CFG{'DEBUG'});
 	return 0;
     } else {
 	return 1;
@@ -38,34 +45,34 @@ sub open_log {
 sub help {
     my $name = `basename $0`; chomp($name);
 
-    &echo(0, "Usage: $name [option] [oid]\n");
-    &echo(0, "Options: --debug|-d	Run in debug mode\n");
-    &echo(0, "         --all|-a	Get all information\n");
-    &echo(0, "         -n		Get next OID ('oid' required)\n");
-    &echo(0, "         -g		Get specified OID ('oid' required)\n");
+    debug(0, "Usage: $name [option] [oid]\n");
+    debug(0, "Options: --debug|-d	Run in debug mode\n");
+    debug(0, "         --all|-a	Get all information\n");
+    debug(0, "         -n		Get next OID ('oid' required)\n");
+    debug(0, "         -g		Get specified OID ('oid' required)\n");
 
-    exit 1 if($main::CFG{'DEBUG'});
+    exit 1 if($CFG{'DEBUG'});
 }
 # }}}
 
 # {{{ Log output
-sub echo {
+sub debug {
     my $stdout = shift;
     my $string = shift;
     my $log_opened = 0;
 
     # Open logfile if debugging OR running from snmpd.
-    if($main::CFG{'DEBUG'}) {
-	if(&open_log()) {
+    if($CFG{'DEBUG'}) {
+	if(open_log()) {
 	    $log_opened = 1;
-	    open(STDERR, ">&LOG") if(($main::CFG{'DEBUG'} <= 2) || $ENV{'MIBDIRS'});
+	    open(STDERR, ">LOG") if(($CFG{'DEBUG'} <= 2) || $ENV{'MIBDIRS'});
 	}
     }
 
     if($stdout) {
 	print $string;
     } elsif($log_opened) {
-	print LOG &get_timestring()," " if($main::CFG{'DEBUG'} > 2);
+	print LOG get_timestring()," " if($CFG{'DEBUG'} > 2);
 	print LOG $string;
     }
 }
@@ -73,10 +80,10 @@ sub echo {
 
 # {{{ Return 'no such value'
 sub no_value {
-    &echo(0, "=> No value in this object - exiting!\n") if($main::CFG{'DEBUG'} > 1);
+    debug(0, "=> No value in this object - exiting!\n") if($CFG{'DEBUG'} > 1);
     
-    &echo(1, "NONE\n");
-    &echo(0, "\n") if($main::CFG{'DEBUG'} > 1);
+    debug(1, "NONE\n");
+    debug(0, "\n") if($CFG{'DEBUG'} > 1);
 }
 # }}}
 
@@ -101,8 +108,8 @@ sub get_config {
 		# Get all options
 		$CFG{$key} = $value;
 	    } elsif($option eq $key) {
-		# Get only this option
-		$CFG{$key} = $value;
+		# Return only this option
+		return $value;
 	    }
 	}
 	close(CFG);
@@ -129,7 +136,7 @@ sub output_extra_debugging {
     }
     $string .= "\n";
 
-    BayourCOM_SNMP::echo(0, $string);
+    debug(0, $string);
 }
 # }}} # Extra debugging
 
