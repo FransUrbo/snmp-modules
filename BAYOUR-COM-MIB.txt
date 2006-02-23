@@ -1,5 +1,5 @@
 BAYOUR-COM-MIB DEFINITIONS ::= BEGIN
--- $Id: BAYOUR-COM-MIB.txt,v 1.16 2006-02-07 10:10:19 turbo Exp $
+-- $Id: BAYOUR-COM-MIB.txt,v 1.17 2006-02-23 09:36:53 turbo Exp $
 
 -- This is my very first MIB! A lot of it is taken from the IF-MIB
 -- by the IETF Interfaces MIB Working Group (200006140000).
@@ -13,7 +13,7 @@ IMPORTS
 
 -- {{{ bayourCom Module identity
 bayourCom MODULE-IDENTITY
-  LAST-UPDATED                         "200602051008Z"  -- February 5, 2006
+  LAST-UPDATED                         "200602230927Z"  -- February 23, 2006
   ORGANIZATION                         "Bayour.COM"
   CONTACT-INFO                         "Postal:      Turbo Fredriksson
                                                      Naverlursgatan 8
@@ -23,6 +23,9 @@ bayourCom MODULE-IDENTITY
                                         Tel:         +46 704-697645
                                         E-Mail:      turbo@bayour.com"
   DESCRIPTION                          "The MIB module defines the Bayour.COM Bind9 and Bacula statistics."
+
+  REVISION                             "200602230927Z"  -- February 23, 2006
+  DESCRIPTION                          "Additional column in the b9stDomainsTable: b9stCounterView."
 
   REVISION                             "200602051008Z"  -- February 5, 2006
   DESCRIPTION                          "* Add the packageStats information and conformance stuff.
@@ -228,7 +231,7 @@ bayourCom MODULE-IDENTITY
           b9stGroupDomains             OBJECT-GROUP
             OBJECTS                    { b9stNumberDomains, b9stDomainName, b9stCounterSuccess,
                                          b9stCounterReferral, b9stCounterNXRRSet, b9stCounterNXDomain,
-                                         b9stCounterRecursion, b9stCounterFailure }
+                                         b9stCounterRecursion, b9stCounterFailure, b9stCounterView }
             STATUS                     current
             DESCRIPTION                "A collection of objects providing information
                                         applicable to B9st statistics."
@@ -512,7 +515,8 @@ bayourCom MODULE-IDENTITY
             b9stCounterNXRRSet         Integer32,
             b9stCounterNXDomain        Integer32,
             b9stCounterRecursion       Integer32,
-            b9stCounterFailure         Integer32
+            b9stCounterFailure         Integer32,
+            b9stCounterView            DisplayString
           }
   
           b9stIndexDomains             OBJECT-TYPE
@@ -572,6 +576,13 @@ bayourCom MODULE-IDENTITY
             STATUS                     current
             DESCRIPTION                "Total number of reverse requests."
             ::= { b9stDomainsEntry 8 }
+
+          b9stCounterView              OBJECT-TYPE
+            SYNTAX                     DisplayString
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Bind9 view the domain is located in."
+            ::= { b9stDomainsEntry 9 }
 -- }}}
 -- }}}
 
