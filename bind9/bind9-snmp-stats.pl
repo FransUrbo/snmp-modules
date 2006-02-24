@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.19 2006-02-07 10:43:05 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.20 2006-02-24 09:23:18 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -22,22 +22,28 @@ my $CFG_FILE = "/etc/bind/.bindsnmp";
 #   Optional arguments
 #	DEBUG=4
 #	DEBUG_FILE=/var/log/bind9-snmp-stats.log
+#	STATS_FILE=/var/lib/named/var/log/dns-stats.log
 #	IGNORE_INDEX=1
 #
 #   Required options
 #	RNDC=/usr/sbin/rndc
-#	STATS_FILE=/var/lib/named/var/log/dns-stats.log
 #	STATS_FILE_OWNER_GROUP=bind9.bind9
 #	DELTA_DIR=/var/tmp/
 #
+# Comments must start at the beginning of the line, and continue to the
+# end of the line. The comment character is any other character than
+# a-z and A-Z.
+#
 # NOTE1: RNDC is semi-required - if it is unset, bind9-snmp-stats.pl
 #        will NOT remove the stats file after reading. This can be
-#        used to load someone elses 'database' for debuging purposes.
-#        You'd get the exact same values every time though!
+#        used to load someone elses 'database' for debuging purposes
+#        (using only the option 'STATS_FILE'). You'd get the exact
+#        same values every time though!
 #
 # NOTE2: Please do NOT set the IGNORE_INDEX to anything else than 1' (or
-#        better yet, leave it unset/undefined). Strange things will/can
-#        happen if you disable it! !! YOU HAVE BEEN WARNED !!
+#        better yet, leave it unset/undefined) unless I have specifically
+#        asked you to enable it! Strange things WILL happen if you use this
+#        the option!           !! YOU HAVE BEEN WARNED !!
 #
 # NOTE3: If DEBUG is specified (default is '0' - no debugging), then the
 #        DEBUG_FILE is _required_!
@@ -54,15 +60,14 @@ use strict;
 use BayourCOM_SNMP;
 
 $ENV{PATH}   = "/bin:/usr/bin:/usr/sbin";
-my %CFG;
 
 # When debugging, it's easier to type this than the full OID
 # This is changed (way) below IF/WHEN we're running through SNMPd!
 my $OID_BASE = "OID_BASE";
 my $arg      = '';
 
-my %DATA;
-my %DOMAINS;
+my %DATA;    # => DATA{type}{total|reverse|forward}
+my %DOMAINS; # => DOMAINS{domain}{view}{type}
 
 my %counters       = ("1" => 'success',
 		      "2" => 'referral',
@@ -89,7 +94,8 @@ my %prints_domain  = ("1" => "DomainsIndex",
 		      "5" => "CounterNXRRSet",
 		      "6" => "CounterNXDomain",
 		      "7" => "CounterRecursion",
-		      "8" => "CounterFailure");
+		      "8" => "CounterFailure",
+		      "9" => "CounterView"); # If this changes, update print_b9stCounterTypeView()!
 
 # How many base counters?
 my $count_counters;
@@ -109,7 +115,7 @@ my(%total, %forward, %reverse);
 # The input OID
 my($oid);
 
-# handle a SIGALRM - read information from the SQL server
+# handle a SIGALRM - read statistics file
 $SIG{'ALRM'} = \&load_information;
 # }}}
 
@@ -158,13 +164,13 @@ sub print_b9stTotalsIndex {
     my %cnts;
 
     if($j) {
-	debug(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.$j\n") if($CFG{'DEBUG'} > 1);
+	debug(0, "=> OID_BASE.b9stTotalsTable.b9stTotalsEntry.b9stIndexTotals.$j\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ($j => $counters{$j});
     } elsif(defined($j)) {
-	debug(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.x\n") if($CFG{'DEBUG'} > 1);
+	debug(0, "=> OID_BASE.b9stTotalsTable.b9stTotalsEntry.b9stIndexTotals.x\n") if($CFG{'DEBUG'} > 1);
 	%cnts = %counters;
     } else {
-	debug(0, "=> OID_BASE.b9stTotalsTable.b9stIndexTotals.1\n") if($CFG{'DEBUG'} > 1);
+	debug(0, "=> OID_BASE.b9stTotalsTable.b9stTotalsEntry.b9stIndexTotals.1\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ("1" => $counters{"1"});
     }
 
@@ -188,13 +194,13 @@ sub print_b9stCounterName {
     my %cnts;
 
     if($j) {
-	debug(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.$j\n") if($CFG{'DEBUG'} > 1);
+	debug(0, "=> OID_BASE.b9stTotalsTable.b9stTotalsEntry.b9stCounterName.$j\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ($j => $counters{$j});
     } elsif(defined($j)) {
-	debug(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.x\n") if($CFG{'DEBUG'} > 1);
+	debug(0, "=> OID_BASE.b9stTotalsTable.b9stTotalsEntry.b9stCounterName.x\n") if($CFG{'DEBUG'} > 1);
 	%cnts = %counters;
     } else {
-	debug(0, "=> OID_BASE.b9stTotalsTable.b9stCounterName.1\n") if($CFG{'DEBUG'} > 1);
+	debug(0, "=> OID_BASE.b9stTotalsTable.b9stTotalsEntry.b9stCounterName.1\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ("1" => $counters{"1"});
     }
 
@@ -230,14 +236,14 @@ sub print_b9stCounterTypeTotal {
 	if($types{$nr} eq $type) {
 	    # .1   => Index
 	    # .2   => CounterName
-	    # .3-5 => CounterType
+	    # .3-9 => CounterType
 	    $type_nr = $nr + 2;
 	    last;
 	}
     }
 
     my $type_name = ucfirst($types{$type_nr-2});
-    debug(0, "=> OID_BASE.b9stTotalsTable.b9stCounter$type_name.x\n") if($CFG{'DEBUG'} > 1);
+    debug(0, "=> OID_BASE.b9stTotalsTable.b9stTotalsEntry.b9stCounter$type_name.x\n") if($CFG{'DEBUG'} > 1);
 
     my $counter;
     foreach $nr (keys %cnts) {
@@ -280,18 +286,7 @@ sub print_b9stCounterReverse {
 sub print_b9stCounterTypeDomains {
     my $type = shift;
     my $j    = shift;
-
-    my %cnts;
-    if($j) {
-	my $i = $j;
-	$j = sprintf("%02d", $j);
-
-	%cnts = ($i => $DOMAINS{$j});
-    } elsif(defined($j)) {
-	%cnts = %DOMAINS;
-    } else {
-	%cnts = ("1" => $DOMAINS{"1"});
-    }
+    debug(0, "=> print_b9stCounterTypeDomains('$type', '$j')\n") if($CFG{'DEBUG'} > 2);
 
     my $nr = 0;
     my $type_nr = 0;
@@ -299,24 +294,57 @@ sub print_b9stCounterTypeDomains {
 	if($counters{$nr} eq $type) {
 	    # .1   => Index
 	    # .2   => CounterName
-	    # .3-5 => CounterType
+	    # .3-9 => CounterType
 	    $type_nr = $nr + 2;
 	    last;
 	}
     }
 
     my $type_name = ucfirst($counters{$type_nr-2});
-    debug(0, "=> OID_BASE.b9stDomainsTable.b9stCounter$type_name.x\n") if($CFG{'DEBUG'} > 1);
+    debug(0, "=> OID_BASE.b9stDomainsTable.b9stDomainsEntry.b9stCounter$type_name.x\n") if($CFG{'DEBUG'} > 1);
 
-    foreach my $i (sort keys %cnts) {
-	my ($domain, $value) = split(':', $cnts{$i}{$type});
+    my $i = 1;
+    foreach my $domain (sort keys %DOMAINS) {
+	foreach my $view (keys %{ $DOMAINS{$domain} }) {
+	    if(($i == $j) or ($j == 0)) {
+		debug(0, "$OID_BASE.4.1.$type_nr.$i = ".$DOMAINS{$domain}{$view}{$type}."\n") if($CFG{'DEBUG'});
+		
+		debug(1, "$OID_BASE.4.1.$type_nr.$i\n");
+		debug(1, "integer\n");
+		debug(1, $DOMAINS{$domain}{$view}{$type}."\n");
+	    }
 
-	$i =~ s/^0//;
-	debug(0, "$OID_BASE.4.1.$type_nr.$i = $value\n") if($CFG{'DEBUG'});
+	    $i++;
+	}
+    }
 
-	debug(1, "$OID_BASE.4.1.$type_nr.$i\n");
-	debug(1, "integer\n");
-	debug(1, "$value\n");
+    debug(0, "\n") if($CFG{'DEBUG'} > 1);
+}
+# }}}
+
+# {{{ print_b9stCounterTypeView()
+sub print_b9stCounterTypeView {
+    my $type = shift;
+    my $j    = shift;
+    debug(0, "=> print_b9stCounterTypeView('$type', '$j')\n") if($CFG{'DEBUG'} > 2);
+
+    my $type_nr = 9;
+    my $type_name = "View";
+    debug(0, "=> OID_BASE.b9stDomainsTable.b9stDomainsEntry.b9stCounter$type_name.x\n") if($CFG{'DEBUG'} > 1);
+
+    my $i = 1;
+    foreach my $domain (sort keys %DOMAINS) {
+	foreach my $view (keys %{ $DOMAINS{$domain} }) {
+	    if(($i == $j) or ($j == 0)) {
+		debug(0, "$OID_BASE.4.1.$type_nr.$i = $view\n") if($CFG{'DEBUG'});
+		
+		debug(1, "$OID_BASE.4.1.$type_nr.$i\n");
+		debug(1, "string\n");
+		debug(1, "$view\n");
+	    }
+
+	    $i++;
+	}
     }
 
     debug(0, "\n") if($CFG{'DEBUG'} > 1);
@@ -365,6 +393,13 @@ sub print_b9stCounterFailure {
 }
 # }}}
 
+# {{{ print_b9stCounterView()
+sub print_b9stCounterView {
+    my $j = shift;
+    &print_b9stCounterTypeView("view", $j);
+}
+# }}}
+
 
 # {{{ print_b9stDomainsIndex()
 sub print_b9stDomainsIndex {
@@ -372,23 +407,27 @@ sub print_b9stDomainsIndex {
     my %cnts;
 
     if($j) {
-	debug(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.$j\n") if($CFG{'DEBUG'} > 1);
+	debug(0, "=> OID_BASE.b9stDomainsTable.b9stDomainsEntry.b9stIndexDomains.$j\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ($j => $DOMAINS{$j});
     } elsif(defined($j)) {
-	debug(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.x\n") if($CFG{'DEBUG'} > 1);
+	debug(0, "=> OID_BASE.b9stDomainsTable.b9stDomainsEntry.b9stIndexDomains.x\n") if($CFG{'DEBUG'} > 1);
 	%cnts = %DOMAINS;
     } else {
-	debug(0, "=> OID_BASE.b9stDomainsTable.b9stIndexDomains.1\n") if($CFG{'DEBUG'} > 1);
+	debug(0, "=> OID_BASE.b9stDomainsTable.b9stDomainsEntry.b9stIndexDomains.1\n") if($CFG{'DEBUG'} > 1);
 	%cnts = ("1" => $DOMAINS{"1"});
     }
 
-    foreach $j (sort keys %cnts) {
-	$j =~ s/^0//;
-	debug(0, "$OID_BASE.4.1.1.$j = $j\n") if($CFG{'DEBUG'});
-
-	debug(1, "$OID_BASE.4.1.1.$j\n");
-	debug(1, "integer\n");
-	debug(1, "$j\n");
+    my $i = 1;
+    foreach my $domain (sort keys %cnts) {
+	foreach my $view (keys %{ $cnts{$domain} }) {
+	    debug(0, "$OID_BASE.4.1.1.$i = $i\n") if($CFG{'DEBUG'});
+	    
+	    debug(1, "$OID_BASE.4.1.1.$i\n");
+	    debug(1, "integer\n");
+	    debug(1, "$i\n");
+	    
+	    $i++;
+	}
     }
 
     debug(0, "\n") if($CFG{'DEBUG'} > 1);
@@ -399,31 +438,21 @@ sub print_b9stDomainsIndex {
 sub print_b9stDomainName {
     my $j = shift;
     my %cnts;
+    debug(0, "=> print_b9stDomainName('$j')\n") if($CFG{'DEBUG'} > 2);
 
-    if($j) {
-	debug(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.$j\n") if($CFG{'DEBUG'} > 1);
+    my $i = 1;
+    foreach my $domain (sort keys %DOMAINS) {
+	foreach my $view (keys %{ $DOMAINS{$domain} }) {
+	    if(($i == $j) or ($j == 0)) {
+		debug(0, "$OID_BASE.4.1.2.$i = $domain\n") if($CFG{'DEBUG'});
+		
+		debug(1, "$OID_BASE.4.1.2.$i\n");
+		debug(1, "string\n");
+		debug(1, "$domain\n");
+	    }
 
-	my $i = $j;
-	$j = sprintf("%02d", $j);
-
-	%cnts = ($j => $DOMAINS{$j});
-    } elsif(defined($j)) {
-	debug(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.x\n") if($CFG{'DEBUG'} > 1);
-	%cnts = %DOMAINS;
-    } else {
-	debug(0, "=> OID_BASE.b9stDomainsTable.b9stDomainName.1\n") if($CFG{'DEBUG'} > 1);
-	%cnts = ("1" => $DOMAINS{"1"});
-    }
-
-    foreach my $j (sort keys %cnts) {
-	my $domain = (split(':', $cnts{$j}{"success"}))[0];
-
-	$j =~ s/^0//;
-	debug(0, "$OID_BASE.4.1.2.$j = $domain\n") if($CFG{'DEBUG'});
-
-	debug(1, "$OID_BASE.4.1.2.$j\n");
-	debug(1, "string\n");
-	debug(1, "$domain\n");
+	    $i++;
+	}
     }
 
     debug(0, "\n") if($CFG{'DEBUG'} > 1);
@@ -491,30 +520,36 @@ sub load_information {
 	    seek(DUMP, $file_offset, 0);
 	}
     }
-    
-    my %tmp;
+
+    # ------------- L O A D  S T A T S
+    my %views;
     while(<DUMP>) {
 	next if /^(---|\+\+\+)/;
 	chomp;
-	my ($what, $nr, $domain, $direction) = split(/\s+/, $_, 4);
-	
+	my ($what, $value, $domain, $view) = split(/\s+/, $_, 4);
+	$view = '' if(!$view);
+
 	if (!$domain) {
-	    debug(0, "DATA{$what}{total} += $nr\n") if($CFG{'DEBUG'} >= 4);
-	    $DATA{$what}{"total"} += $nr;
+	    # TOTALS counter(s)
+	    debug(0, "DATA{$what}{total} += $value\n") if($CFG{'DEBUG'} >= 4);
+	    $DATA{$what}{"total"} += $value;
 	} else {
-	    debug(0, "DOMAINS{$domain}{$what} = $nr\n") if($CFG{'DEBUG'} >= 4);
-	    $DOMAINS{$domain}{$what} = $nr;
-	    
+	    # DOMAINS counter(s)
+	    debug(0, "DOMAINS{$domain}{$view}{$what} = $value\n") if($CFG{'DEBUG'} >= 4);
+	    $DOMAINS{$domain}{$view}{$what} = $value;
+
 	    if ($domain =~ m/in-addr.arpa/) {
-		debug(0, "DATA{$what}{reverse} += $nr\n") if($CFG{'DEBUG'} >= 4);
-		$DATA{$what}{"reverse"} += $nr;
+		debug(0, "DATA{$what}{reverse} += $value\n") if($CFG{'DEBUG'} >= 4);
+		$DATA{$what}{"reverse"} += $value;
 	    } else {
-		debug(0, "DATA{$what}{forward} += $nr\n") if($CFG{'DEBUG'} >= 4);
-		$DATA{$what}{"forward"} += $nr;
+		debug(0, "DATA{$what}{forward} += $value\n") if($CFG{'DEBUG'} >= 4);
+		$DATA{$what}{"forward"} += $value;
 	    }
 	}
     } 
+
     
+    # ------------- R E C O R D  D E L T A
     if($delta && $CFG{'RNDC'}) {
 	open(D,"> $delta") || die "can't open delta file '$delta' for log '".$CFG{'STATS_FILE'}."': $!"; 
 	print D tell(DUMP); 
@@ -532,32 +567,19 @@ sub load_information {
 	system("chown ".$CFG{'STATS_FILE_OWNER_GROUP'}." ".$CFG{'STATS_FILE'});
     }
 
-    # How many domains?
-    my %tmp1;
-    my %tmp2;
+    # ------------- C O U N T  D O M A I N S
     if($CFG{'DEBUG'} >= 4) {
 	debug(0, "\n");
 	debug(0, "=> Going through and counting domains.\n");
     }
+    my %tmp1;
     foreach my $domain (sort keys %DOMAINS) {
-	debug(0, "load_information: domain='$domain' ($count_domains)\n") if($CFG{'DEBUG'} >= 4);
-	if(!$tmp{$domain}) {
+	if(!$tmp1{$domain}) {
 	    $count_domains++;
-	    
-	    $tmp{$domain} = $domain;
-	    
-	    foreach my $nr (keys %counters) {
-		my $what = $counters{$nr};
-		my $cnt  = sprintf("%02d", $count_domains);
-		
-		$tmp2{$cnt}{$what} = $domain.":".$DOMAINS{$domain}{$what};
-	    }
+	    $tmp1{$domain} = $domain;
 	}
     }
     
-    undef(%DOMAINS);
-    %DOMAINS = %tmp2;
-
     # Schedule an alarm once every five minutes to re-read information.
     alarm(5*60);
 
@@ -611,7 +633,7 @@ if($ALL) {
 	}
 
 	# Re-get the DEBUG config option (so that we don't have to restart process).
-	$CFG{'DEBUG'} = get_config('DEBUG');
+	$CFG{'DEBUG'} = get_config($CFG_FILE, 'DEBUG');
 	
 	# {{{ Get all run arguments - next/specfic OID
 	my $arg = $_; chomp($arg);
@@ -694,12 +716,12 @@ if($ALL) {
 		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			&call_func_total(2, 1);
 		    } elsif($tmp[2] < $count_counters) {
-			debug(0, "tmp[2] < $count_counters\n");
+			debug(0, "tmp[2] < $count_counters\n") if($CFG{'DEBUG'});
 			if($tmp[2] > 1) {
-			    debug(0, "tmp[2] > 1\n");
+			    debug(0, "tmp[2] > 1\n") if($CFG{'DEBUG'});
 			    &call_func_total($tmp[2], 1);
 			} else {
-			    debug(0, "tmp[2] < 1\n");
+			    debug(0, "tmp[2] < 1\n") if($CFG{'DEBUG'});
 			    if($CFG{'IGNORE_INDEX'}) {
 				&call_func_total($tmp[2]+1, 1);
 				#no_value("index");
@@ -741,7 +763,7 @@ if($ALL) {
 		if(!$tmp[3] || (($tmp[2] == 1) && $CFG{'IGNORE_INDEX'})) {
 		    no_value();
 		} elsif($tmp[2] && $prints_total{$tmp[2]}) {
-		    debug(0, "tmp[2] && prints_total{tmp[2]} (".$prints_total{$tmp[2]}.")\n");
+		    debug(0, "tmp[2] && prints_total{tmp[2]} (".$prints_total{$tmp[2]}.")\n") if($CFG{'DEBUG'});
 		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			no_value("index");
 		    } else {

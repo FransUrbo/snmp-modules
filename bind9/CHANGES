@@ -1,3 +1,25 @@
+bind9-snmp 1.7 TO BE ANNOUNCED
+	Bug fixes
+	  + Remove global %CFG definition. It overwrote the one in the library!
+	  + To support the view information, the %DOMAINS array needed to be completley
+	    rewritten/-arranged. It is now in the form 'DOMAINS{domain}{view}{type}'
+	    instead of 'DOMAINS{cnt}{type}'. This means that all print functions needed
+	    to be updated/rewritten with this in mind.
+	    - Add the function print_b9stCounterTypeView() (and wrapper function
+	      print_b9stCounterView()) which takes care of outputting the (new)
+	      .1.3.6.1.4.1.8767.2.1.4.1.9.* OID.
+	      NOTE: Require the v1.17 (200602230927) Bayour.COM MIB!
+	    Closes: #290
+	  + Rename a couple of variables in the load_information() function to better
+	    reflect it's use. The function is difficiult enough to read after a couple
+	    of months away from it :).
+	    - The default view (if there IS no views!) is '' (NULL).
+	  + The get_config() have been changed - first param is config file, the second
+	    is what key to reload (missed the config file option).
+
+	Misc changes
+	  + Debug cleanup (include 'b9st*Entry' info in debug output).
+
 bind9-snmp 1.6 Release (Feb  7 2006)
 	Bug fixes
 	Misc changes
