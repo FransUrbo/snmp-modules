@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: system-snmp-stats.pl,v 1.1 2006-02-05 11:55:44 turbo Exp $
+# {{{ $Id: system-snmp-stats.pl,v 1.2 2006-04-21 13:12:17 turbo Exp $
 # Extract information and statistics about the system.
 #
 # Copyright 2005 Turbo Fredriksson <turbo@bayour.com>.
@@ -19,6 +19,16 @@ my $CFG_FILE = "/etc/snmp/.systemsnmp";
 #	DEBUG=4
 #	DEBUG_FILE=/var/log/system-snmp-stats.log
 #	IGNORE_INDEX=1
+#	OS=linux
+#
+# PS for ! Linux:
+#	The function get_memstats_linux() opens /proc/meminfo
+#	to retreive memory information of the system. This file
+#	is _most likley_ not portable through *IX like systems...
+#	If you're not running Linux and you'd like support for this
+#	in your OS, then write your own function. Don't forget to
+#	update this documentation and the get_memstats() function
+#	wrapper...
 #
 # }}}
 
@@ -31,7 +41,6 @@ use POSIX qw(strftime);
 use BayourCOM_SNMP;
 
 $ENV{PATH} = "/bin:/usr/bin:/usr/sbin";
-my %CFG;
 
 my $OID_BASE;
 $OID_BASE = "OID_BASE"; # When debugging, it's easier to type this than the full OID
@@ -39,6 +48,16 @@ if($ENV{'MIBDIRS'}) {
     # ALWAYS override this if we're running through the SNMP daemon!
     $OID_BASE = ".1.3.6.1.4.1.8767.2.4"; # .iso.org.dod.internet.private.enterprises.bayourcom.snmp.systemStats
 }
+
+# The input OID
+my($oid);
+
+my %DATA;
+my %prints    = ();
+my @retreives = ('get_uptime', 'get_memstats', 'get_cpuusage', 'get_loadavg');
+
+# handle a SIGALRM - read statistics file
+$SIG{'ALRM'} = \&load_information;
 # }}}
 
 # {{{ OID tree
@@ -88,6 +107,128 @@ if($ENV{'MIBDIRS'}) {
 # ====================================================
 # =====    R E T R E I V E  F U N C T I O N S    =====
 
+# {{{ get_uptime
+# Returns hours of uptime
+sub get_uptime {
+    my($uptime, $days, $hours, $mins, @tmp);
+
+    $uptime = `uptime`;
+    @tmp    = split(' ', $uptime);
+    
+    $days   = $tmp[2];
+    $hours  = (split(':', $tmp[4]))[0];
+    $mins   = (split(':', $tmp[4]))[1]; $mins   =~ s/,$//;
+    
+    $uptime = ((($days * 24) + $hours) * 60) + $mins; # total in minutes
+    debug(0, "get_uptime: '$uptime'\n");
+    return($uptime);
+}
+# }}}
+
+# {{{ get_memstats
+sub get_memstats {
+    if($CFG{'OS'} eq 'linux') {
+	return get_memstats_linux();
+    } else {
+	# Unknown OS!
+	return 0;
+    }
+}
+
+sub get_memstats_linux {
+    my($line);
+
+    open(MEM, "/proc/meminfo") || die("Can't open /proc/meminfo: $!\n");
+    while(!eof(MEM)) {
+	$line = <MEM>; chomp($line);
+	$line =~ s/ kB$//;
+	$line =~ s/ //g;
+	
+	if($line =~ /^Buffers:/) {
+	    $DATA{'mem'}{'buffers'} = (split(':', $line))[1];
+	    debug(0, "get_memstats_linux: buffers=".$DATA{'mem'}{'buffers'}."\n");
+	} elsif($line =~ /^Cached:/) {
+	    $DATA{'mem'}{'cached'} = (split(':', $line))[1];
+	    debug(0, "get_memstats_linux: cached=".$DATA{'mem'}{'cached'}."\n");
+	} elsif($line =~ /^MemFree:/) {
+	    $DATA{'mem'}{'free'} = (split(':', $line))[1];
+	    debug(0, "get_memstats_linux: free=".$DATA{'mem'}{'free'}."\n");
+	} elsif($line =~ /^SwapFree:/) {
+	    $DATA{'mem'}{'swapfree'} = (split(':', $line))[1];
+	    debug(0, "get_memstats_linux: swapfree=".$DATA{'mem'}{'swapfree'}."\n");
+	} elsif($line =~ /^MemTotal:/) {
+	    $DATA{'mem'}{'total'} = (split(':', $line))[1];
+	    debug(0, "get_memstats_linux: total=".$DATA{'mem'}{'total'}."\n");
+	}
+    }
+    close(MEM);
+}
+# }}}
+
+# {{{ get_cpuusage
+sub get_cpuusage {
+    my($line, $TYPE, @tmp);
+
+    open(TOP, "/usr/bin/top n 1 b |") || die("Can't start top: $!\n");
+    while(!eof(TOP)) {
+	$line = <TOP>; chomp($line);
+	if(($line =~ /^CPU states/) || ($line =~ /^Cpu\(s\)/)) {
+	    close(TOP);
+	    
+	    if($line =~ /^CPU states/) {
+		$TYPE = 'old';
+	    } elsif($line =~ /^Cpu\(s\)/) {
+		$TYPE = 'new';
+	    }
+	    
+	    last;
+	}
+    }
+    
+    $line =~ s/%//g;
+    
+    @tmp = split(' ', $line);
+    if($TYPE eq 'old') {
+	$DATA{'cpu'}{'idle'} = $tmp[8];
+	$DATA{'cpu'}{'nice'} = $tmp[6];
+	$DATA{'cpu'}{'syst'} = $tmp[4];
+	$DATA{'cpu'}{'user'} = $tmp[2];
+    } elsif($TYPE eq 'new') {
+	$DATA{'cpu'}{'user'} = $tmp[1];
+	$DATA{'cpu'}{'syst'} = $tmp[3];
+	$DATA{'cpu'}{'nice'} = $tmp[5];
+	$DATA{'cpu'}{'idle'} = $tmp[7];
+    } else {
+	print "Unknown TYPE!";
+	exit 1;
+    }
+
+    debug(0, "get_cpuusage: idle=".$DATA{'cpu'}{'idle'}."\n");
+    debug(0, "get_cpuusage: nice=".$DATA{'cpu'}{'nice'}."\n");
+    debug(0, "get_cpuusage: syst=".$DATA{'cpu'}{'syst'}."\n");
+    debug(0, "get_cpuusage: user=".$DATA{'cpu'}{'user'}."\n");
+}
+# }}}
+
+# {{{ get_loadavg
+sub get_loadavg {
+    my($line);
+
+    open(LOAD, "/proc/loadavg") || die("Can't open /proc/loadavg: $!\n");
+    while(!eof(LOAD)) {
+	$line = <LOAD>; chomp($line);
+
+	$DATA{'loa'}{'load_01'} = (split(' ', $line))[0];
+	$DATA{'loa'}{'load_05'} = (split(' ', $line))[1];
+	$DATA{'loa'}{'load_15'} = (split(' ', $line))[2];
+    }
+    close(LOAD);
+
+    debug(0, "get_cpuusage: load_01=".$DATA{'loa'}{'load_01'}."\n");
+    debug(0, "get_cpuusage: load_05=".$DATA{'loa'}{'load_05'}."\n");
+    debug(0, "get_cpuusage: load_15=".$DATA{'loa'}{'load_15'}."\n");
+}
+# }}}
 
 # ====================================================
 # =====       P R I N T  F U N C T I O N S       =====
@@ -96,11 +237,36 @@ if($ENV{'MIBDIRS'}) {
 # ====================================================
 # =====        M I S C  F U N C T I O N S        =====
 
+# {{{ Load all information needed
+sub load_information {
+    my($func_arg, $func);
+
+    # Load configuration file
+    %CFG = get_config($CFG_FILE);
+
+    debug(0, "=> OID_BASE => '$OID_BASE'\n");
+
+    foreach my $func (@retreives) {
+	$func_arg = '' if(!defined($func_arg));
+
+	debug(0, "=> Calling function '$func($func_arg)'\n") if($CFG{'DEBUG'} > 3);
+	$func = \&{$func}; # Because of 'use strict' above...
+	&$func($func_arg);
+	debug(0, "\n");
+    }
+
+    # Schedule an alarm once every five minutes to re-read information.
+    alarm(5*60);
+}
+# }}}
 
 # ====================================================
 # =====          P R O C E S S  A R G S          =====
 
-BayourCOM_SNMP::echo(0, "=> OID_BASE => '$OID_BASE'\n") if($CFG{'DEBUG'});
+# Load information
+&load_information();
+
+exit(0);
 
 # {{{ Go through the argument(s) passed to the program
 my $ALL = 0;
@@ -117,8 +283,8 @@ for(my $i=0; $ARGV[$i]; $i++) {
 
 if($ALL) {
     # {{{ Output the whole MIB tree - used mainly/only for debugging purposes.
-    foreach my $oid (sort keys %functions) {
-	my $func = $functions{$oid};
+    foreach my $oid (sort keys %prints) {
+	my $func = $prints{$oid};
 	if($func) {
 	    $func = \&{"print_".$func}; # Because of 'use strict' above...
 	    &$func();
@@ -134,7 +300,7 @@ if($ALL) {
 	}
 
 	# Re-get the DEBUG config option (so that we don't have to restart process).
-	%CFG = BayourCOM_SNMP::get_config($CFG_FILE, 'DEBUG');
+	$CFG{'DEBUG'} = get_config($CFG_FILE, 'DEBUG');
 
 	# {{{ Get all run arguments - next/specfic OID
 	my $arg = $_; chomp($arg);
