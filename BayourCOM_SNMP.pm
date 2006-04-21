@@ -1,4 +1,4 @@
-# {{{ $Id: BayourCOM_SNMP.pm,v 1.4 2006-02-07 10:17:02 turbo Exp $
+# {{{ $Id: BayourCOM_SNMP.pm,v 1.5 2006-04-21 13:05:34 turbo Exp $
 # Common functions used by Bayour.COM SNMP modules.
 #
 # Copyright 2005 Turbo Fredriksson <turbo@bayour.com>.
@@ -31,7 +31,7 @@ sub open_log {
     die("DEBUG_FILE not set in config file!\n") if(!$CFG{'DEBUG_FILE'});
 
     if(!open(LOG, ">> ".$CFG{'DEBUG_FILE'})) {
-	debug(0, "Can't open logfile '".$CFG{'DEBUG_FILE'}."', $!\n") if($CFG{'DEBUG'});
+	printf(STDERR "Can't open logfile '".$CFG{'DEBUG_FILE'}."', $!\n") if($CFG{'DEBUG'});
 	return 0;
     } else {
 	return 1;
@@ -67,13 +67,13 @@ sub debug {
 	    $log_opened = 1;
 	    open(STDERR, ">LOG") if(($CFG{'DEBUG'} <= 2) || $ENV{'MIBDIRS'});
 	}
-    }
 
-    if($stdout) {
-	print $string;
-    } elsif($log_opened) {
-	print LOG get_timestring()," " if($CFG{'DEBUG'} > 2);
-	print LOG $string;
+	if($stdout) {
+	    print $string;
+	} elsif($log_opened) {
+	    print LOG get_timestring()," " if($CFG{'DEBUG'} > 2);
+	    print LOG $string;
+	}
     }
 }
 # }}}
