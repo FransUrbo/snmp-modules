@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: system-snmp-stats.pl,v 1.2 2006-04-21 13:12:17 turbo Exp $
+# {{{ $Id: system-snmp-stats.pl,v 1.3 2006-04-25 11:14:02 turbo Exp $
 # Extract information and statistics about the system.
 #
 # Copyright 2005 Turbo Fredriksson <turbo@bayour.com>.
@@ -53,8 +53,30 @@ if($ENV{'MIBDIRS'}) {
 my($oid);
 
 my %DATA;
-my %prints    = ();
 my @retreives = ('get_uptime', 'get_memstats', 'get_cpuusage', 'get_loadavg');
+
+my %prints    = ( '1' => 'print_uptime',
+		  '2' => 'print_memstats',
+		  '3' => 'print_cpuusage',
+		  '4' => 'print_loadavg');
+
+my %memstats  = ('02' => 'total',
+		 '03' => 'used',
+		 '04' => 'free',
+		 '05' => 'buffers',
+		 '06' => 'cached',
+		 '07' => 'swaptotal',
+		 '08' => 'swapused',
+		 '09' => 'swapfree');
+
+my %cpustats  = ('10' => 'idle',
+		 '11' => 'nice',
+		 '12' => 'syst',
+		 '13' => 'user');
+
+my %loastats  = ('14' => 'load_01',
+		 '15' => 'load_05',
+		 '16' => 'load_15');
 
 # handle a SIGALRM - read statistics file
 $SIG{'ALRM'} = \&load_information;
@@ -62,46 +84,32 @@ $SIG{'ALRM'} = \&load_information;
 
 # {{{ OID tree
 # smidump -f tree BAYOUR-COM-MIB.txt
-# +--systemStats(4)
-#    |
-#    +-- r-n Integer32 systemUptime(1)
-#    |
-#    +--systemMemoryTable(2)
-#    |  |
-#    |  +--systemMemoryEntry(1) [systemMemoryIndex]
-#    |     |
-#    |     +-- --- CounterIndex systemMemoryIndex(1)
-#    |     +-- r-n Integer32    systemMemoryTotal(2)
-#    |     +-- r-n Integer32    systemMemoryUsed(3)
-#    |     +-- r-n Integer32    systemMemoryBuffered(4)
-#    |     +-- r-n Integer32    systemMemoryCached(5)
-#    |     +-- r-n Integer32    systemMemorySwapTotal(6)
-#    |     +-- r-n Integer32    systemMemorySwapUsed(7)
-#    |
-#    +--systemCPUTable(3)
-#    |  |
-#    |  +--systemCPUEntry(1) [systemCPUIndex]
-#    |     |
-#    |     +-- --- CounterIndex systemCPUIndex(1)
-#    |     +-- r-n Integer32    systemCPUTasksTotal(2)
-#    |     +-- r-n Integer32    systemCPUTasksRunning(3)
-#    |     +-- r-n Integer32    systemCPUTasksSleeping(4)
-#    |     +-- r-n Integer32    systemCPUTasksStopped(5)
-#    |     +-- r-n Integer32    systemCPUTasksZombies(6)
-#    |     +-- r-n Integer32    systemCPUUsageUser(7)
-#    |     +-- r-n Integer32    systemCPUUsageSystem(8)
-#    |     +-- r-n Integer32    systemCPUUsageNice(9)
-#    |     +-- r-n Integer32    systemCPUUsageIdle(10)
-#    |     +-- r-n Integer32    systemCPUUsageIOWait(11)
-#    |
-#    +--systemLoadTable(4)
-#       |
-#       +--systemLoadEntry(1) [systemLoadIndex]
-#          |
-#          +-- --- CounterIndex systemLoadIndex(1)
-#          +-- r-n Integer32    systemLoadLastOne(2)
-#          +-- r-n Integer32    systemLoadLastFive(3)
-#          +-- r-n Integer32    systemLoadLastFifteen(4)
+#  +--systemStats(4)
+#     +-- r-n Integer32 systemUptime(1)
+#     |
+#     +-- r-n Integer32 systemMemoryTotal(2)
+#     +-- r-n Integer32 systemMemoryUsed(3)
+#     +-- r-n Integer32 systemMemoryFree(4)
+#     +-- r-n Integer32 systemMemoryBuffered(5)
+#     +-- r-n Integer32 systemMemoryCached(6)
+#     +-- r-n Integer32 systemMemorySwapTotal(7)
+#     +-- r-n Integer32 systemMemorySwapUsed(8)
+#     +-- r-n Integer32 systemMemorySwapFree(9)
+#     |
+#     +-- r-n Integer32 systemCPUTasksTotal(10)
+#     +-- r-n Integer32 systemCPUTasksRunning(11)
+#     +-- r-n Integer32 systemCPUTasksSleeping(12)
+#     +-- r-n Integer32 systemCPUTasksStopped(13)
+#     +-- r-n Integer32 systemCPUTasksZombies(14)
+#     +-- r-n Integer32 systemCPUUsageUser(15)
+#     +-- r-n Integer32 systemCPUUsageSystem(16)
+#     +-- r-n Integer32 systemCPUUsageNice(17)
+#     +-- r-n Integer32 systemCPUUsageIdle(18)
+#     +-- r-n Integer32 systemCPUUsageIOWait(19)
+#     |
+#     +-- r-n Integer32 systemLoadLastOne(20)
+#     +-- r-n Integer32 systemLoadLastFive(21)
+#     +-- r-n Integer32 systemLoadLastFifteen(22)
 # }}}
 
 # ====================================================
@@ -119,9 +127,8 @@ sub get_uptime {
     $hours  = (split(':', $tmp[4]))[0];
     $mins   = (split(':', $tmp[4]))[1]; $mins   =~ s/,$//;
     
-    $uptime = ((($days * 24) + $hours) * 60) + $mins; # total in minutes
-    debug(0, "get_uptime: '$uptime'\n");
-    return($uptime);
+    $DATA{'uptime'} = ((($days * 24) + $hours) * 60) + $mins; # total in minutes
+    debug(0, "get_uptime: '".$DATA{'uptime'}."'\n");
 }
 # }}}
 
@@ -144,24 +151,43 @@ sub get_memstats_linux {
 	$line =~ s/ kB$//;
 	$line =~ s/ //g;
 	
-	if($line =~ /^Buffers:/) {
-	    $DATA{'mem'}{'buffers'} = (split(':', $line))[1];
-	    debug(0, "get_memstats_linux: buffers=".$DATA{'mem'}{'buffers'}."\n");
-	} elsif($line =~ /^Cached:/) {
-	    $DATA{'mem'}{'cached'} = (split(':', $line))[1];
-	    debug(0, "get_memstats_linux: cached=".$DATA{'mem'}{'cached'}."\n");
+	if($line =~ /^MemTotal:/) {
+	    $DATA{'mem'}{'total'} = (split(':', $line))[1];
+	    debug(0, "get_memstats_linux: total=".$DATA{'mem'}{'total'}."\n");
+
 	} elsif($line =~ /^MemFree:/) {
 	    $DATA{'mem'}{'free'} = (split(':', $line))[1];
 	    debug(0, "get_memstats_linux: free=".$DATA{'mem'}{'free'}."\n");
+
+	} elsif($line =~ /^Buffers:/) {
+	    $DATA{'mem'}{'buffers'} = (split(':', $line))[1];
+	    debug(0, "get_memstats_linux: buffers=".$DATA{'mem'}{'buffers'}."\n");
+
+	} elsif($line =~ /^Cached:/) {
+	    $DATA{'mem'}{'cached'} = (split(':', $line))[1];
+	    debug(0, "get_memstats_linux: cached=".$DATA{'mem'}{'cached'}."\n");
+
+	} elsif($line =~ /^SwapTotal:/) {
+	    $DATA{'mem'}{'swaptotal'} = (split(':', $line))[1];
+	    debug(0, "get_memstats_linux: swaptotal=".$DATA{'mem'}{'swaptotal'}."\n");
+
 	} elsif($line =~ /^SwapFree:/) {
 	    $DATA{'mem'}{'swapfree'} = (split(':', $line))[1];
 	    debug(0, "get_memstats_linux: swapfree=".$DATA{'mem'}{'swapfree'}."\n");
-	} elsif($line =~ /^MemTotal:/) {
-	    $DATA{'mem'}{'total'} = (split(':', $line))[1];
-	    debug(0, "get_memstats_linux: total=".$DATA{'mem'}{'total'}."\n");
+
 	}
     }
     close(MEM);
+
+    if($DATA{'mem'}{'total'} && $DATA{'mem'}{'free'}) {
+	$DATA{'mem'}{'used'} = $DATA{'mem'}{'total'} - $DATA{'mem'}{'free'};
+	debug(0, "get_memstats_linux: used=".$DATA{'mem'}{'used'}."\n");
+    }
+
+    if($DATA{'mem'}{'swaptotal'} && $DATA{'mem'}{'swapfree'}) {
+	$DATA{'mem'}{'swapused'} = $DATA{'mem'}{'swaptotal'} - $DATA{'mem'}{'swapfree'};
+	debug(0, "get_memstats_linux: swapused=".$DATA{'mem'}{'swapused'}."\n");
+    }
 }
 # }}}
 
@@ -224,20 +250,136 @@ sub get_loadavg {
     }
     close(LOAD);
 
-    debug(0, "get_cpuusage: load_01=".$DATA{'loa'}{'load_01'}."\n");
-    debug(0, "get_cpuusage: load_05=".$DATA{'loa'}{'load_05'}."\n");
-    debug(0, "get_cpuusage: load_15=".$DATA{'loa'}{'load_15'}."\n");
+    debug(0, "get_loadavg: load_01=".$DATA{'loa'}{'load_01'}."\n");
+    debug(0, "get_loadavg: load_05=".$DATA{'loa'}{'load_05'}."\n");
+    debug(0, "get_loadavg: load_15=".$DATA{'loa'}{'load_15'}."\n");
 }
 # }}}
 
 # ====================================================
 # =====       P R I N T  F U N C T I O N S       =====
 
+# {{{ print_uptime	-> OID_BASE.1
+sub print_uptime {
+    debug(0, "$OID_BASE.1 = ".$DATA{'uptime'}."\n") if($CFG{'DEBUG'});
+
+    debug(1, "$OID_BASE.1\n");
+    debug(1, "integer\n");
+    debug(1, $DATA{'uptime'}."\n");
+
+    debug(0, "\n");
+}
+# }}}
+
+# {{{ print_memstats	-> OID_BASE.[ 2- 9]
+sub print_memstats {
+    my $j = shift;
+
+    if($j) {
+	# One specific counter
+	my $key = $memstats{$j};
+	
+	debug(0, "$OID_BASE.$j = ".$DATA{'mem'}{$key}."\n") if($CFG{'DEBUG'});
+	
+	debug(1, "$OID_BASE.$j\n");
+	debug(1, "integer\n");
+	debug(1, $DATA{'mem'}{$key}."\n");
+    } else {
+	# ALL counters
+	foreach my $j (sort keys %memstats) {
+	    my $key = $memstats{$j};
+	    $j =~ s/^0//;
+
+	    debug(0, "$OID_BASE.$j = ".$DATA{'mem'}{$key}."\n") if($CFG{'DEBUG'});
+	    
+	    debug(1, "$OID_BASE.$j\n");
+	    debug(1, "integer\n");
+	    debug(1, $DATA{'mem'}{$key}."\n");
+	}
+    }
+
+    debug(0, "\n");
+}
+# }}}
+
+# {{{ print_cpuusage	-> OID_BASE.[10-13]
+sub print_cpuusage {
+    my $j = shift;
+
+    if($j) {
+	# One specific counter
+	my $key = $cpustats{$j};
+	
+	debug(0, "$OID_BASE.$j = ".$DATA{'cpu'}{$key}."\n") if($CFG{'DEBUG'});
+	
+	debug(1, "$OID_BASE.$j\n");
+	debug(1, "integer\n");
+	debug(1, $DATA{'cpu'}{$key}."\n");
+    } else {
+	# ALL counters
+	foreach my $j (sort keys %cpustats) {
+	    my $key = $cpustats{$j};
+
+	    debug(0, "$OID_BASE.$j = ".$DATA{'cpu'}{$key}."\n") if($CFG{'DEBUG'});
+	    
+	    debug(1, "$OID_BASE.$j\n");
+	    debug(1, "integer\n");
+	    debug(1, $DATA{'cpu'}{$key}."\n");
+	}
+    }
+
+    debug(0, "\n");
+}
+# }}}
+
+# {{{ print_loadavg	-> OID_BASE.[14-16]
+sub print_loadavg {
+    my $j = shift;
+
+    if($j) {
+	# One specific counter
+	my $key = $loastats{$j};
+	
+	debug(0, "$OID_BASE.$j = ".$DATA{'loa'}{$key}."\n") if($CFG{'DEBUG'});
+	
+	debug(1, "$OID_BASE.$j\n");
+	debug(1, "integer\n");
+	debug(1, $DATA{'loa'}{$key}."\n");
+    } else {
+	# ALL counters
+	foreach my $j (sort keys %loastats) {
+	    my $key = $loastats{$j};
+
+	    debug(0, "$OID_BASE.$j = ".$DATA{'loa'}{$key}."\n") if($CFG{'DEBUG'});
+	    
+	    debug(1, "$OID_BASE.$j\n");
+	    debug(1, "integer\n");
+	    debug(1, $DATA{'loa'}{$key}."\n");
+	}
+    }
+
+    debug(0, "\n");
+}
+# }}}
 
 # ====================================================
 # =====        M I S C  F U N C T I O N S        =====
 
-# {{{ Load all information needed
+# {{{ call_func
+sub call_func {
+    my $func_nr  = shift;
+    my $func_arg = shift;
+
+    my $func = $prints{$func_nr};
+    $func_arg = '' if(!defined($func_arg));
+    debug(0, "=> Calling function '$func($func_arg)'\n") if($CFG{'DEBUG'} > 3);
+
+    $func = \&{$func}; # Because of 'use strict' above...
+    &$func($func_arg);
+}
+# }}}
+
+# {{{ load_information
 sub load_information {
     my($func_arg, $func);
 
@@ -266,13 +408,11 @@ sub load_information {
 # Load information
 &load_information();
 
-exit(0);
-
 # {{{ Go through the argument(s) passed to the program
 my $ALL = 0;
 for(my $i=0; $ARGV[$i]; $i++) {
     if($ARGV[$i] eq '--help' || $ARGV[$i] eq '-h' || $ARGV[$i] eq '?' ) {
-	BayourCOM_SNMP::help();
+	help();
     } elsif($ARGV[$i] eq '--debug' || $ARGV[$i] eq '-d') {
 	$CFG{'DEBUG'}++;
     } elsif($ARGV[$i] eq '--all' || $ARGV[$i] eq '-a') {
@@ -283,12 +423,8 @@ for(my $i=0; $ARGV[$i]; $i++) {
 
 if($ALL) {
     # {{{ Output the whole MIB tree - used mainly/only for debugging purposes.
-    foreach my $oid (sort keys %prints) {
-	my $func = $prints{$oid};
-	if($func) {
-	    $func = \&{"print_".$func}; # Because of 'use strict' above...
-	    &$func();
-	}
+    foreach my $nr (sort keys %prints) {
+	call_func($nr);
     }
 # }}}
 } else {
@@ -313,11 +449,10 @@ if($ALL) {
 	$oid =~ s/$OID_BASE//; # Remove the OID base
 	$oid =~ s/OID_BASE//;  # Remove the OID base (if we're debugging)
 	$oid =~ s/^\.//;       # Remove the first dot if it exists - it's in the way!
-
-	BayourCOM_SNMP::echo(0, "=> ARG='$arg  $OID_BASE.$oid'\n") if($CFG{'DEBUG'} >= 2);
+	debug(0, "=> ARG='$arg  $OID_BASE.$oid'\n") if($CFG{'DEBUG'} >= 2);
 	
 	my @tmp = split('\.', $oid);
-	BayourCOM_SNMP::output_extra_debugging(@tmp) if($CFG{'DEBUG'} > 2);
+	output_extra_debugging(@tmp) if($CFG{'DEBUG'} > 2);
 # }}}
 
 	if($arg eq 'getnext') {
@@ -328,7 +463,7 @@ if($ALL) {
 # }}}
 	}
 
-	BayourCOM_SNMP::echo(0, "\n") if($CFG{'DEBUG'} > 1);
+	debug(0, "\n") if($CFG{'DEBUG'} > 1);
     }
 # }}}
 }
