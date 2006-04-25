@@ -1,5 +1,5 @@
 BAYOUR-COM-MIB DEFINITIONS ::= BEGIN
--- $Id: BAYOUR-COM-MIB.txt,v 1.17 2006-02-23 09:36:53 turbo Exp $
+-- $Id: BAYOUR-COM-MIB.txt,v 1.18 2006-04-25 11:11:21 turbo Exp $
 
 -- This is my very first MIB! A lot of it is taken from the IF-MIB
 -- by the IETF Interfaces MIB Working Group (200006140000).
@@ -343,8 +343,9 @@ bayourCom MODULE-IDENTITY
         -- {{{ .1.3.6.1.4.1.8767.2.0.3.2 systemgroups
         systemGroups                   OBJECT IDENTIFIER ::= { systemConformance 2 }
           systemGroupMemory            OBJECT-GROUP
-            OBJECTS                    { systemMemoryTotal, systemMemoryUsed, systemMemoryBuffered,
-                                         systemMemoryCached, systemMemorySwapTotal, systemMemorySwapUsed }
+            OBJECTS                    { systemMemoryTotal, systemMemoryUsed, systemMemoryFree,
+                                         systemMemoryBuffered, systemMemoryCached, systemMemorySwapTotal,
+                                         systemMemorySwapUsed, systemMemorySwapFree }
             STATUS                     current
             DESCRIPTION                "A collection of objects providing information
                                         applicable to System memory statistics."
@@ -1368,7 +1369,7 @@ bayourCom MODULE-IDENTITY
 
     -- {{{ .1.3.6.1.4.1.8767.2.4 systemStats
     systemStats                        OBJECT IDENTIFIER ::= { snmp 4 }
-      -- {{{ .1.3.6.1.4.1.8767.2.4.1   systemUptime
+      -- {{{ .1.3.6.1.4.1.8767.2.4.1    systemUptime
       systemUptime                     OBJECT-TYPE
         SYNTAX                         Integer32
         MAX-ACCESS                     read-only
@@ -1377,245 +1378,196 @@ bayourCom MODULE-IDENTITY
         ::= { systemStats 1 }
 -- }}}
 
-      -- {{{ .1.3.6.1.4.1.8767.2.4.2   systemMemoryTable
-      systemMemoryTable                OBJECT-TYPE
-        SYNTAX                         SEQUENCE OF SystemMemoryTableEntry
-        MAX-ACCESS                     not-accessible
-        STATUS                         current
-        DESCRIPTION                    "A list of system memory statistic counters"
+
+      -- {{{ .1.3.6.1.4.1.8767.2.4.2    systemMemoryTotal
+      systemMemoryTotal            OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "Total physical memory in the system."
         ::= { systemStats 2 }
-  
-        systemMemoryEntry              OBJECT-TYPE
-          SYNTAX                       SystemMemoryTableEntry
-          MAX-ACCESS                   not-accessible
-          STATUS                       current
-          DESCRIPTION                  "An entry containing system memory statistics"
-          INDEX                        { systemMemoryIndex }
-          ::= { systemMemoryTable 1 }
-  
-          SystemMemoryTableEntry       ::= SEQUENCE {
-            systemMemoryIndex          CounterIndex,
-
-            systemMemoryTotal          Integer32,
-            systemMemoryUsed           Integer32,
-            systemMemoryBuffered       Integer32,
-            systemMemoryCached         Integer32,
-            systemMemorySwapTotal      Integer32,
-            systemMemorySwapUsed       Integer32
-          }
-  
-          systemMemoryIndex            OBJECT-TYPE
-            SYNTAX                     CounterIndex
-            MAX-ACCESS                 not-accessible
-            STATUS                     current
-            DESCRIPTION                "Reference Index for each counter."
-            ::= { systemMemoryEntry 1 }
-
-          systemMemoryTotal            OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "Total physical memory in the system."
-            ::= { systemMemoryEntry 2 }
-
-          systemMemoryUsed             OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "Physical memory in use by the system."
-            ::= { systemMemoryEntry 3 }
-
-          systemMemoryBuffered         OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "Memory buffered in the system."
-            ::= { systemMemoryEntry 4 }
-
-          systemMemoryCached           OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "Memory cached in the system."
-            ::= { systemMemoryEntry 5 }
-
-          systemMemorySwapTotal        OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "Total amount of swap space in the system."
-            ::= { systemMemoryEntry 6 }
-
-          systemMemorySwapUsed         OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "Swap memory in use by the system."
-            ::= { systemMemoryEntry 7 }
 -- }}}
 
-      -- {{{ .1.3.6.1.4.1.8767.2.4.3   systemCPUTable
-      systemCPUTable                   OBJECT-TYPE
-        SYNTAX                         SEQUENCE OF SystemCPUTableEntry
-        MAX-ACCESS                     not-accessible
-        STATUS                         current
-        DESCRIPTION                    "A list of system CPU statistic counters"
+      -- {{{ .1.3.6.1.4.1.8767.2.4.3    systemMemoryUsed
+      systemMemoryUsed             OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "Physical memory in use by the system."
         ::= { systemStats 3 }
-  
-        systemCPUEntry                 OBJECT-TYPE
-          SYNTAX                       SystemCPUTableEntry
-          MAX-ACCESS                   not-accessible
-          STATUS                       current
-          DESCRIPTION                  "An entry containing system CPU statistics"
-          INDEX                        { systemCPUIndex }
-          ::= { systemCPUTable 1 }
-  
-          SystemCPUTableEntry          ::= SEQUENCE {
-            systemCPUIndex             CounterIndex,
-
-            systemCPUTasksTotal        Integer32,
-            systemCPUTasksRunning      Integer32,
-            systemCPUTasksSleeping     Integer32,
-            systemCPUTasksStopped      Integer32,
-            systemCPUTasksZombies      Integer32,
-
-            systemCPUUsageUser         Integer32,
-            systemCPUUsageSystem       Integer32,
-            systemCPUUsageNice         Integer32,
-            systemCPUUsageIdle         Integer32,
-            systemCPUUsageIOWait       Integer32
-          }
-  
-          systemCPUIndex               OBJECT-TYPE
-            SYNTAX                     CounterIndex
-            MAX-ACCESS                 not-accessible
-            STATUS                     current
-            DESCRIPTION                "Reference Index for each counter."
-            ::= { systemCPUEntry 1 }
-
-          systemCPUTasksTotal          OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "."
-            ::= { systemCPUEntry 2 }
-
-          systemCPUTasksRunning        OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "."
-            ::= { systemCPUEntry 3 }
-
-          systemCPUTasksSleeping       OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "."
-            ::= { systemCPUEntry 4 }
-
-          systemCPUTasksStopped        OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "."
-            ::= { systemCPUEntry 5 }
-
-          systemCPUTasksZombies        OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "."
-            ::= { systemCPUEntry 6 }
-
-          systemCPUUsageUser           OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "."
-            ::= { systemCPUEntry 7 }
-
-          systemCPUUsageSystem         OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "."
-            ::= { systemCPUEntry 8 }
-
-          systemCPUUsageNice           OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "."
-            ::= { systemCPUEntry 9 }
-
-          systemCPUUsageIdle           OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "."
-            ::= { systemCPUEntry 10 }
-
-          systemCPUUsageIOWait         OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "."
-            ::= { systemCPUEntry 11 }
 -- }}}
 
-      -- {{{ .1.3.6.1.4.1.8767.2.4.4   systemLoadTable
-      systemLoadTable                  OBJECT-TYPE
-        SYNTAX                         SEQUENCE OF SystemLoadTableEntry
-        MAX-ACCESS                     not-accessible
-        STATUS                         current
-        DESCRIPTION                    "A list of system load average statistic counters"
+      -- {{{ .1.3.6.1.4.1.8767.2.4.4    systemMemoryFree
+      systemMemoryFree             OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "Physical memory free the system."
         ::= { systemStats 4 }
-  
-        systemLoadEntry                OBJECT-TYPE
-          SYNTAX                       SystemLoadTableEntry
-          MAX-ACCESS                   not-accessible
-          STATUS                       current
-          DESCRIPTION                  "An entry containing system load average statistics"
-          INDEX                        { systemLoadIndex }
-          ::= { systemLoadTable 1 }
-  
-          SystemLoadTableEntry         ::= SEQUENCE {
-            systemLoadIndex            CounterIndex,
+-- }}}
 
-            systemLoadLastOne          Integer32,
-            systemLoadLastFive         Integer32,
-            systemLoadLastFifteen      Integer32
-          }
-  
-          systemLoadIndex              OBJECT-TYPE
-            SYNTAX                     CounterIndex
-            MAX-ACCESS                 not-accessible
-            STATUS                     current
-            DESCRIPTION                "Reference Index for each counter."
-            ::= { systemLoadEntry 1 }
+      -- {{{ .1.3.6.1.4.1.8767.2.4.5    systemMemoryBuffered
+      systemMemoryBuffered         OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "Memory buffered in the system."
+        ::= { systemStats 5 }
+-- }}}
 
-          systemLoadLastOne            OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "."
-            ::= { systemLoadEntry 2 }
+      -- {{{ .1.3.6.1.4.1.8767.2.4.6    systemMemoryCached
+      systemMemoryCached           OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "Memory cached in the system."
+        ::= { systemStats 6 }
+-- }}}
 
-          systemLoadLastFive           OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "."
-            ::= { systemLoadEntry 3 }
+      -- {{{ .1.3.6.1.4.1.8767.2.4.7    systemMemorySwapTotal
+      systemMemorySwapTotal        OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "Total amount of swap space in the system."
+        ::= { systemStats 7 }
+-- }}}
 
-          systemLoadLastFifteen        OBJECT-TYPE
-            SYNTAX                     Integer32
-            MAX-ACCESS                 read-only
-            STATUS                     current
-            DESCRIPTION                "."
-            ::= { systemLoadEntry 4 }
+      -- {{{ .1.3.6.1.4.1.8767.2.4.8    systemMemorySwapUsed
+      systemMemorySwapUsed         OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "Swap memory in use by the system."
+        ::= { systemStats 8 }
+-- }}}
 
+      -- {{{ .1.3.6.1.4.1.8767.2.4.9    systemMemorySwapFree
+      systemMemorySwapFree         OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "Swap memory free in the system."
+        ::= { systemStats 9 }
+-- }}}
+
+
+      -- {{{ .1.3.6.1.4.1.8767.2.4.10   systemCPUTasksTotal
+      systemCPUTasksTotal          OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "."
+        ::= { systemStats 10 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.4.11   systemCPUTasksRunning
+      systemCPUTasksRunning        OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "."
+        ::= { systemStats 11 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.4.12   systemCPUTasksSleeping
+      systemCPUTasksSleeping       OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "."
+        ::= { systemStats 12 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.4.13   systemCPUTasksStopped
+      systemCPUTasksStopped        OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "."
+        ::= { systemStats 13 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.4.14   systemCPUTasksZombies
+      systemCPUTasksZombies        OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "."
+        ::= { systemStats 14 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.4.15   systemCPUUsageUser
+      systemCPUUsageUser           OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "."
+        ::= { systemStats 15 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.4.16   systemCPUUsageSystem
+      systemCPUUsageSystem         OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "."
+        ::= { systemStats 16 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.4.17   systemCPUUsageNice
+      systemCPUUsageNice           OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "."
+        ::= { systemStats 17 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.4.18   systemCPUUsageIdle
+      systemCPUUsageIdle           OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "."
+        ::= { systemStats 18 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.4.19   systemCPUUsageIOWait
+      systemCPUUsageIOWait         OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "."
+        ::= { systemStats 19 }
+-- }}}
+
+
+      -- {{{ .1.3.6.1.4.1.8767.2.4.20   systemLoadLastOne
+      systemLoadLastOne            OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "."
+        ::= { systemStats 20 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.4.21   systemLoadLastFive
+      systemLoadLastFive           OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "."
+        ::= { systemStats 21 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.4.22   systemLoadLastFifteen
+      systemLoadLastFifteen        OBJECT-TYPE
+        SYNTAX                     Integer32
+        MAX-ACCESS                 read-only
+        STATUS                     current
+        DESCRIPTION                "."
+        ::= { systemStats 22 }
 -- }}}
 -- }}}
 
