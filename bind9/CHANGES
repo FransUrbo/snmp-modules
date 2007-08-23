@@ -19,6 +19,7 @@ bind9-snmp 1.7 TO BE ANNOUNCED
 
 	Misc changes
 	  + Debug cleanup (include 'b9st*Entry' info in debug output).
+	  + Bind9 setup and how to test functionality documentation added.
 
 bind9-snmp 1.6 Release (Feb  7 2006)
 	Bug fixes
