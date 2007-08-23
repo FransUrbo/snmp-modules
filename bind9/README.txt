@@ -9,6 +9,8 @@ it's indexed and 'tablified'.
 
 Current release is: 1.6
 Tarball:            http://www.bayour.com/bind9-snmp/bind9-snmp_1.6.tgz
+Tarball 2:          http://www.bayour.com/bind9-snmp/bind9-snmp_1.6.tar.bz2
+ZIPfile:            http://www.bayour.com/bind9-snmp/bind9-snmp_1.6.zip
 
 
 SNMP Setup files (Paths depend on where your SNMP/Cacti is installed!)
