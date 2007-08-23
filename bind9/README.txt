@@ -7,8 +7,8 @@ via SNMP but what's making this one special is that
 it's indexed and 'tablified'.
 
 
-Current release is: 1.5
-Tarball:            http://www.bayour.com/bind9-snmp/bind9-snmp_1.5.tgz
+Current release is: 1.6
+Tarball:            http://www.bayour.com/bind9-snmp/bind9-snmp_1.6.tgz
 
 
 SNMP Setup files (Paths depend on where your SNMP/Cacti is installed!)
