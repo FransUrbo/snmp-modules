@@ -17,6 +17,11 @@ SNMP Setup files (Paths depend on where your SNMP/Cacti is installed!)
   This is the MIB declaration.
   Copy to /usr/share/snmp/mibs/
 
+* BayourCOM_SNMP.pm
+  This is the Perl API library needed
+  by the bind9-snmp-stats.pl perl script.
+  Copy to /usr/local/lib/site_perl/
+
 * bind9-snmp-stats.pl
   This is the stat retreival script.
   Copy to /etc/snmp/
@@ -61,6 +66,7 @@ need.
 
 After those two points, click the 'create' button at the bottom left.
 
+
 Mailinglists
 =================
 If you're interested in all the CVS commits and changes, you can subscribe
@@ -71,8 +77,9 @@ much traffic on the list, so don't worry about 'drowning' :).
 For support and other discussions about the module, please subscribe
 to the 'snmp-modules@lists.bayour.com' mailinglist.
 
-To subscribe: Send an empty mail to the 'request-<mailinglist>@lists.bayour.com'
-              address.
+To subscribe: Send an empty mail to the request-<mailinglist>@lists.bayour.com
+address.
+
 
 NOTE (1):
 =================
@@ -111,8 +118,142 @@ It have the following format (my values as example):
 ----- s n i p -----
 DEBUG=4
 DEBUG_FILE=/var/log/bind9-snmp-stats.log
-STATS_FILE=/var/lib/named/var/log/dns-stats.log
+STATS_FILE=/var/log/dns-stats.log
 STATS_FILE_OWNER_GROUP=bind9.bind9
 RNDC=/usr/sbin/rndc
 DELTA_DIR=/var/tmp/
 ----- s n i p -----
+
+
+Setting up Bind9 to log statistics
+=================
+In the named.conf (or wherever you have
+your 'options' options), add the following
+two lines:
+
+        // Statistics
+        zone-statistics yes;
+        statistics-file "/var/log/dns-stats.log";
+
+Note the 'statistics-file' and the 'STATS_FILE'
+options in named.conf and .bindsnmp respectively!
+
++ In newer Bind9 (unknown version, but I'm quite
+  sure it didn't exist in 9.1 and earlier - it
+  DO work in 9.4), it's possible to put the 
+  'zone-statistics' option within the actual
+  zone instead so that statistics is only gathered
+  for specified zones instead of all...
+
+
+Testing
+=================
+1. First thing to test is if bind actually creates
+   the statistics file.
+   Execute the command 'rndc stats' and look at the
+   file specified with the statistics-file option.
+
+2. Make sure that snmpd actually loads the MIB file
+   by executing the command:
+
+     snmpd -f -DALL 2>&1 | grep BAYOUR-COM-MIB
+
+   This will return something like this:
+
+     parse-mibs:   Module 56 BAYOUR-COM-MIB is in /usr/share/snmp/mibs/BAYOUR-COM-MIB.txt
+     parse-file: Parsing file:  /usr/share/snmp/mibs/BAYOUR-COM-MIB.txt...
+     parse-mibs: Parsing MIB: 56 BAYOUR-COM-MIB
+     parse-mibs: Processing IMPORTS for module 56 BAYOUR-COM-MIB
+     parse-file: End of file (/usr/share/snmp/mibs/BAYOUR-COM-MIB.txt)
+     handler::register: Registering pass_persist (::old_api) at BAYOUR-COM-MIB::bind9Stats
+     register_mib: registering "pass_persist" at BAYOUR-COM-MIB::bind9Stats with context ""
+
+3. Test that the script can read the statistics file
+   and output information and not have any errors.
+   Do this by executing the following command: 
+
+     bind9-snmp-stats.pl --all > /dev/null
+
+   You should NOT get any output. Any output here
+   is errors!
+
+   Next see if it output the correct values. This
+   is done with the same command, but without the
+   redirect:
+
+     bind9-snmp-stats.pl --all
+
+   The output depends on number of domains and the
+   actual statistics gathered, so I can't show you
+   how it should look like.
+
+4. Check that the script works in a SNMP environment.
+   Start the script without parameters
+
+     bind9-snmp-stats.pl
+
+   a. Then on the 'command line' that is given, enter the
+      word 'PING' and a newline. The script should reply
+      with a simple 'PONG'.
+
+   b. Try to get the number of total domains by entering the
+      the two following lines:
+
+        get
+        .1.3.6.1.4.1.8767.2.1.1.0
+
+      The script should reply with the following lines:
+
+        .1.3.6.1.4.1.8767.2.1.1.0
+        integer
+        6
+
+      Last line (the number '6') depends on number of domains
+      in your Bind9 server.
+
+5. Check that you can retreive values with 'snmpget'
+   and 'snmptable' something like this:
+
+   a. snmpget -v1 -c private localhost .1.3.6.1.4.1.8767.2.1.1.0
+   b. snmpget -v1 -c private localhost b9stNumberTotals.0
+
+   Both of these commands should return the number of
+   domains in your Bind9 server.
+
+   c. snmptable -v1 -c private localhost .1.3.6.1.4.1.8767.2.1.3
+   d. snmptable -v1 -c private localhost b9stTotalsTable
+
+   On my laptop, this doesn't give any good data (because it's
+   basically not used - only for testing this script etc), but
+   it DO give the correct ones:
+
+      b9stCounterName b9stCounterTotal b9stCounterForward b9stCounterReverse
+              success                0                  0                  0
+             referral                0                  0                  0
+              nxrrset                0                  0                  0
+             nxdomain                0                  0                  0
+            recursion                0                  0                  0
+              failure                0                  0                  0
+
+   e. snmptable -v1 -c private localhost .1.3.6.1.4.1.8767.2.1.4
+   f. snmptable -v1 -c private localhost b9stDomainsTable
+
+   This command is the most interesting. It will give the actual
+   zone statistics data.
+   Instead of 'snmptable', you can use 'snmpwalk' (same options)
+   to get the data in a slightly different view on the data.
+
+Test Notes
+=================
+I have not used this script in a long time (my cacti server
+had crashed, and I had not time fixing it), I set up this
+script on my laptop. All points up (but not including) point
+five worked flawlessly. But point five 'a' did not work! I got
+the following message:
+
+  Error in packet
+  Reason: (noSuchName) There is no such variable name in this MIB.
+  Failed object: BAYOUR-COM-MIB::b9stNumberTotals.0
+
+In my case, this was because the logfile (DEBUG_FILE in the
+.bindsnmp config file) could not be written to.
