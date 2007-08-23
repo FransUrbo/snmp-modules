@@ -1,4 +1,4 @@
-bind9-snmp 1.7 TO BE ANNOUNCED
+bind9-snmp 1.7 Release (Aug 23 2007)
 	Bug fixes
 	  + Remove global %CFG definition. It overwrote the one in the library!
 	  + To support the view information, the %DOMAINS array needed to be completley
