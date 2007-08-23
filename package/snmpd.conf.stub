@@ -1,6 +1,0 @@
-# http://forums.cacti.net/about302-0-asc-15.html
-# snmpwalk -On -c public localhost .1.3.6.1.4.1.8767.2.5
-# snmpwalk -On -c public localhost packageInfoTable
-# snmptable -c public localhost packageStatsTable
-# snmptable -c public localhost packageInfoTable
-pass_persist .1.3.6.1.4.1.8767.2.5   /etc/snmp/package-snmp-stats.pl
