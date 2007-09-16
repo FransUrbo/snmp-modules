@@ -1,4 +1,4 @@
-# {{{ $Id: BayourCOM_SNMP.pm,v 1.5 2006-04-21 13:05:34 turbo Exp $
+# {{{ $Id: BayourCOM_SNMP.pm,v 1.6 2007-09-16 22:31:09 turbo Exp $
 # Common functions used by Bayour.COM SNMP modules.
 #
 # Copyright 2005 Turbo Fredriksson <turbo@bayour.com>.
@@ -12,7 +12,7 @@ use vars qw(@EXPORT @ISA %CFG);
 
 %CFG = ();
 @ISA = qw(Exporter);
-@EXPORT = qw(help debug no_value get_config output_extra_debugging get_timestring open_log %CFG);
+@EXPORT = qw(help debug no_value check_val get_config output_extra_debugging get_timestring open_log %CFG);
 
 # ----- INTERNAL
 
@@ -45,11 +45,11 @@ sub open_log {
 sub help {
     my $name = `basename $0`; chomp($name);
 
-    debug(0, "Usage: $name [option] [oid]\n");
-    debug(0, "Options: --debug|-d	Run in debug mode\n");
-    debug(0, "         --all|-a	Get all information\n");
-    debug(0, "         -n		Get next OID ('oid' required)\n");
-    debug(0, "         -g		Get specified OID ('oid' required)\n");
+    printf("Usage: $name [option] [oid]\n");
+    printf("Options: --debug|-d	Run in debug mode\n");
+    printf("         --all|-a	Get all information\n");
+    printf("         -n		Get next OID ('oid' required)\n");
+    printf("         -g		Get specified OID ('oid' required)\n");
 
     exit 1 if($CFG{'DEBUG'});
 }
@@ -84,6 +84,18 @@ sub no_value {
     
     debug(1, "NONE\n");
     debug(0, "\n") if($CFG{'DEBUG'} > 1);
+}
+# }}}
+
+# {{{ check_val()
+sub check_val {
+    my $value = shift;
+
+    if(defined($value)) {
+	return(1);
+    } else {
+	return(0);
+    }
 }
 # }}}
 
