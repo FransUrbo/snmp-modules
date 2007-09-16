@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.21 2007-09-16 20:18:15 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.22 2007-09-16 22:41:23 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -126,16 +126,19 @@ $SIG{'ALRM'} = \&load_information;
 # {{{ print_b9stNumberTotals()
 sub print_b9stNumberTotals {
     my $j = shift;
-    $count_counters = &check_val('int', $count_counters);
 
     if($CFG{'DEBUG'}) {
 	debug(0, "=> OID_BASE.b9stNumberTotals.0\n") if($CFG{'DEBUG'} > 1);
 	debug(0, "$OID_BASE.1.0 = $count_counters\n");
     }
 
-    debug(1, "$OID_BASE.1.0\n");
-    debug(1, "integer\n");
-    debug(1, "$count_counters\n");
+    if(check_val($count_counters)) {
+	debug(1, "$OID_BASE.1.0\n");
+	debug(1, "integer\n");
+	debug(1, "$count_counters\n");
+    } else {
+	no_value();
+    }
 
     debug(0, "\n") if($CFG{'DEBUG'} > 1);
 }
@@ -144,16 +147,19 @@ sub print_b9stNumberTotals {
 # {{{ print_b9stNumberDomains()
 sub print_b9stNumberDomains {
     my $j = shift;
-    $count_domains = &check_val('int', $count_domains);
 
     if($CFG{'DEBUG'}) {
 	debug(0, "=> OID_BASE.b9stNumberDomains.0\n") if($CFG{'DEBUG'} > 1);
 	debug(0, "$OID_BASE.2.0 = $count_domains\n");
     }
 
-    debug(1, "$OID_BASE.2.0\n");
-    debug(1, "integer\n");
-    debug(1, "$count_domains\n");
+    if(check_val($count_domains)) {
+	debug(1, "$OID_BASE.2.0\n");
+	debug(1, "integer\n");
+	debug(1, "$count_domains\n");
+    } else {
+	no_value();
+    }
 
     debug(0, "\n") if($CFG{'DEBUG'} > 1);
 }
@@ -178,13 +184,16 @@ sub print_b9stTotalsIndex {
 
     foreach $j (keys %cnts) {
 	$j =~ s/^0//;
-	$j = &check_val('int', $j);
 
 	debug(0, "$OID_BASE.3.1.1.$j = $j\n") if($CFG{'DEBUG'});
 	
-	debug(1, "$OID_BASE.3.1.1.$j\n");
-	debug(1, "integer\n");
-	debug(1, "$j\n");
+	if(check_val($j)) {
+	    debug(1, "$OID_BASE.3.1.1.$j\n");
+	    debug(1, "integer\n");
+	    debug(1, "$j\n");
+	} else {
+	    no_value();
+	}
     }
 
     debug(0, "\n") if($CFG{'DEBUG'} > 1);
@@ -209,13 +218,15 @@ sub print_b9stCounterName {
     }
 
     foreach $j (keys %cnts) {
-	$counters{$j} = &check_val('str', $counters{$j});
-
 	debug(0, "$OID_BASE.3.1.2.$j = ".$counters{$j}."\n") if($CFG{'DEBUG'});
 
-	debug(1, "$OID_BASE.3.1.2.$j\n");
-	debug(1, "string\n");
-	debug(1, $counters{$j}."\n");
+	if(check_val($counters{$j})) {
+	    debug(1, "$OID_BASE.3.1.2.$j\n");
+	    debug(1, "string\n");
+	    debug(1, $counters{$j}."\n");
+	} else {
+	    no_value();
+	}
     }
 
     debug(0, "\n") if($CFG{'DEBUG'} > 1);
@@ -254,15 +265,24 @@ sub print_b9stCounterTypeTotal {
     my $counter;
     foreach $nr (keys %cnts) {
 	$counter  = $counters{$nr};
-	$DATA{$counter}{$type} = &check_val('int', $DATA{$counter}{$type});
 
 	debug(0, "   DATA{$counter}{$type}\n") if($CFG{'DEBUG'} >= 4);
 
-	debug(0, "$OID_BASE.3.1.$type_nr.$nr = ".$DATA{$counter}{$type}."\n") if($CFG{'DEBUG'});
+	if($CFG{'DEBUG'}) {
+	    if(defined($DATA{$counter}{$type})) {
+		debug(0, "$OID_BASE.3.1.$type_nr.$nr = ".$DATA{$counter}{$type}."\n");
+	    } else {
+		debug(0, "$OID_BASE.3.1.$type_nr.$nr = undefined\n");
+	    }
+	}
 
-	debug(1, "$OID_BASE.3.1.$type_nr.$nr\n");
-	debug(1, "counter32\n");
-	debug(1, $DATA{$counter}{$type}."\n");
+	if(check_val($DATA{$counter}{$type})) {
+	    debug(1, "$OID_BASE.3.1.$type_nr.$nr\n");
+	    debug(1, "counter32\n");
+	    debug(1, $DATA{$counter}{$type}."\n");
+	} else {
+	    no_value();
+	}
     }
 
     debug(0, "\n") if($CFG{'DEBUG'} > 1);
@@ -315,13 +335,15 @@ sub print_b9stCounterTypeDomains {
     foreach my $domain (sort keys %DOMAINS) {
 	foreach my $view (keys %{ $DOMAINS{$domain} }) {
 	    if(($i == $j) or ($j == 0)) {
-		$DOMAINS{$domain}{$view}{$type} = &check_val('int', $DOMAINS{$domain}{$view}{$type});
-
 		debug(0, "$OID_BASE.4.1.$type_nr.$i = ".$DOMAINS{$domain}{$view}{$type}."\n") if($CFG{'DEBUG'});
 		
-		debug(1, "$OID_BASE.4.1.$type_nr.$i\n");
-		debug(1, "integer\n");
-		debug(1, $DOMAINS{$domain}{$view}{$type}."\n");
+		if(check_val($DOMAINS{$domain}{$view}{$type})) {
+		    debug(1, "$OID_BASE.4.1.$type_nr.$i\n");
+		    debug(1, "counter32\n");
+		    debug(1, $DOMAINS{$domain}{$view}{$type}."\n");
+		} else {
+		    no_value();
+		}
 	    }
 
 	    $i++;
@@ -346,13 +368,15 @@ sub print_b9stCounterTypeView {
     foreach my $domain (sort keys %DOMAINS) {
 	foreach my $view (keys %{ $DOMAINS{$domain} }) {
 	    if(($i == $j) or ($j == 0)) {
-		$view = &check_val('str', $view);
-
 		debug(0, "$OID_BASE.4.1.$type_nr.$i = $view\n") if($CFG{'DEBUG'});
 		
-		debug(1, "$OID_BASE.4.1.$type_nr.$i\n");
-		debug(1, "string\n");
-		debug(1, "$view\n");
+		if(check_val($view)) {
+		    debug(1, "$OID_BASE.4.1.$type_nr.$i\n");
+		    debug(1, "string\n");
+		    debug(1, "$view\n");
+		} else {
+		    no_value();
+		}
 	    }
 
 	    $i++;
@@ -432,13 +456,15 @@ sub print_b9stDomainsIndex {
     my $i = 1;
     foreach my $domain (sort keys %cnts) {
 	foreach my $view (keys %{ $cnts{$domain} }) {
-	    $i = &check_val('int', $i);
-
 	    debug(0, "$OID_BASE.4.1.1.$i = $i\n") if($CFG{'DEBUG'});
 	    
-	    debug(1, "$OID_BASE.4.1.1.$i\n");
-	    debug(1, "integer\n");
-	    debug(1, "$i\n");
+	    if(check_val($i)) {
+		debug(1, "$OID_BASE.4.1.1.$i\n");
+		debug(1, "counter32\n");
+		debug(1, "$i\n");
+	    } else {
+		no_value();
+	    }
 	    
 	    $i++;
 	}
@@ -458,13 +484,15 @@ sub print_b9stDomainName {
     foreach my $domain (sort keys %DOMAINS) {
 	foreach my $view (keys %{ $DOMAINS{$domain} }) {
 	    if(($i == $j) or ($j == 0)) {
-		$domain = &check_val('str', $domain);
-
 		debug(0, "$OID_BASE.4.1.2.$i = $domain\n") if($CFG{'DEBUG'});
 		
-		debug(1, "$OID_BASE.4.1.2.$i\n");
-		debug(1, "string\n");
-		debug(1, "$domain\n");
+		if(check_val($domain)) {
+		    debug(1, "$OID_BASE.4.1.2.$i\n");
+		    debug(1, "string\n");
+		    debug(1, "$domain\n");
+		} else {
+		    no_value();
+		}
 	    }
 
 	    $i++;
@@ -504,23 +532,6 @@ sub call_func_domain {
 
     $func = \&{$func}; # Because of 'use strict' above...
     &$func($func_arg);
-}
-# }}}
-
-# {{{ check_val()
-sub check_val {
-    my $type  = shift;
-    my $value = shift;
-
-    if(!defined($value)) {
-	if($type eq 'str') {
-	    return("");
-	} elsif($type eq 'int') {
-	    return(0);
-	}
-    } else {
-	return($value);
-    }
 }
 # }}}
 
@@ -622,22 +633,24 @@ sub load_information {
 # ====================================================
 # =====          P R O C E S S  A R G S          =====
 
-# Load information
-&load_information();
-
 # {{{ Go through the argument(s) passed to the program
 my $ALL = 0;
 for(my $i=0; $ARGV[$i]; $i++) {
     if($ARGV[$i] eq '--help' || $ARGV[$i] eq '-h' || $ARGV[$i] eq '?' ) {
 	help();
+	exit 1;
     } elsif($ARGV[$i] eq '--all' || $ARGV[$i] eq '-a') {
 	$ALL = 1;
     } else {
 	print "Unknown option '",$ARGV[$i],"'\n";
 	help();
+	exit 1;
     }
 }
 # }}}
+
+# Load information
+&load_information();
 
 if($ALL) {
     # {{{ Output the whole MIB tree - used mainly/only for debugging purposes
