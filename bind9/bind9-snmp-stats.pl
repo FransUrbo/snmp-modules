@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.20 2006-02-24 09:23:18 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.21 2007-09-16 20:18:15 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -126,6 +126,7 @@ $SIG{'ALRM'} = \&load_information;
 # {{{ print_b9stNumberTotals()
 sub print_b9stNumberTotals {
     my $j = shift;
+    $count_counters = &check_val('int', $count_counters);
 
     if($CFG{'DEBUG'}) {
 	debug(0, "=> OID_BASE.b9stNumberTotals.0\n") if($CFG{'DEBUG'} > 1);
@@ -143,6 +144,7 @@ sub print_b9stNumberTotals {
 # {{{ print_b9stNumberDomains()
 sub print_b9stNumberDomains {
     my $j = shift;
+    $count_domains = &check_val('int', $count_domains);
 
     if($CFG{'DEBUG'}) {
 	debug(0, "=> OID_BASE.b9stNumberDomains.0\n") if($CFG{'DEBUG'} > 1);
@@ -176,6 +178,8 @@ sub print_b9stTotalsIndex {
 
     foreach $j (keys %cnts) {
 	$j =~ s/^0//;
+	$j = &check_val('int', $j);
+
 	debug(0, "$OID_BASE.3.1.1.$j = $j\n") if($CFG{'DEBUG'});
 	
 	debug(1, "$OID_BASE.3.1.1.$j\n");
@@ -205,6 +209,8 @@ sub print_b9stCounterName {
     }
 
     foreach $j (keys %cnts) {
+	$counters{$j} = &check_val('str', $counters{$j});
+
 	debug(0, "$OID_BASE.3.1.2.$j = ".$counters{$j}."\n") if($CFG{'DEBUG'});
 
 	debug(1, "$OID_BASE.3.1.2.$j\n");
@@ -248,12 +254,14 @@ sub print_b9stCounterTypeTotal {
     my $counter;
     foreach $nr (keys %cnts) {
 	$counter  = $counters{$nr};
+	$DATA{$counter}{$type} = &check_val('int', $DATA{$counter}{$type});
+
 	debug(0, "   DATA{$counter}{$type}\n") if($CFG{'DEBUG'} >= 4);
 
 	debug(0, "$OID_BASE.3.1.$type_nr.$nr = ".$DATA{$counter}{$type}."\n") if($CFG{'DEBUG'});
 
 	debug(1, "$OID_BASE.3.1.$type_nr.$nr\n");
-	debug(1, "integer\n");
+	debug(1, "counter32\n");
 	debug(1, $DATA{$counter}{$type}."\n");
     }
 
@@ -307,6 +315,8 @@ sub print_b9stCounterTypeDomains {
     foreach my $domain (sort keys %DOMAINS) {
 	foreach my $view (keys %{ $DOMAINS{$domain} }) {
 	    if(($i == $j) or ($j == 0)) {
+		$DOMAINS{$domain}{$view}{$type} = &check_val('int', $DOMAINS{$domain}{$view}{$type});
+
 		debug(0, "$OID_BASE.4.1.$type_nr.$i = ".$DOMAINS{$domain}{$view}{$type}."\n") if($CFG{'DEBUG'});
 		
 		debug(1, "$OID_BASE.4.1.$type_nr.$i\n");
@@ -336,6 +346,8 @@ sub print_b9stCounterTypeView {
     foreach my $domain (sort keys %DOMAINS) {
 	foreach my $view (keys %{ $DOMAINS{$domain} }) {
 	    if(($i == $j) or ($j == 0)) {
+		$view = &check_val('str', $view);
+
 		debug(0, "$OID_BASE.4.1.$type_nr.$i = $view\n") if($CFG{'DEBUG'});
 		
 		debug(1, "$OID_BASE.4.1.$type_nr.$i\n");
@@ -420,6 +432,8 @@ sub print_b9stDomainsIndex {
     my $i = 1;
     foreach my $domain (sort keys %cnts) {
 	foreach my $view (keys %{ $cnts{$domain} }) {
+	    $i = &check_val('int', $i);
+
 	    debug(0, "$OID_BASE.4.1.1.$i = $i\n") if($CFG{'DEBUG'});
 	    
 	    debug(1, "$OID_BASE.4.1.1.$i\n");
@@ -444,6 +458,8 @@ sub print_b9stDomainName {
     foreach my $domain (sort keys %DOMAINS) {
 	foreach my $view (keys %{ $DOMAINS{$domain} }) {
 	    if(($i == $j) or ($j == 0)) {
+		$domain = &check_val('str', $domain);
+
 		debug(0, "$OID_BASE.4.1.2.$i = $domain\n") if($CFG{'DEBUG'});
 		
 		debug(1, "$OID_BASE.4.1.2.$i\n");
@@ -491,6 +507,22 @@ sub call_func_domain {
 }
 # }}}
 
+# {{{ check_val()
+sub check_val {
+    my $type  = shift;
+    my $value = shift;
+
+    if(!defined($value)) {
+	if($type eq 'str') {
+	    return("");
+	} elsif($type eq 'int') {
+	    return(0);
+	}
+    } else {
+	return($value);
+    }
+}
+# }}}
 
 # {{{ Load all information needed
 sub load_information {
