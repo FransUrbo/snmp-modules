@@ -1,4 +1,4 @@
-# {{{ $Id: BayourCOM_SNMP.pm,v 1.6 2007-09-16 22:31:09 turbo Exp $
+# {{{ $Id: BayourCOM_SNMP.pm,v 1.7 2007-12-31 11:30:00 turbo Exp $
 # Common functions used by Bayour.COM SNMP modules.
 #
 # Copyright 2005 Turbo Fredriksson <turbo@bayour.com>.
@@ -13,6 +13,7 @@ use vars qw(@EXPORT @ISA %CFG);
 %CFG = ();
 @ISA = qw(Exporter);
 @EXPORT = qw(help debug no_value check_val get_config output_extra_debugging get_timestring open_log %CFG);
+our $log_opened = 0;
 
 # ----- INTERNAL
 
@@ -59,18 +60,17 @@ sub help {
 sub debug {
     my $stdout = shift;
     my $string = shift;
-    my $log_opened = 0;
 
     # Open logfile if debugging OR running from snmpd.
-    if($CFG{'DEBUG'}) {
-	if(open_log()) {
+    if($stdout) {
+        print $string;
+    } elsif($CFG{'DEBUG'}) {
+	if(!$log_opened && open_log()) {
 	    $log_opened = 1;
 	    open(STDERR, ">LOG") if(($CFG{'DEBUG'} <= 2) || $ENV{'MIBDIRS'});
 	}
 
-	if($stdout) {
-	    print $string;
-	} elsif($log_opened) {
+	if($log_opened) {
 	    print LOG get_timestring()," " if($CFG{'DEBUG'} > 2);
 	    print LOG $string;
 	}
