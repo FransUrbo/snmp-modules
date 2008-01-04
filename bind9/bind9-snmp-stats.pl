@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.22 2007-09-16 22:41:23 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.23 2008-01-04 12:02:01 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -541,7 +541,10 @@ sub load_information {
     %CFG = get_config($CFG_FILE);
 
     debug(0, "=> Dumping Bind9 stats\n") if($CFG{'RNDC'} && ($CFG{'DEBUG'} > 1));
-    system($CFG{'RNDC'}." stats") if($CFG{'RNDC'});
+    if($CFG{'RNDC'} ){
+	my $out = `$CFG{'RNDC'} stats 2>&1`;
+	debug(0, "==> rndc returned: $out\n") if ($CFG{'DEBUG'} > 1 && length($out) > 0);
+    }
     
     my $tmp =  $CFG{'STATS_FILE'};
     $tmp =~ s/\W/_/g;
@@ -603,11 +606,14 @@ sub load_information {
 
     if($CFG{'RNDC'}) {
 	# Only remove the stats and delta file if RNDC is set!
-	unlink($CFG{'STATS_FILE'});
-	system("touch ".$CFG{'STATS_FILE'});
+
+	# reset the stats file
+	open (DUMP, '>'.$CFG{'STATS_FILE'})
+	    or debug(0," unable to reset ".$CFG{'STATS_FILE'}.": ".$!);
+	close (DUMP);
 
 	unlink($delta);
-	system("chown ".$CFG{'STATS_FILE_OWNER_GROUP'}." ".$CFG{'STATS_FILE'});
+#	system("chown ".$CFG{'STATS_FILE_OWNER_GROUP'}." ".$CFG{'STATS_FILE'});
     }
 
     # ------------- C O U N T  D O M A I N S

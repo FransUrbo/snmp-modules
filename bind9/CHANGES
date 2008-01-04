@@ -16,10 +16,12 @@ bind9-snmp 1.7 Release (Aug 23 2007)
 	    - The default view (if there IS no views!) is '' (NULL).
 	  + The get_config() have been changed - first param is config file, the second
 	    is what key to reload (missed the config file option).
+	  + Recreate the stats file by zeroing out the file instead of remove/touch it.
 
 	Misc changes
 	  + Debug cleanup (include 'b9st*Entry' info in debug output).
 	  + Bind9 setup and how to test functionality documentation added.
+	  + Catch 'rndc' messages and send to log file.
 
 bind9-snmp 1.6 Release (Feb  7 2006)
 	Bug fixes
