@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.23 2008-01-04 12:02:01 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.24 2008-07-31 21:24:34 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -74,7 +74,9 @@ my %counters       = ("1" => 'success',
 		      "3" => 'nxrrset',
 		      "4" => 'nxdomain',
 		      "5" => 'recursion',
-		      "6" => 'failure');
+		      "6" => 'failure',
+		      "7" => 'duplicate',
+		      "8" => 'dropped' );
 
 my %types          = ("1" => 'total',
 		      "2" => 'forward',
@@ -87,7 +89,7 @@ my %prints_total   = ("1" => "TotalsIndex",
 		      "5" => "CounterReverse");
 
 my $count_domains  = 0;
-my %prints_domain  = ("1" => "DomainsIndex",
+my %prints_domain = ( "1" => "DomainsIndex",
 		      "2" => "DomainName",
 		      "3" => "CounterSuccess",
 		      "4" => "CounterReferral",
@@ -95,7 +97,9 @@ my %prints_domain  = ("1" => "DomainsIndex",
 		      "6" => "CounterNXDomain",
 		      "7" => "CounterRecursion",
 		      "8" => "CounterFailure",
-		      "9" => "CounterView"); # If this changes, update print_b9stCounterTypeView()!
+		      "9" => "CounterDuplicate",
+		     "10" => "CounterDropped",
+		     "11" => "CounterView" ); # If this changes, update print_b9stCounterTypeView()!
 
 # How many base counters?
 my $count_counters;
@@ -278,7 +282,7 @@ sub print_b9stCounterTypeTotal {
 
 	if(check_val($DATA{$counter}{$type})) {
 	    debug(1, "$OID_BASE.3.1.$type_nr.$nr\n");
-	    debug(1, "counter32\n");
+	    debug(1, "integer\n");
 	    debug(1, $DATA{$counter}{$type}."\n");
 	} else {
 	    no_value();
@@ -339,7 +343,7 @@ sub print_b9stCounterTypeDomains {
 		
 		if(check_val($DOMAINS{$domain}{$view}{$type})) {
 		    debug(1, "$OID_BASE.4.1.$type_nr.$i\n");
-		    debug(1, "counter32\n");
+		    debug(1, "integer\n");
 		    debug(1, $DOMAINS{$domain}{$view}{$type}."\n");
 		} else {
 		    no_value();
@@ -360,7 +364,7 @@ sub print_b9stCounterTypeView {
     my $j    = shift;
     debug(0, "=> print_b9stCounterTypeView('$type', '$j')\n") if($CFG{'DEBUG'} > 2);
 
-    my $type_nr = 9;
+    my $type_nr = 11;
     my $type_name = "View";
     debug(0, "=> OID_BASE.b9stDomainsTable.b9stDomainsEntry.b9stCounter$type_name.x\n") if($CFG{'DEBUG'} > 1);
 
@@ -429,6 +433,20 @@ sub print_b9stCounterFailure {
 }
 # }}}
 
+# {{{ print_b9stCounterDuplicate()
+sub print_b9stCounterDuplicate {
+    my $j = shift;
+    &print_b9stCounterTypeDomains("duplicate", $j);
+}
+# }}}
+
+# {{{ print_b9stCounterDropped()
+sub print_b9stCounterDropped {
+    my $j = shift;
+    &print_b9stCounterTypeDomains("dropped", $j);
+}
+# }}}
+
 # {{{ print_b9stCounterView()
 sub print_b9stCounterView {
     my $j = shift;
@@ -460,7 +478,7 @@ sub print_b9stDomainsIndex {
 	    
 	    if(check_val($i)) {
 		debug(1, "$OID_BASE.4.1.1.$i\n");
-		debug(1, "counter32\n");
+		debug(1, "integer\n");
 		debug(1, "$i\n");
 	    } else {
 		no_value();
@@ -540,10 +558,12 @@ sub load_information {
     # Load configuration file
     %CFG = get_config($CFG_FILE);
 
-    debug(0, "=> Dumping Bind9 stats\n") if($CFG{'RNDC'} && ($CFG{'DEBUG'} > 1));
     if($CFG{'RNDC'} ){
 	my $out = `$CFG{'RNDC'} stats 2>&1`;
-	debug(0, "==> rndc returned: $out\n") if ($CFG{'DEBUG'} > 1 && length($out) > 0);
+	if($CFG{'DEBUG'} > 1){
+    		debug(0, "=> Dumping Bind9 stats\n");
+		debug(0, "==> rndc returned: $out\n") if(length($out) > 0);
+	}
     }
     
     my $tmp =  $CFG{'STATS_FILE'};
