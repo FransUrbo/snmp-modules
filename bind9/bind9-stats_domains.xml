@@ -3,7 +3,7 @@
 	<description>Queries a NS host for bind9 statistic counters</description>
 	<oid_index>.1.3.6.1.4.1.8767.2.1.4.1</oid_index>
 	<oid_num_indexes>.1.3.6.1.4.1.8767.2.1.2.0</oid_num_indexes>
-	<index_order>b9stCounterFailure:b9stCounterRecursion:b9stCounterNXDomain:b9stCounterNXRRSet:b9stCounterReferral:b9stCounterSuccess:b9stDomainName</index_order>
+	<index_order>b9stCounterDropped:b9stCounterDuplicate:b9stCounterFailure:b9stCounterRecursion:b9stCounterNXDomain:b9stCounterNXRRSet:b9stCounterReferral:b9stCounterSuccess:b9stDomainName</index_order>
 	<index_order_type>numeric</index_order_type>
 	<index_title_format>|chosen_order_field|</index_title_format>
 
@@ -63,5 +63,21 @@
 			<direction>output</direction>
 			<oid>.1.3.6.1.4.1.8767.2.1.4.1.8</oid>
 		</b9stCounterFailure>
+
+		<b9stCounterDuplicate>
+			<name>Duplicate counter per domain</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>output</direction>
+			<oid>.1.3.6.1.4.1.8767.2.1.4.1.9</oid>
+		</b9stCounterDuplicate>
+
+		<b9stCounterDropped>
+			<name>Dropped counter per domain</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>output</direction>
+			<oid>.1.3.6.1.4.1.8767.2.1.4.1.10</oid>
+		</b9stCounterDropped>
 	</fields>
 </interface>
