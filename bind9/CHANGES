@@ -1,3 +1,11 @@
+bind9-snmp 1.8 Release (TO BE ANNOUNCED)
+	Misc changes
+	  * Patch by cgianelloni@quova.com:
+	    + Add support for dropped stats to the totals and per-domain stats.
+	      New tables b9stCounterDuplicate and b9stCounterDropped.
+	    + Changed some DESCRIPTION texts to more obvious ones in the schema.
+	    + Closes bug #331
+
 bind9-snmp 1.7 Release (Aug 23 2007)
 	Bug fixes
 	  + Remove global %CFG definition. It overwrote the one in the library!
