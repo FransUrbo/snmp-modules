@@ -1,6 +1,6 @@
 bind9-snmp 1.8 Release (TO BE ANNOUNCED)
 	Misc changes
-	  * Patch by cgianelloni@quova.com:
+	  * Patch by Chris Gianelloni:
 	    + Add support for dropped stats to the totals and per-domain stats.
 	      New tables b9stCounterDuplicate and b9stCounterDropped.
 	    + Changed some DESCRIPTION texts to more obvious ones in the schema.
