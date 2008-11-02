@@ -7,14 +7,26 @@ via SNMP but what's making this one special is that
 it's indexed and 'tablified'.
 
 
-Current release is: 1.7
+Latest version is: 1.pre8 (This is the current CVS version)
+Tarball:            http://www.bayour.com/bind9-snmp/bind9-snmp_1.pre8.tgz
+Tarball 2:          http://www.bayour.com/bind9-snmp/bind9-snmp_1.pre8.tar.bz2
+ZIPfile:            http://www.bayour.com/bind9-snmp/bind9-snmp_1.pre8.zip
+
+Latest stable release is: 1.7 (which apparently don't work to good :)
 Tarball:            http://www.bayour.com/bind9-snmp/bind9-snmp_1.7.tgz
 Tarball 2:          http://www.bayour.com/bind9-snmp/bind9-snmp_1.7.tar.bz2
 ZIPfile:            http://www.bayour.com/bind9-snmp/bind9-snmp_1.7.zip
 
 
-SNMP Setup files (Paths depend on where your SNMP/Cacti is installed!)
-=================
+Any patches or fixes will only be accepted against the CVS version!
+
+                        !!!!! NOTE !!!!!
+   Paths below depend on  where your SNMP/Cacti is installed! Examples
+   shown for a Debian GNU/Linux system!!
+                        !!!!! NOTE !!!!!
+
+SNMP Setup files
+================
 * BAYOUR-COM-MIB.txt
   This is the MIB declaration.
   Copy to /usr/share/snmp/mibs/
