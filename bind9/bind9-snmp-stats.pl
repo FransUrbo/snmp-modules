@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.24 2008-07-31 21:24:34 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.25 2011-02-10 17:46:58 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -558,6 +558,7 @@ sub load_information {
     # Load configuration file
     %CFG = get_config($CFG_FILE);
 
+    # {{{ Load information from RNDC, line by line
     if($CFG{'RNDC'} ){
 	my $out = `$CFG{'RNDC'} stats 2>&1`;
 	if($CFG{'DEBUG'} > 1){
@@ -586,41 +587,51 @@ sub load_information {
 	    seek(DUMP, $file_offset, 0);
 	}
     }
+    # }}}
 
-    # ------------- L O A D  S T A T S
+    # {{{ Load and parse stats values
     my %views;
     while(<DUMP>) {
 	next if /^(---|\+\+\+)/;
 	chomp;
-	my ($what, $value, $domain, $view) = split(/\s+/, $_, 4);
-	$view = '' if(!$view);
 
-	if (!$domain) {
-	    # TOTALS counter(s)
-	    debug(0, "DATA{$what}{total} += $value\n") if($CFG{'DEBUG'} >= 4);
-	    $DATA{$what}{"total"} += $value;
+	if( /^(\+\+ |   |\[)/ ) {
+	    # New (Bind version >9.5) style status format
+	    # TODO
+	    debug(0, "New style status format!\n") if($CFG{'DEBUG'} >= 4);
 	} else {
-	    # DOMAINS counter(s)
-	    debug(0, "DOMAINS{$domain}{$view}{$what} = $value\n") if($CFG{'DEBUG'} >= 4);
-	    $DOMAINS{$domain}{$view}{$what} = $value;
+	    # Old (Bind version <9.6) style status format
+	    my ($what, $value, $domain, $view) = split(/\s+/, $_, 4);
+	    $view = '' if(!$view);
 
-	    if ($domain =~ m/in-addr.arpa/) {
-		debug(0, "DATA{$what}{reverse} += $value\n") if($CFG{'DEBUG'} >= 4);
-		$DATA{$what}{"reverse"} += $value;
+	    if (!$domain) {
+		# TOTALS counter(s)
+		debug(0, "DATA{$what}{total} += $value\n") if($CFG{'DEBUG'} >= 4);
+		$DATA{$what}{"total"} += $value;
 	    } else {
-		debug(0, "DATA{$what}{forward} += $value\n") if($CFG{'DEBUG'} >= 4);
-		$DATA{$what}{"forward"} += $value;
+		# DOMAINS counter(s)
+		debug(0, "DOMAINS{$domain}{$view}{$what} = $value\n") if($CFG{'DEBUG'} >= 4);
+		$DOMAINS{$domain}{$view}{$what} = $value;
+
+		if ($domain =~ m/in-addr.arpa/) {
+		    debug(0, "DATA{$what}{reverse} += $value\n") if($CFG{'DEBUG'} >= 4);
+		    $DATA{$what}{"reverse"} += $value;
+		} else {
+		    debug(0, "DATA{$what}{forward} += $value\n") if($CFG{'DEBUG'} >= 4);
+		    $DATA{$what}{"forward"} += $value;
+		}
 	    }
 	}
     } 
+    # }}}
 
-    
-    # ------------- R E C O R D  D E L T A
+    # {{{ Record delta
     if($delta && $CFG{'RNDC'}) {
 	open(D,"> $delta") || die "can't open delta file '$delta' for log '".$CFG{'STATS_FILE'}."': $!"; 
 	print D tell(DUMP); 
 	close(D); 
     }
+    # }}}
     
     close(DUMP); 
 
@@ -636,7 +647,7 @@ sub load_information {
 #	system("chown ".$CFG{'STATS_FILE_OWNER_GROUP'}." ".$CFG{'STATS_FILE'});
     }
 
-    # ------------- C O U N T  D O M A I N S
+    # {{{ Count domains
     if($CFG{'DEBUG'} >= 4) {
 	debug(0, "\n");
 	debug(0, "=> Going through and counting domains.\n");
@@ -648,6 +659,7 @@ sub load_information {
 	    $tmp1{$domain} = $domain;
 	}
     }
+    # }}}
     
     # Schedule an alarm once every five minutes to re-read information.
     alarm(5*60);
