@@ -1,5 +1,5 @@
 BAYOUR-COM-MIB DEFINITIONS ::= BEGIN
--- $Id: BAYOUR-COM-MIB.txt,v 1.19 2008-07-31 21:08:23 turbo Exp $
+-- $Id: BAYOUR-COM-MIB.txt,v 1.20 2011-02-10 16:18:17 turbo Exp $
 
 -- This is my very first MIB! A lot of it is taken from the IF-MIB
 -- by the IETF Interfaces MIB Working Group (200006140000).
@@ -13,16 +13,19 @@ IMPORTS
 
 -- {{{ bayourCom Module identity
 bayourCom MODULE-IDENTITY
-  LAST-UPDATED                         "200807161802Z"  -- July 16, 2008
+  LAST-UPDATED                         "201102101642Z"  -- July 16, 2008
   ORGANIZATION                         "Bayour.COM"
   CONTACT-INFO                         "Postal:      Turbo Fredriksson
-                                                     Naverlursgatan 8
-                                                     421 44 Vastra Frolunda
+                                                     Dobelnsgatan 69
+                                                     506 37 Boras
                                                      Sweden
 
                                         Tel:         +46 704-697645
                                         E-Mail:      turbo@bayour.com"
   DESCRIPTION                          "The MIB module defines the Bayour.COM Bind9 and Bacula statistics."
+
+  REVISION                             "201102101642Z"  -- February 10, 2011
+  DESCRIPTION                          "Updated postal address."
 
   REVISION                             "200807161802Z"  -- July 16, 2008
   DESCRIPTION                          "Additional columns in the b9stDomainsTable: b9stCounterDuplicate
