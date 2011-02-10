@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.25 2011-02-10 17:46:58 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.26 2011-02-10 18:16:54 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -66,8 +66,8 @@ $ENV{PATH}   = "/bin:/usr/bin:/usr/sbin";
 my $OID_BASE = "OID_BASE";
 my $arg      = '';
 
-my %DATA;    # => DATA{type}{total|reverse|forward}
-my %DOMAINS; # => DOMAINS{domain}{view}{type}
+my %DATA           = ( 0 ); # => DATA{type}{total|reverse|forward}
+my %DOMAINS        = ( 0 ); # => DOMAINS{domain}{view}{type}
 
 my %counters       = ("1" => 'success',
 		      "2" => 'referral',
@@ -626,7 +626,7 @@ sub load_information {
     # }}}
 
     # {{{ Record delta
-    if($delta && $CFG{'RNDC'}) {
+    if($delta && $CFG{'RNDC'} && %DATA && %DOMAINS) {
 	open(D,"> $delta") || die "can't open delta file '$delta' for log '".$CFG{'STATS_FILE'}."': $!"; 
 	print D tell(DUMP); 
 	close(D); 
@@ -638,7 +638,7 @@ sub load_information {
     if($CFG{'RNDC'}) {
 	# Only remove the stats and delta file if RNDC is set!
 
-	# reset the stats file
+	# Reset the stats file
 	open (DUMP, '>'.$CFG{'STATS_FILE'})
 	    or debug(0," unable to reset ".$CFG{'STATS_FILE'}.": ".$!);
 	close (DUMP);
@@ -652,11 +652,14 @@ sub load_information {
 	debug(0, "\n");
 	debug(0, "=> Going through and counting domains.\n");
     }
-    my %tmp1;
-    foreach my $domain (sort keys %DOMAINS) {
-	if(!$tmp1{$domain}) {
-	    $count_domains++;
-	    $tmp1{$domain} = $domain;
+
+    if(%DOMAINS) {
+	my %tmp1;
+	foreach my $domain (sort keys %DOMAINS) {
+	    if(!$tmp1{$domain}) {
+		$count_domains++;
+		$tmp1{$domain} = $domain;
+	    }
 	}
     }
     # }}}
