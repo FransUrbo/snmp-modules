@@ -1,5 +1,7 @@
 bind9-snmp 1.8 Release (TO BE ANNOUNCED)
 	Misc changes
+	  * Discover new BIND (> v9.5) status file format (including the XML version).
+	    + Doesn't do anything though - I.e., NEW STYLE FORMAT NOT SUPPORTED!!
 	  * Patch by Chris Gianelloni:
 	    + Add support for dropped stats to the totals and per-domain stats.
 	      New tables b9stCounterDuplicate and b9stCounterDropped.
