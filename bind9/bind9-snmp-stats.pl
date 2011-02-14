@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.28 2011-02-14 13:54:38 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.29 2011-02-14 13:59:34 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -558,6 +558,7 @@ sub call_func_domain {
 # {{{ Load all information needed
 sub load_information {
     my $NEW_TYPE_BIND = 0;
+    my $NEW_TYPE_BIND_XML = 0;
 
     # Load configuration file
     %CFG = get_config($CFG_FILE);
@@ -605,6 +606,12 @@ sub load_information {
 	    debug(0, "New style status format!\n") if($CFG{'DEBUG'} >= 4);
 
 	    $NEW_TYPE_BIND = 1;
+	} elsif( (/\<\?xml/) or $NEW_TYPE_BIND_XML ) {
+	    # New (Bind version >9.5) style status format - XML version
+	    # TODO
+	    debug(0, "New style status format (XML)!\n") if($CFG{'DEBUG'} >= 4);
+
+	    $NEW_TYPE_BIND_XML = 1;
 	} else {
 	    # Old (Bind version <9.6) style status format
 	    my ($what, $value, $domain, $view) = split(/\s+/, $_, 4);
