@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.26 2011-02-10 18:16:54 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.27 2011-02-14 13:07:39 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -66,8 +66,8 @@ $ENV{PATH}   = "/bin:/usr/bin:/usr/sbin";
 my $OID_BASE = "OID_BASE";
 my $arg      = '';
 
-my %DATA           = ( 0 ); # => DATA{type}{total|reverse|forward}
-my %DOMAINS        = ( 0 ); # => DOMAINS{domain}{view}{type}
+my %DATA           = ( ); # => DATA{type}{total|reverse|forward}
+my %DOMAINS        = ( ); # => DOMAINS{domain}{view}{type}
 
 my %counters       = ("1" => 'success',
 		      "2" => 'referral',
@@ -496,6 +496,8 @@ sub print_b9stDomainsIndex {
 sub print_b9stDomainName {
     my $j = shift;
     my %cnts;
+
+    $j = 0 if(!$j);
     debug(0, "=> print_b9stDomainName('$j')\n") if($CFG{'DEBUG'} > 2);
 
     my $i = 1;
