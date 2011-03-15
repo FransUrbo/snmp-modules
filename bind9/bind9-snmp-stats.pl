@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.29 2011-02-14 13:59:34 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.30 2011-03-15 12:03:24 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -601,28 +601,34 @@ sub load_information {
 	chomp;
 
 	if( (/^(\+\+ |   |\[)/) or $NEW_TYPE_BIND ) {
-	    # New (Bind version >9.5) style status format
+	    # {{{ New (Bind version >9.5) style status format
 	    # TODO
 	    debug(0, "New style status format!\n") if($CFG{'DEBUG'} >= 4);
 
 	    $NEW_TYPE_BIND = 1;
+# }}}
+
 	} elsif( (/\<\?xml/) or $NEW_TYPE_BIND_XML ) {
-	    # New (Bind version >9.5) style status format - XML version
+	    # {{{ New (Bind version >9.5) style status format - XML version
 	    # TODO
 	    debug(0, "New style status format (XML)!\n") if($CFG{'DEBUG'} >= 4);
 
 	    $NEW_TYPE_BIND_XML = 1;
+# }}}
+
 	} else {
-	    # Old (Bind version <9.6) style status format
+	    # {{{ Old (Bind version <9.5) style status format
 	    my ($what, $value, $domain, $view) = split(/\s+/, $_, 4);
 	    $view = '' if(!$view);
 
 	    if (!$domain) {
-		# TOTALS counter(s)
+		# {{{ TOTALS counter(s)
 		debug(0, "DATA{$what}{total} += $value\n") if($CFG{'DEBUG'} >= 4);
 		$DATA{$what}{"total"} += $value;
+# }}}
+
 	    } else {
-		# DOMAINS counter(s)
+		# {{{ DOMAINS counter(s)
 		debug(0, "DOMAINS{$domain}{$view}{$what} = $value\n") if($CFG{'DEBUG'} >= 4);
 		$DOMAINS{$domain}{$view}{$what} = $value;
 
@@ -633,7 +639,9 @@ sub load_information {
 		    debug(0, "DATA{$what}{forward} += $value\n") if($CFG{'DEBUG'} >= 4);
 		    $DATA{$what}{"forward"} += $value;
 		}
+# }}}
 	    }
+# }}}
 	}
     } 
     # }}}
