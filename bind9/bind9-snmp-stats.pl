@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# {{{ $Id: bind9-snmp-stats.pl,v 1.30 2011-03-15 12:03:24 turbo Exp $
+# {{{ $Id: bind9-snmp-stats.pl,v 1.31 2011-03-15 12:11:59 turbo Exp $
 # Extract domain statistics for a Bind9 DNS server.
 #
 # Based on 'parse_bind9stat.pl' by
@@ -654,6 +654,7 @@ sub load_information {
     }
     # }}}
     
+    # {{{ Close and tidy up
     close(DUMP); 
 
     if($CFG{'RNDC'}) {
@@ -667,6 +668,7 @@ sub load_information {
 	unlink($delta);
 #	system("chown ".$CFG{'STATS_FILE_OWNER_GROUP'}." ".$CFG{'STATS_FILE'});
     }
+# }}}
 
     # {{{ Count domains
     if($CFG{'DEBUG'} >= 4) {
