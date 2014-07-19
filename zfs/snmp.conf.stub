@@ -1,1 +1,3 @@
-mibs BAYOUR-COM-MIB:UCD-SNMP-MIB
+mibdirs /usr/share/mibs:/usr/share/mibs/iana:/usr/share/mibs/ietf:
+mibs BAYOUR-COM-MIB
+

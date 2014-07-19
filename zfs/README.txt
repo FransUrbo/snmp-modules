@@ -6,7 +6,7 @@ There's a lot of scripts that can retreive ZFS stats
 via SNMP but what's making this one special is that
 it's indexed and 'tablified'.
 
-Do not that for the moment (until ZoL get's delegation),
+Do note that for the moment (until ZoL get's delegation),
 the snmp daemon needs to run as root to be able to
 retreive the relevant information...
 
@@ -23,7 +23,7 @@ SNMP Setup files
 ================
 * BAYOUR-COM-MIB.txt
   This is the MIB declaration.
-  Copy to /usr/share/snmp/mibs/
+  Copy to /usr/share/mibs/
 
 * BayourCOM_SNMP.pm
   This is the Perl API library needed
@@ -120,22 +120,25 @@ Testing
    and 'snmptable' something like this:
 
    a. snmpget -v1 -c private localhost .1.3.6.1.4.1.8767.2.6.1.0
-   b. snmpget -v1 -c private localhost zfsPoolsTotals.0
+   b. snmpget -v1 -c private localhost zfsTotalPools.0
 
    Both of these commands should return the number of
-   pools in your Bind9 server.
+   pools in your Bind9 server, something like this:
 
-   c. snmptable -v1 -c private localhost .1.3.6.1.4.1.8767.2.6.3
-   d. snmptable -v1 -c private localhost zfsPoolsTotalsTable
+	.1.3.6.1.4.1.8767.2.6.1.0 = INTEGER: 4
 
-   On my laptop, this doesn't give any good data (because it's
-   basically not used - only for testing this script etc), but
-   it DO give the correct ones:
+   c. snmptable -v1 -c private localhost .1.3.6.1.4.1.8767.2.6.5
+   d. snmptable -v1 -c private localhost zfsPoolStatusTable
 
-	TODO
+	----- s n i p -----
+	SNMP table: BAYOUR-COM-MIB::zfsPoolStatusTable
 
-   e. snmptable -v1 -c private localhost .1.3.6.1.4.1.8767.2.6.4
-   f. snmptable -v1 -c private localhost zfsPoolsTable
+	 zfsPoolName zfsPoolSize zfsPoolAlloc zfsPoolFree zfsPoolCap zfsPoolDedup zfsPoolHealth zfsPoolAltRoot
+	       test1   429496729       967680   429496729          0         1.00        ONLINE              -
+	       test2   429496729       959488   429496729          0         1.00        ONLINE              -
+	       test3   429496729       968704   429496729          0         1.00        ONLINE              -
+	       test4    68681728       223232    68472012          0         1.00      DEGRADED              -
+	----- s n i p -----
 
    This command is the most interesting. It will give the actual
    pool statistics data.

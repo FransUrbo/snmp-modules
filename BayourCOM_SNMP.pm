@@ -131,7 +131,7 @@ sub get_config {
     }
 
     $CFG{'DEBUG'} = 0  if(!defined($CFG{'DEBUG'}));
-    $CFG{'IGNORE_INDEX'} = 1 if(!defined($CFG{'IGNORE_INDEX'}));
+    $CFG{'IGNORE_INDEX'} = 0 if(!defined($CFG{'IGNORE_INDEX'}));
 
     # A debug value from the environment overrides!
     $CFG{'DEBUG'} = $ENV{'DEBUG_BIND9'} if(defined($ENV{'DEBUG_BIND9'}));
