@@ -17,6 +17,9 @@ SYSTEM_INSTDIR := system-snmp-$(SYSTEM_VERSION)
 PACKAGE_VERSION := $(shell cat package/.version | sed 's@\ .*@@')
 PACKAGE_INSTDIR := package-snmp-$(PACKAGE_VERSION)
 
+ZFS_VERSION := $(shell cat zfs/.version | sed 's@\ .*@@')
+ZFS_INSTDIR := zfs-snmp-$(PACKAGE_VERSION)
+
 # ---------------------------------
 $(BIND9_INSTDIR):
 	@(if [ -f $(TMPDIR) ]; then \
@@ -45,6 +48,13 @@ $(PACKAGE_INSTDIR):
 	  fi; \
 	  mkdir -p $(TMPDIR)/$(PACKAGE_INSTDIR); \
 	  echo "Instdir:   "$(TMPDIR)/$(PACKAGE_INSTDIR))
+
+$(ZFS_INSTDIR):
+	@(if [ -f $(TMPDIR) ]; then \
+	    rm -f $(TMPDIR); \
+	  fi; \
+	  mkdir -p $(TMPDIR)/$(ZFS_INSTDIR); \
+	  echo "Instdir:   "$(TMPDIR)/$(ZFS_INSTDIR))
 
 # ---------------------------------
 bind9_tarball: $(BIND9_INSTDIR)
@@ -114,6 +124,23 @@ package_changes:
 	  mv package/CHANGES.new package/CHANGES; \
 	  cvs commit -m "New release - $(PACKAGE_VERSION)" package/CHANGES)
 
+# ---------------------------------
+zfs_tarball: $(ZFS_INSTDIR)
+	@(cp BAYOUR-COM-MIB.txt BayourCOM_SNMP.pm $(TMPDIR)/$(ZFS_INSTDIR)/; \
+	  cp zfs/zfs-snmp-stats.pl $(TMPDIR)/$(ZFS_INSTDIR)/; \
+	  cp zfs/snmp*.stub $(TMPDIR)/$(ZFS_INSTDIR)/; \
+	  cd $(TMPDIR); \
+	  tar czf zfs-snmp_$(ZFS_VERSION).tgz `find $(ZFS_INSTDIR) -type f`; \
+	  tar cjf zfs-snmp_$(ZFS_VERSION).tar.bz2 `find $(ZFS_INSTDIR) -type f`; \
+	  zip zfs-snmp_$(ZFS_VERSION).zip `find $(ZFS_INSTDIR) -type f` > /dev/null)
+
+zfs_changes:
+	@(echo "Date: $(DATE)"; \
+	  cat zfs/CHANGES | sed "s@TO BE ANNOUNCED@Release \($(DATE)\)@" > zfs/CHANGES.new; \
+	  mv zfs/CHANGES.new zfs/CHANGES; \
+	  cvs commit -m "New release - $(ZFS_VERSION)" zfs/CHANGES)
+
+# ---------------------------------
 check_mib:
 # Bug in the tool - Ignore: 'warning: index element.*should be not-accessible in SMIv2 MIB'
 	smilint BAYOUR-COM-MIB.txt
