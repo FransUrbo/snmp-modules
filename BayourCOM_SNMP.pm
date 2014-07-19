@@ -28,6 +28,7 @@ sub get_timestring {
 # }}}
 
 # {{{ Open logfile for debugging
+
 sub open_log {
     die("DEBUG_FILE not set in config file!\n") if(!$CFG{'DEBUG_FILE'});
 
@@ -38,6 +39,7 @@ sub open_log {
 	return 1;
     }
 }
+
 # }}}
 
 # ----- EXTERNAL
@@ -73,6 +75,7 @@ sub debug {
 	if($log_opened) {
 	    print LOG get_timestring()," " if($CFG{'DEBUG'} > 2);
 	    print LOG $string;
+	    LOG->autoflush(1);
 	}
     }
 }
