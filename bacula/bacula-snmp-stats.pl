@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 
 # {{{ $Id: bacula-snmp-stats.pl,v 1.25 2006-02-07 10:43:04 turbo Exp $
+
 # Extract job statistics for a bacula backup server.
 # Only tested with a MySQL backend, but is general
 # enough to work with the PostgreSQL backend as well.
@@ -37,6 +38,7 @@ my $CFG_FILE = "/etc/bacula/.conn_details";
 #
 # Copyright 2005 Turbo Fredriksson <turbo@bayour.com>.
 # This software is distributed under GPL v2.
+
 # }}}
 
 # {{{ Include libraries and setup global variables
@@ -225,6 +227,7 @@ $SIG{'ALRM'} = \&load_information;
 # }}}
 
 # {{{ OID tree
+
 # smidump -f tree BAYOUR-COM-MIB.txt
 # +--baculaStats(3)
 #    |
@@ -341,6 +344,7 @@ $SIG{'ALRM'} = \&load_information;
 #          +-- r-n Counter32     baculaMediaWriteTime(27)
 #          +-- r-n Integer32     baculaMediaEndFile(28)
 #          +-- r-n Integer32     baculaMediaEndBlock(29)
+
 # }}}
 
 # ====================================================
@@ -2172,7 +2176,7 @@ sub call_print {
     }
 
     # Make sure that the argument variable is initialized
-    $func_arg =  '' if(!$func_arg);
+    $func_arg =  '' if(!defined($func_arg));
 
     debug(0, "=> call_print($func_nr, $func_arg)\n") if($CFG{'DEBUG'} > 3);
     my $func = $functions{$func_nr};
