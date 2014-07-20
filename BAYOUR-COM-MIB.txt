@@ -229,12 +229,12 @@ bayourCom MODULE-IDENTITY
                                           Removed  - The device was physically removed while the system was running.
                                           Unavail  - The device could not be opened."
       SYNTAX                           INTEGER {
-                                          DEGRADED(1),
-                                          FAULTED(2),
-                                          OFFLINE(3),
-                                          ONLINE(4),
-                                          REMOVED(5),
-                                          UNAVAIL(6)
+                                          degraded(1),
+                                          faulted(2),
+                                          offline(3),
+                                          online(4),
+                                          removed(5),
+                                          unavail(6)
                                        }
 -- }}}
 -- }}}
@@ -473,7 +473,8 @@ bayourCom MODULE-IDENTITY
 
           zfsGroupStatus               OBJECT-GROUP
             OBJECTS                    { zfsPoolName, zfsPoolSize, zfsPoolAlloc, zfsPoolFree,
-                                         zfsPoolCap, zfsPoolDedup, zfsPoolHealth, zfsPoolAltRoot }
+                                         zfsPoolCap, zfsPoolDedup, zfsPoolHealth, zfsPoolAltRoot,
+                                         zfsPoolUsedBySnaps, zfsPoolUsed }
             STATUS                     current
             DESCRIPTION                "ZFS Pool status values."
             ::= { zfsGroups 2 }
@@ -1881,7 +1882,9 @@ bayourCom MODULE-IDENTITY
             zfsPoolCap                 Integer32,
             zfsPoolDedup               DisplayString,
             zfsPoolHealth              ZFSPoolStatusValue,
-            zfsPoolAltRoot             DisplayString
+            zfsPoolAltRoot             DisplayString,
+            zfsPoolUsedBySnaps         Integer32,
+            zfsPoolUsed                Integer32
           }
 
           zfsPoolStatusIndex           OBJECT-TYPE
@@ -1946,6 +1949,20 @@ bayourCom MODULE-IDENTITY
             STATUS                     current
             DESCRIPTION                "."
             ::= { zfsPoolStatusEntry 9 }
+
+          zfsPoolUsedBySnaps           OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsPoolStatusEntry 10 }
+
+          zfsPoolUsed                  OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsPoolStatusEntry 11 }
 -- }}}
 -- }}}
 END

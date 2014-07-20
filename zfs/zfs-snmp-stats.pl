@@ -53,7 +53,9 @@ my %keys_pools = (#01  => index
 		  "06" => "cap",
 		  "07" => "dedup",
 		  "08" => "health",
-		  "09" => "altroot");
+		  "09" => "altroot",
+		  "10" => "usedbysnapshots",
+		  "11" => "used");
 # }}}
 
 # {{{ Pool status values
@@ -81,9 +83,22 @@ $SIG{'ALRM'} = \&load_information;
 
 # {{{ ZFS Get Property
 sub zfs_get_prop {
-    my($prop, $fs);
+    my $prop = shift;
+    my $fs = shift;
+    my($val, %vals);
 
-    system("$CFG{'ZFS'} get -H -ovalue $prop $fs");
+    open(ZFS, "$CFG{'ZFS'} get -H -oproperty,value $prop \"$fs\" |") ||
+	die("Can't call $CFG{'ZFS'}, $!\n");
+    while(! eof(ZFS)) {
+	$val = <ZFS>;
+	chomp($val);
+	my($p, $v) = split(' ', $val);
+
+	$vals{$p} = $v;
+    }
+    close(ZFS);
+
+    return(%vals);
 }
 # }}}
 
@@ -126,7 +141,7 @@ sub get_pools {
 	for(my $i = 0; $i <= $#keys; $i++) {
 	    my $key = $keys[$i];
 	    
-	    $POOLS{$pool_name}{$key} = &size_to_human($POOLS{$pool_name}{$key});
+	    $POOLS{$pool_name}{$key} = &human_to_bytes($POOLS{$pool_name}{$key});
 	}
 
 	chop($POOLS{$pool_name}{'cap'});
@@ -140,8 +155,9 @@ sub get_pools {
 # {{{ Get all filesystems/volumes/snapshots
 sub get_list {
     my $type = shift;
+
     my(%LIST);
-    my $i = 0;
+    my $datasets = 0;
 
     open(ZFS, "$CFG{'ZFS'} list -H -t$type |") ||
 	die("Can't call $CFG{'ZFS'}, $!");
@@ -150,15 +166,39 @@ sub get_list {
 	chomp($fs);
 
 	return(0, ()) if($fs eq 'no datasets available');
+	my $dset_name = (split(' ', $fs))[0];
 
-	($LIST{'name'}, $LIST{'used'}, $LIST{'avail'},
-	 $LIST{'refer'}, $LIST{'mountpoint'}) = split(' ', $fs);
+	($LIST{$dset_name}{'name'},  $LIST{$dset_name}{'used'},
+	 $LIST{$dset_name}{'avail'}, $LIST{$dset_name}{'refer'},
+	 $LIST{$dset_name}{'mountpoint'}) = split(' ', $fs);
 
-	$i++;
+	$datasets++;
     }
     close(ZFS);
 
-    return($i, %LIST);
+    return($datasets, %LIST);
+}
+# }}}
+
+# {{{ Get 'used*' in all filesystems and volumes
+sub get_used {
+    my $pool = shift;
+    my $prop = shift;
+
+    my %total;
+    my %all = (%DATASETS, %VOLUMES);
+
+    foreach my $fs (sort keys %all) {
+	next if($fs !~ /^$pool/);
+
+	my %vals = &zfs_get_prop($prop, $fs);
+	foreach my $key (keys %vals) {
+	    my $size = &human_to_bytes($vals{$key});
+	    $total{$key} += $size;
+	}
+    }
+
+    return(%total);
 }
 # }}}
 
@@ -425,13 +465,20 @@ sub load_information {
     ($VOLUMES,   %VOLUMES)   = &get_list('volume');
     ($SNAPSHOTS, %SNAPSHOTS) = &get_list('snapshot');
 
-    # Schedule an alarm once every hour to re-read information.
-#    alarm(60*60);
+    foreach my $pool (keys %POOLS) {
+	my %values = &get_used($pool, "usedbysnapshots,used");
+
+	$POOLS{$pool}{'usedbysnapshots'} = $values{'usedbysnapshots'};
+	$POOLS{$pool}{'used'} = $values{'used'};
+    }
+
+    # Schedule an alarm once every minute to re-read information.
+    alarm(60);
 }
 # }}}
 
 # {{{ Convert human readable size to raw bytes
-sub size_to_human {
+sub human_to_bytes {
     my $value = shift;
 
     my $len = length($value);
@@ -450,6 +497,8 @@ sub size_to_human {
 	$size *= 1024 * 1024 * 1024 * 1024;
     } elsif($size_char =~ /^[Pp]$/) {
 	$size *= 1024 * 1024 * 1024 * 1024 * 1024;
+    } else {
+	$size = $value;
     }
 
     return($size);
@@ -511,10 +560,10 @@ for(my $i=0; $ARGV[$i]; $i++) {
 }
 # }}}
 
+# Load information - make sure we get latest info available
+&load_information();
+	
 if($ALL) {
-    # Load information
-    &load_information();
-
     # {{{ Output the whole MIB tree - used mainly/only for debugging purposes
     foreach my $oid (sort keys %functions) {
 	my $func = $functions{$oid};
@@ -559,9 +608,6 @@ if($ALL) {
 	    next;
 	}
 
-	# Load information - make sure we get latest info available
-	&load_information();
-	
 	# {{{ Get all run arguments - next/specfic OID
 	my $arg = $_; chomp($arg);
 	debug(0, "=> ARG=$arg\n") if($CFG{'DEBUG'} > 2);
