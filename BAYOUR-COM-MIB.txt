@@ -13,7 +13,7 @@ IMPORTS
 
 -- {{{ bayourCom Module identity
 bayourCom MODULE-IDENTITY
-  LAST-UPDATED                         "201407191500Z"  -- July 19, 2014
+  LAST-UPDATED                         "201407200200Z"  -- July 20, 2014
   ORGANIZATION                         "Bayour.COM"
   CONTACT-INFO                         "Postal:      Turbo Fredriksson
                                                      Dobelnsgatan 69
@@ -24,7 +24,10 @@ bayourCom MODULE-IDENTITY
                                         E-Mail:      turbo@bayour.com"
   DESCRIPTION                          "The MIB module defines the Bayour.COM Bind9, Bacula and ZFS statistics."
 
-  REVISION                             "201407191500Z"  -- July 18, 2014
+  REVISION                             "201407200200Z"  -- July 10, 2014
+  DESCRIPTION                          "Added ARC, VFS IOPS and Bandwidth tables."
+
+  REVISION                             "201407191500Z"  -- July 19, 2014
   DESCRIPTION                          "Added ZFS stats."
 
   REVISION                             "201407191450Z"  -- July 19, 2014
@@ -457,7 +460,8 @@ bayourCom MODULE-IDENTITY
           DESCRIPTION                  "The compliance statement for SNMP entities which have
                                         ZFS status counters."
           MODULE                       -- this module
-          MANDATORY-GROUPS             { zfsGroupTotals, zfsGroupStatus }
+          MANDATORY-GROUPS             { zfsGroupTotals, zfsGroupStatus, zfsGroupARCUsage,
+                                         zfsGroupARCStats, zfsGroupVFSIOPS, zfsGroupVFSBandwith }
           ::= { zfsConformance 1 }
 -- }}}
 
@@ -478,6 +482,37 @@ bayourCom MODULE-IDENTITY
             STATUS                     current
             DESCRIPTION                "ZFS Pool status values."
             ::= { zfsGroups 2 }
+
+          zfsGroupARCUsage             OBJECT-GROUP
+            OBJECTS                    { zfsARCMetaMax, zfsARCMetaUsed, zfsARCMetaLimit,
+                                         zfsARCCMax, zfsARCSize }
+                                         
+            STATUS                     current
+            DESCRIPTION                "ZFS ARC usage values."
+            ::= { zfsGroups 3 }
+
+          zfsGroupARCStats             OBJECT-GROUP
+            OBJECTS                    { zfsARCHits, zfsARCMisses, zfsARCDemandDataHits,
+                                         zfsARCDemandDataMisses, zfsARCDemandMetaHits,
+                                         zfsARCDemandMetaMisses, zfsARCPrefetchDataHits,
+                                         zfsARCPrefetchDataMisses, zfsARCPrefetchMetaHits,
+                                         zfsARCPrefetchMetaMisses, zfsARCL2Hits,
+                                         zfsARCL2Misses }
+            STATUS                     current
+            DESCRIPTION                "ZFS ARC status values."
+            ::= { zfsGroups 4 }
+
+          zfsGroupVFSIOPS              OBJECT-GROUP
+            OBJECTS                    { zfsOperReads, zfsOperWrites }
+            STATUS                     current
+            DESCRIPTION                "ZFS VFS IOPS status values."
+            ::= { zfsGroups 5 }
+
+          zfsGroupVFSBandwith          OBJECT-GROUP
+            OBJECTS                    { zfsBandwidthReads, zfsBandwidthWrites }
+            STATUS                     current
+            DESCRIPTION                "ZFS VFS Bandwidth status values."
+            ::= { zfsGroups 6 }
 -- }}}
 -- }}}
 -- }}}
@@ -1963,6 +1998,290 @@ bayourCom MODULE-IDENTITY
             STATUS                     current
             DESCRIPTION                "."
             ::= { zfsPoolStatusEntry 11 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.6.6 zfsARCUsageTable
+      zfsARCUsageTable                 OBJECT-TYPE
+        SYNTAX                         SEQUENCE OF ZFSARCUsageEntry
+        MAX-ACCESS                     not-accessible
+        STATUS                         current
+        DESCRIPTION                    "A list of ZFS ARC status information."
+        ::= { zfsStats 6 }
+
+        zfsARCUsageEntry               OBJECT-TYPE
+          SYNTAX                       ZFSARCUsageEntry
+          MAX-ACCESS                   not-accessible
+          STATUS                       current
+          DESCRIPTION                  "An entry containing ZFS ARC status values."
+          INDEX                        { zfsARCUsageIndex }
+          ::= { zfsARCUsageTable 1 }
+
+          ZFSARCUsageEntry             ::= SEQUENCE {
+            zfsARCUsageIndex           CounterIndex,
+
+            zfsARCMetaMax              Integer32,
+            zfsARCMetaUsed             Integer32,
+            zfsARCMetaLimit            Integer32,
+            zfsARCCMax                 Integer32,
+            zfsARCSize                 Integer32
+          }
+
+          zfsARCUsageIndex             OBJECT-TYPE
+            SYNTAX                     CounterIndex
+            MAX-ACCESS                 not-accessible
+            STATUS                     current
+            DESCRIPTION                "Reference Index for each counter."
+            ::= { zfsARCUsageEntry 1 }
+
+          zfsARCMetaMax                OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsARCUsageEntry 2 }
+
+          zfsARCMetaUsed               OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsARCUsageEntry 3 }
+
+          zfsARCMetaLimit              OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsARCUsageEntry 4 }
+
+          zfsARCCMax                   OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsARCUsageEntry 5 }
+
+          zfsARCSize                   OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsARCUsageEntry 6 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.6.7 zfsARCStatsTable
+      zfsARCStatsTable                 OBJECT-TYPE
+        SYNTAX                         SEQUENCE OF ZFSARCStatsEntry
+        MAX-ACCESS                     not-accessible
+        STATUS                         current
+        DESCRIPTION                    "A list of ZFS ARC status information."
+        ::= { zfsStats 7 }
+
+        zfsARCStatsEntry               OBJECT-TYPE
+          SYNTAX                       ZFSARCStatsEntry
+          MAX-ACCESS                   not-accessible
+          STATUS                       current
+          DESCRIPTION                  "An entry containing ZFS ARC status values."
+          INDEX                        { zfsARCStatsIndex }
+          ::= { zfsARCStatsTable 1 }
+
+          ZFSARCStatsEntry             ::= SEQUENCE {
+            zfsARCStatsIndex           CounterIndex,
+
+            zfsARCHits                 Integer32,
+            zfsARCMisses               Integer32,
+            zfsARCDemandDataHits       Integer32,
+            zfsARCDemandDataMisses     Integer32,
+            zfsARCDemandMetaHits       Integer32,
+            zfsARCDemandMetaMisses     Integer32,
+            zfsARCPrefetchDataHits     Integer32,
+            zfsARCPrefetchDataMisses   Integer32,
+            zfsARCPrefetchMetaHits     Integer32,
+            zfsARCPrefetchMetaMisses   Integer32,
+            zfsARCL2Hits               Integer32,
+            zfsARCL2Misses             Integer32
+          }
+
+          zfsARCStatsIndex             OBJECT-TYPE
+            SYNTAX                     CounterIndex
+            MAX-ACCESS                 not-accessible
+            STATUS                     current
+            DESCRIPTION                "Reference Index for each counter."
+            ::= { zfsARCStatsEntry 1 }
+
+          zfsARCHits                   OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsARCStatsEntry 2 }
+
+          zfsARCMisses                 OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsARCStatsEntry 3 }
+
+          zfsARCDemandDataHits         OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsARCStatsEntry 4 }
+
+          zfsARCDemandDataMisses       OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsARCStatsEntry 5 }
+
+          zfsARCDemandMetaHits         OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsARCStatsEntry 6 }
+
+          zfsARCDemandMetaMisses       OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsARCStatsEntry 7 }
+
+          zfsARCPrefetchDataHits       OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsARCStatsEntry 8 }
+
+          zfsARCPrefetchDataMisses     OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsARCStatsEntry 9 }
+
+          zfsARCPrefetchMetaHits       OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsARCStatsEntry 10 }
+
+          zfsARCPrefetchMetaMisses     OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsARCStatsEntry 11 }
+
+          zfsARCL2Hits                 OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsARCStatsEntry 12 }
+
+          zfsARCL2Misses               OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsARCStatsEntry 13 }
+-- }}}
+
+      -- {{{  .1.3.6.1.4.1.8767.2.6.8 zfsVFSIOPSTable
+      zfsVFSIOPSTable                  OBJECT-TYPE
+        SYNTAX                         SEQUENCE OF ZFSVFSIOPSEntry
+        MAX-ACCESS                     not-accessible
+        STATUS                         current
+        DESCRIPTION                    "A list of ZFS VFS IOPS status information."
+        ::= { zfsStats 8 }
+
+        zfsVFSIOPSEntry                OBJECT-TYPE
+          SYNTAX                       ZFSVFSIOPSEntry
+          MAX-ACCESS                   not-accessible
+          STATUS                       current
+          DESCRIPTION                  "An entry containing ZFS ARC status values."
+          INDEX                        { zfsVFSIOPSIndex }
+          ::= { zfsVFSIOPSTable 1 }
+
+          ZFSVFSIOPSEntry             ::= SEQUENCE {
+            zfsVFSIOPSIndex           CounterIndex,
+
+            zfsOperReads              Integer32,
+            zfsOperWrites             Integer32
+          }
+
+          zfsVFSIOPSIndex             OBJECT-TYPE
+            SYNTAX                     CounterIndex
+            MAX-ACCESS                 not-accessible
+            STATUS                     current
+            DESCRIPTION                "Reference Index for each counter."
+            ::= { zfsVFSIOPSEntry 1 }
+
+          zfsOperReads                 OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsVFSIOPSEntry 2 }
+
+          zfsOperWrites                OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsVFSIOPSEntry 3 }
+-- }}}
+
+      -- {{{  .1.3.6.1.4.1.8767.2.6.9 zfsVFSThroughputTable
+      zfsVFSThroughputTable            OBJECT-TYPE
+        SYNTAX                         SEQUENCE OF ZFSVFSThroughputEntry
+        MAX-ACCESS                     not-accessible
+        STATUS                         current
+        DESCRIPTION                    "A list of ZFS VFS Throughput status information."
+        ::= { zfsStats 9 }
+
+        zfsVFSThroughputEntry          OBJECT-TYPE
+          SYNTAX                       ZFSVFSThroughputEntry
+          MAX-ACCESS                   not-accessible
+          STATUS                       current
+          DESCRIPTION                  "An entry containing ZFS ARC status values."
+          INDEX                        { zfsVFSThroughputIndex }
+          ::= { zfsVFSThroughputTable 1 }
+
+          ZFSVFSThroughputEntry        ::= SEQUENCE {
+            zfsVFSThroughputIndex      CounterIndex,
+
+            zfsBandwidthReads          Integer32,
+            zfsBandwidthWrites         Integer32
+          }
+
+          zfsVFSThroughputIndex        OBJECT-TYPE
+            SYNTAX                     CounterIndex
+            MAX-ACCESS                 not-accessible
+            STATUS                     current
+            DESCRIPTION                "Reference Index for each counter."
+            ::= { zfsVFSThroughputEntry 1 }
+
+          zfsBandwidthReads            OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsVFSThroughputEntry 2 }
+
+          zfsBandwidthWrites           OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsVFSThroughputEntry 3 }
 -- }}}
 -- }}}
 END
