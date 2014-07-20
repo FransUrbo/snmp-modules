@@ -1,0 +1,34 @@
+<interface>
+	<name>Get ZFS VFS IOPS Status</name>
+	<description>Use zpool and zfs to retreive VFS IOPS information.</description>
+	<oid_index>.1.3.6.1.4.1.8767.2.6.8.1.1</oid_index>
+	<index_order>zfsOperReads,zfsOperWrites</index_order>
+	<index_order_type>numeric</index_order_type>
+	<index_title_format>|chosen_order_field|</index_title_format>
+
+	<fields>
+		<zfsVFSIOPSIndex>
+			<name>Index (VFS IOPS Status)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.8.1.1</oid>
+		</zfsVFSIOPSIndex>
+
+		<zfsOperReads>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.8.1.2</oid>
+		</zfsOperReads>
+
+		<zfsOperWrites>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.8.1.3</oid>
+		</zfsOperWrites>
+	</fields>
+</interface>

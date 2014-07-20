@@ -1,0 +1,99 @@
+<interface>
+	<name>Get ZFS Status</name>
+	<description>Use zpool and zfs to retreive ARC (Usage and Stats) and VFS (IOPS and Bandwidth).</description>
+	<oid_index>.1.3.6.1.4.1.8767.2.6.5.1.1</oid_index>
+	<oid_num_indexes>.1.3.6.1.4.1.8767.2.6.1.0</oid_num_indexes>
+	<index_order>zfsPoolName,zfsPoolSize,zfsPoolAlloc,zfsPoolFree,zfsPoolCap,zfsPoolDedup,zfsPoolHealth,zfsPoolAltRoot,zfsPoolUsedBySnaps,zfsPoolUsed</index_order>
+	<index_order_type>numeric</index_order_type>
+	<index_title_format>|chosen_order_field|</index_title_format>
+
+	<fields>
+		<zfsPoolStatusIndex>
+			<name>Index (pools)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.5.1.1</oid>
+		</zfsPoolStatusIndex>
+
+		<zfsPoolName>
+			<name>Pool Name</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.5.1.2</oid>
+		</zfsPoolName>
+
+		<zfsPoolSize>
+			<name>Pool Size (bytes)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.5.1.3</oid>
+		</zfsPoolSize>
+
+		<zfsPoolAlloc>
+			<name>Pool Allocated (bytes)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.5.1.4</oid>
+		</zfsPoolAlloc>
+
+		<zfsPoolFree>
+			<name>Pool Free (bytes)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.5.1.5</oid>
+		</zfsPoolFree>
+
+		<zfsPoolCap>
+			<name>Pool Capacity (percent)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.5.1.6</oid>
+		</zfsPoolCap>
+
+		<zfsPoolDedup>
+			<name>Pool Dedup Value</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.5.1.7</oid>
+		</zfsPoolDedup>
+
+		<zfsPoolHealth>
+			<name>Pool Health Status</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.5.1.8</oid>
+		</zfsPoolHealth>
+
+		<zfsPoolAltRoot>
+			<name>Pool AltRoot (path)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.5.1.9</oid>
+		</zfsPoolAltRoot>
+
+		<zfsPoolUsedBySnaps>
+			<name>Pool 'usedbysnapshots' (bytes)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.5.1.10</oid>
+		</zfsPoolUsedBySnaps>
+
+		<zfsPoolUsed>
+			<name>Pool 'used' (bytes)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.5.1.11</oid>
+		</zfsPoolUsed>
+	</fields>
+</interface>

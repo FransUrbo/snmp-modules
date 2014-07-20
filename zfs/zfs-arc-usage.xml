@@ -1,0 +1,58 @@
+<interface>
+	<name>Get ZFS ARC Usage Statistics</name>
+	<description>Use zpool and zfs to retreive ARC Usage.</description>
+	<oid_index>.1.3.6.1.4.1.8767.2.6.6.1.1</oid_index>
+	<index_order>zfsARCMetaMax,zfsARCMetaUsed,zfsARCMetaLimit,zfsARCCMax,zfsARCSize</index_order>
+	<index_order_type>numeric</index_order_type>
+	<index_title_format>|chosen_order_field|</index_title_format>
+
+	<fields>
+		<zfsARCUsageIndex>
+			<name>Index (ARC Usage)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.6.1.1</oid>
+		</zfsARCUsageIndex>
+
+		<zfsARCMetaMax>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.6.1.2</oid>
+		</zfsARCMetaMax>
+
+		<zfsARCMetaUsed>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.6.1.3</oid>
+		</zfsARCMetaUsed>
+
+		<zfsARCMetaLimit>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.6.1.4</oid>
+		</zfsARCMetaLimit>
+
+		<zfsARCCMax>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.6.1.5</oid>
+		</zfsARCCMax>
+
+		<zfsARCSize>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.6.1.6</oid>
+		</zfsARCSize>
+	</fields>
+</interface>

@@ -1,0 +1,34 @@
+<interface>
+	<name>Get ZFS VFS Throughput Status</name>
+	<description>Use zpool and zfs to retreive VFS Throughput information.</description>
+	<oid_index>.1.3.6.1.4.1.8767.2.6.9.1.1</oid_index>
+	<index_order>zfsBandwidthReads,zfsBandwidthWrites</index_order>
+	<index_order_type>numeric</index_order_type>
+	<index_title_format>|chosen_order_field|</index_title_format>
+
+	<fields>
+		<zfsVFSThroughputIndex>
+			<name>Index (VFS Throughput Status)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.9.1.1</oid>
+		</zfsVFSThroughputIndex>
+
+		<zfsBandwidthReads>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.9.1.2</oid>
+		</zfsBandwidthReads>
+
+		<zfsBandwidthWrites>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.9.1.3</oid>
+		</zfsBandwidthWrites>
+	</fields>
+</interface>

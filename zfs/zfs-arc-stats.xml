@@ -1,0 +1,114 @@
+<interface>
+	<name>Get ZFS ARC Status</name>
+	<description>Use zpool and zfs to retreive ARC Status information.</description>
+	<oid_index>.1.3.6.1.4.1.8767.2.6.7.1.1</oid_index>
+	<index_order>zfsARCHits,zfsARCMisses,zfsARCDemandDataHits,zfsARCDemandDataMisses,zfsARCDemandMetaHits,zfsARCDemandMetaMisses,zfsARCPrefetchDataHits,zfsARCPrefetchDataMisses,zfsARCPrefetchMetaHits,zfsARCPrefetchMetaMisses,zfsARCL2Hits,zfsARCL2Misses</index_order>
+	<index_order_type>numeric</index_order_type>
+	<index_title_format>|chosen_order_field|</index_title_format>
+
+	<fields>
+		<zfsARCStatsIndex>
+			<name>Index (ARC Status)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.7.1.1</oid>
+		</zfsARCStatsIndex>
+
+		<zfsARCHits>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.7.1.2</oid>
+		</zfsARCHits>
+
+		<zfsARCMisses>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.7.1.3</oid>
+		</zfsARCMisses>
+
+		<zfsARCDemandDataHits>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.7.1.4</oid>
+		</zfsARCDemandDataHits>
+
+		<zfsARCDemandDataMisses>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.7.1.5</oid>
+		</zfsARCDemandDataMisses>
+
+		<zfsARCDemandMetaHits>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.7.1.6</oid>
+		</zfsARCDemandMetaHits>
+
+		<zfsARCDemandMetaMisses>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.7.1.7</oid>
+		</zfsARCDemandMetaMisses>
+
+		<zfsARCPrefetchDataHits>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.7.1.8</oid>
+		</zfsARCPrefetchDataHits>
+
+		<zfsARCPrefetchDataMisses>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.7.1.9</oid>
+		</zfsARCPrefetchDataMisses>
+
+		<zfsARCPrefetchMetaHits>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.7.1.10</oid>
+		</zfsARCPrefetchMetaHits>
+
+		<zfsARCPrefetchMetaMisses>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.7.1.11</oid>
+		</zfsARCPrefetchMetaMisses>
+
+		<zfsARCL2Hits>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.7.1.12</oid>
+		</zfsARCL2Hits>
+
+		<zfsARCL2Misses>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.7.1.13</oid>
+		</zfsARCL2Misses>
+	</fields>
+</interface>
