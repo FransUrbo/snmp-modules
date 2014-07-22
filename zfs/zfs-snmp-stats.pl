@@ -655,7 +655,7 @@ sub print_generic_info {
 		debug(0, "$OID_BASE.$oid.1.$key_nr.$nr = ".$data{$key_name}."\n") if($CFG{'DEBUG'});
 			
 		debug(1, "$OID_BASE.$oid.1.$key_nr.$nr\n");
-		debug(1, "integer\n");
+		debug(1, "counter\n");
 		debug(1, $data{$key_name}."\n");
 
 		return(1);
@@ -671,7 +671,7 @@ sub print_generic_info {
 	    debug(0, "=> OID_BASE.$legend.$key_name.1\n") if($CFG{'DEBUG'} > 1);
 
 	    debug(1, "$OID_BASE.$oid.1.$key_ctr.1\n");
-	    debug(1, "integer\n");
+	    debug(1, "counter\n");
 	    debug(1, $data{$key_name}."\n");
 
 	    $success = 1;
