@@ -125,12 +125,12 @@ sub zfs_get_prop {
     my $fs = shift;
     my($val, %vals);
 
-    open(ZFS, "$CFG{'ZFS'} get -H -oproperty,value $prop \"$fs\" |") ||
+    open(ZFS, "$CFG{'ZFS'} get -H -oproperty,value $prop '$fs' |") ||
 	die("Can't call $CFG{'ZFS'}, $!\n");
     while(! eof(ZFS)) {
 	$val = <ZFS>;
 	chomp($val);
-	my($p, $v) = split(' ', $val);
+	my($p, $v) = split('	', $val);
 
 	$vals{$p} = $v;
     }
@@ -145,7 +145,7 @@ sub zpool_get_prop {
     my $prop = shift;
     my $pool = shift;
 
-    my $val = (split(' ', `$CFG{'ZPOOL'} get $prop $pool | egrep ^$pool"`))[3];
+    my $val = (split('	', `$CFG{'ZPOOL'} get $prop $pool | egrep ^$pool"`))[3];
     print $val;
 }
 # }}}
@@ -162,13 +162,13 @@ sub get_pools {
 	chomp($pool);
 
 	return(0, ()) if($pool eq 'no pools available');
-	my $pool_name = (split(' ', $pool))[0];
+	my $pool_name = (split('	', $pool))[0];
 
 	($POOLS{$pool_name}{'name'}, $POOLS{$pool_name}{'size'},
 	 $POOLS{$pool_name}{'alloc'}, $POOLS{$pool_name}{'free'},
 	 $POOLS{$pool_name}{'cap'}, $POOLS{$pool_name}{'dedup'},
 	 $POOLS{$pool_name}{'health'}, $POOLS{$pool_name}{'altroot'})
-	    = split(' ', $pool);
+	    = split('	', $pool);
 
 	$pools++;
     }
@@ -197,18 +197,18 @@ sub get_list {
     my(%LIST);
     my $datasets = 0;
 
-    open(ZFS, "$CFG{'ZFS'} list -H -t$type |") ||
+    open(ZFS, "$CFG{'ZFS'} list -H -t$type 2> /dev/null |") ||
 	die("Can't call $CFG{'ZFS'}, $!");
     while(! eof(ZFS)) {
 	my $fs = <ZFS>;
 	chomp($fs);
 
 	return(0, ()) if($fs eq 'no datasets available');
-	my $dset_name = (split(' ', $fs))[0];
+	my $dset_name = (split('	', $fs))[0];
 
 	($LIST{$dset_name}{'name'},  $LIST{$dset_name}{'used'},
 	 $LIST{$dset_name}{'avail'}, $LIST{$dset_name}{'refer'},
-	 $LIST{$dset_name}{'mountpoint'}) = split(' ', $fs);
+	 $LIST{$dset_name}{'mountpoint'}) = split('	', $fs);
 
 	$datasets++;
     }
