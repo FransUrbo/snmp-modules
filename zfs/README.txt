@@ -54,6 +54,7 @@ DEBUG_FILE=/tmp/zfs-snmp.log
 ZPOOL=/usr/sbin/zpool
 ZFS=/usr/sbin/zfs
 KSTATDIR=/proc/spl/kstat/zfs
+RELOAD=10
 ----- s n i p -----
 
 Testing

@@ -16,6 +16,7 @@ my $CFG_FILE = "/etc/zfs/.zfssnmp";
 #	ZPOOL=/usr/sbin/zpool
 #	ZFS=/usr/sbin/zfs
 #	KSTATDIR=/proc/spl/kstat/zfs
+#	RELOAD=10
 #
 # Comments must start at the beginning of the line, and continue to the
 # end of the line. The comment character is any other character than
@@ -758,7 +759,7 @@ sub load_information {
     %VFS = &get_vfs_stats();
 
     # Schedule an alarm once every ten minute to re-read information.
-    alarm(60*10);
+    alarm(60*$CFG{'RELOAD'});
 }
 # }}}
 
