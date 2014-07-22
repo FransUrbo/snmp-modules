@@ -757,8 +757,8 @@ sub load_information {
     # Get VFS IOPS and Bandwidth information
     %VFS = &get_vfs_stats();
 
-    # Schedule an alarm once every minute to re-read information.
-    alarm(60);
+    # Schedule an alarm once every ten minute to re-read information.
+    alarm(60*10);
 }
 # }}}
 
