@@ -87,13 +87,15 @@ my %keys_arc_stats = (#01  => index
 
 # OID_BASE.8 => zfsVFSIOPSTable
 my %keys_vfs_iops =  (#01  => index
-		      "02" => "oper_reads",
-		      "03" => "oper_writes");
+		      "02" => "name",
+		      "03" => "oper_reads",
+		      "04" => "oper_writes");
 
 # OID_BASE.9 => zfsVFSThroughputTable
 my %keys_vfs_bwidth =(#01  => index
-		      "02" => "bandwidth_reads",
-		      "03" => "bandwidth_writes");
+		      "02" => "name",
+		      "03" => "bandwidth_reads",
+		      "04" => "bandwidth_writes");
 
 # }}}
 
@@ -153,7 +155,7 @@ sub zpool_get_prop {
 
 # {{{ Get all pools and their data
 sub get_pools {
-    my(%POOLS);
+    my(%pools);
     my $pools = 0;
 
     open(ZPOOL, "$CFG{'ZPOOL'} list -H |") ||
@@ -165,10 +167,10 @@ sub get_pools {
 	return(0, ()) if($pool eq 'no pools available');
 	my $pool_name = (split('	', $pool))[0];
 
-	($POOLS{$pool_name}{'name'}, $POOLS{$pool_name}{'size'},
-	 $POOLS{$pool_name}{'alloc'}, $POOLS{$pool_name}{'free'},
-	 $POOLS{$pool_name}{'cap'}, $POOLS{$pool_name}{'dedup'},
-	 $POOLS{$pool_name}{'health'}, $POOLS{$pool_name}{'altroot'})
+	($pools{$pool_name}{'name'},   $pools{$pool_name}{'size'},
+	 $pools{$pool_name}{'alloc'},  $pools{$pool_name}{'free'},
+	 $pools{$pool_name}{'cap'},    $pools{$pool_name}{'dedup'},
+	 $pools{$pool_name}{'health'}, $pools{$pool_name}{'altroot'})
 	    = split('	', $pool);
 
 	$pools++;
@@ -176,18 +178,18 @@ sub get_pools {
     close(ZPOOL);
 
     my @keys = ("size", "alloc", "free");
-    foreach my $pool_name (keys %POOLS) {
+    foreach my $pool_name (keys %pools) {
 	for(my $i = 0; $i <= $#keys; $i++) {
 	    my $key = $keys[$i];
 	    
-	    $POOLS{$pool_name}{$key} = &human_to_bytes($POOLS{$pool_name}{$key});
+	    $pools{$pool_name}{$key} = &human_to_bytes($pools{$pool_name}{$key});
 	}
 
-	chop($POOLS{$pool_name}{'cap'});
-	chop($POOLS{$pool_name}{'dedup'});
+	chop($pools{$pool_name}{'cap'});
+	chop($pools{$pool_name}{'dedup'});
     }
 
-    return($pools, %POOLS);
+    return($pools, %pools);
 }
 # }}}
 
@@ -278,20 +280,24 @@ sub get_arc_status {
 sub get_vfs_stats {
     my($dummy, $line, $name, %vfs);
 
-    open(ZPOOL, "$CFG{'ZPOOL'} iostat |") ||
+    open(ZPOOL, "$CFG{'ZPOOL'} iostat 2> /dev/null |") ||
 	die("Can't call $CFG{'ZPOOL'}, $!\n");
     while(! eof(ZPOOL)) {
 	$line = <ZPOOL>;
 	chomp($line);
 
 	$name = (split(' ', $line))[0];
+	next if(($name eq 'capacity') || ($name eq 'pool') ||
+		($name eq '----------'));
+
 	foreach my $pool_name (sort keys %POOLS) {
 	    if($name eq $pool_name) {
+		$vfs{$pool_name}{'name'} = $pool_name;
 		($dummy, $dummy, $dummy,
-		 $vfs{$pool_name}{'oper_read'},
-		 $vfs{$pool_name}{'oper_write'},
-		 $vfs{$pool_name}{'bandwidth_read'},
-		 $vfs{$pool_name}{'bandwidth_write'}) =
+		 $vfs{$pool_name}{'oper_reads'},
+		 $vfs{$pool_name}{'oper_writes'},
+		 $vfs{$pool_name}{'bandwidth_reads'},
+		 $vfs{$pool_name}{'bandwidth_writes'}) =
 		     split(' ', $line);
 	    }
 	}
@@ -372,26 +378,137 @@ sub print_amount_snapshots {
 
 # {{{ OID_BASE.5.1.1.x          Output pool status index
 sub print_pool_status_index {
-    my $pool_no = shift; # Pool number
-    my $success = 0;
-    debug(0, "=> OID_BASE.zfsPoolStatusTable.zfsPoolStatusEntry.zfsPoolStatusIndex\n") if($CFG{'DEBUG'} > 1);
+    my $nr = shift;
 
-    if(defined($pool_no)) {
+    return(print_generic_complex_table_index($nr,
+		"zfsPoolStatusTable.zfsPoolStatusEntry",
+		"zfsPoolName", "zfsPoolStatusIndex",
+		"5", \%keys_pools, \%POOLS));
+}
+# }}}
+
+# {{{ OID_BASE.5.1.X.x          Output pool status information
+sub print_pool_status_info {
+    my $nr = shift;
+
+    return(print_generic_complex_table_info($nr,
+		"zfsPoolStatusTable.zfsPoolStatusEntry",
+		"zfsPoolName", "5", \%keys_pools, \%POOLS));
+}
+# }}}
+
+
+# {{{ OID_BASE.6.1.1.x          Output ARC usage index
+sub print_arc_usage_index {
+    my $nr = shift;
+
+    return(print_generic_simple_table_index($nr, "zfsARCUsageTable.zfsARCUsageEntry",
+			       "zfsARCUsageIndex", "6", \%keys_arc_usage));
+}
+# }}}
+
+# {{{ OID_BASE.6.1.X.x          Output ARC usage information
+sub print_arc_usage_info {
+    my $nr = shift;
+
+    return(print_generic_simple_table_info($nr, "zfsARCUsageTable.zfsARCUsageEntry",
+			      "6", \%keys_arc_usage, \%ARC));
+}
+# }}}
+
+
+# {{{ OID_BASE.7.1.1.x          Output ARC status index
+sub print_arc_stats_index {
+    my $nr = shift;
+
+    return(print_generic_simple_table_index($nr, "zfsARCStatsTable.zfsARCStatsEntry",
+			       "zfsARCStatsIndex", "7", \%keys_arc_stats));
+}
+# }}}
+
+# {{{ OID_BASE.7.1.X.x          Output ARC status information
+sub print_arc_stats_info {
+    my $nr = shift;
+
+    return(print_generic_simple_table_info($nr, "zfsARCStatsTable.zfsARCStatsEntry",
+			      "7", \%keys_arc_stats, \%ARC));
+}
+# }}}
+
+
+# {{{ OID_BASE.8.1.1.x          Output VFS IOPS index
+sub print_vfs_iops_index {
+    my $nr = shift;
+
+    return(print_generic_complex_table_index($nr,
+		"zfsVFSIOPSTable.zfsVFSIOPSEntry",
+		"zfsPoolName", "zfsVFSIOPSIndex",
+		"8", \%keys_vfs_iops, \%VFS));
+}
+# }}}
+
+# {{{ OID_BASE.8.1.X.x          Output VFS IOPS information
+sub print_vfs_iops_info {
+    my $nr = shift;
+
+    return(print_generic_complex_table_info($nr,
+		"zfsVFSIOPSTable.zfsVFSIOPSEntry",
+		"zfsPoolName", "8", \%keys_vfs_iops, \%VFS));
+}
+# }}}
+
+
+# {{{ OID_BASE.9.1.1.x          Output VFS Bandwidth index
+sub print_vfs_bandwidth_index {
+    my $nr = shift;
+
+    return(print_generic_complex_table_index($nr,
+		"zfsVFSThroughputTable.zfsVFSThroughputEntry",
+		"zfsPoolName", "zfsVFSThroughputIndex",
+		"9", \%keys_vfs_bwidth, \%VFS));
+}
+# }}}
+
+# {{{ OID_BASE.9.1.1.x          Output VFS Bandwidth information
+sub print_vfs_bandwidth_info {
+    my $nr = shift;
+
+    return(print_generic_complex_table_info($nr,
+		"zfsVFSThroughputTable.zfsVFSThroughputEntry",
+		"zfsPoolName", "9", \%keys_vfs_bwidth, \%VFS));
+}
+# }}}
+
+
+# {{{ Generic 'print complex index' for OID_BASE.[589]
+sub print_generic_complex_table_index {
+    my $value_no   = shift; # Pool number
+    my $legend     = shift;
+    my $legend_key = shift;
+    my $index_key  = shift;
+    my $oid        = shift;
+    my %keys       = %{shift()};
+    my %data       = %{shift()};
+
+    my $success = 0;
+    debug(0, "=> OID_BASE.$legend.$index_key\n") if($CFG{'DEBUG'} > 1);
+
+    if(defined($value_no)) {
 	# {{{ Specific pool name
-	foreach my $key_nr (sort keys %keys_pools) {
+	foreach my $key_nr (sort keys %keys) {
 	    my $value = sprintf("%02d", $TYPE_STATUS+1); # This is the index - offset one!
 	    if($key_nr == $value) {
-		my $key_name = $keys_pools{$key_nr};
+		my $key_name = $keys{$key_nr};
 		$key_nr =~ s/^0//;
 		$key_nr -= 1; # This is the index - offset one!
-		debug(0, "=> OID_BASE.zfsPoolStatusTable.zfsPoolStatusEntry.$key_name.zfsPoolName\n") if($CFG{'DEBUG'} > 1);
+		debug(0, "=> OID_BASE.$legend.$key_name.$legend_key\n") if($CFG{'DEBUG'} > 1);
 		
 		my $pool_nr = 1;
-		foreach my $pool_name (sort keys %POOLS) {
-		    if($pool_nr == $pool_no) {
-			debug(0, "$OID_BASE.5.1.$key_nr.$pool_nr = $pool_nr\n") if($CFG{'DEBUG'});
+		foreach my $pool_name (sort keys %data) {
+		    if($pool_nr == $value_no) {
+			debug(0, "$OID_BASE.$oid.1.$key_nr.$pool_nr = $pool_nr\n") if($CFG{'DEBUG'});
 			
-			debug(1, "$OID_BASE.5.1.$key_nr.$pool_nr\n");
+			debug(1, "$OID_BASE.$oid.1.$key_nr.$pool_nr\n");
 			debug(1, "integer\n");
 			debug(1, "$pool_nr\n");
 			
@@ -406,10 +523,10 @@ sub print_pool_status_index {
     } else {
 	# {{{ ALL pool values
 	my $pool_nr = 1;
-	foreach my $pool_name (sort keys %POOLS) {
-	    debug(0, "$OID_BASE.5.1.1.$pool_nr = $pool_nr\n") if($CFG{'DEBUG'});
+	foreach my $pool_name (sort keys %data) {
+	    debug(0, "$OID_BASE.$oid.1.1.$pool_nr = $pool_nr\n") if($CFG{'DEBUG'});
 	    
-	    debug(1, "$OID_BASE.5.1.1.$pool_nr\n");
+	    debug(1, "$OID_BASE.$oid.1.1.$pool_nr\n");
 	    debug(1, "integer\n");
 	    debug(1, "$pool_nr\n");
 	    
@@ -424,40 +541,50 @@ sub print_pool_status_index {
 }
 # }}}
 
-# {{{ OID_BASE.5.1.X.x          Output pool status information
-sub print_pool_status_info {
-    my $value_no = shift; # Value number
+# {{{ Generic 'print complex info'  for OID_BASE.[589]
+sub print_generic_complex_table_info {
+    my $value_no   = shift; # Pool number
+    my $legend     = shift;
+    my $legend_key = shift;
+    my $oid        = shift;
+    my %keys       = %{shift()};
+    my %data       = %{shift()};
+
     my $success = 0;
 
     if(defined($value_no)) {
 	# {{{ Specific client name
-	foreach my $key_nr (sort keys %keys_pools) {
+	foreach my $key_nr (sort keys %keys) {
 	    my $value = sprintf("%02d", $TYPE_STATUS);
 	    if($key_nr == $value) {
-		my $key_name = $keys_pools{$key_nr};
+		my $key_name = $keys{$key_nr};
 		$key_nr =~ s/^0//;
-		debug(0, "=> OID_BASE.zfsPoolStatusTable.zfsPoolStatusEntry.$key_name.zfsPoolName\n") if($CFG{'DEBUG'} > 1);
+		debug(0, "=> OID_BASE.$legend.$key_name.$legend_key\n") if($CFG{'DEBUG'} > 1);
 		
 		my $pool_nr = 1;
-		foreach my $pool_name (sort keys %POOLS) {
+		foreach my $pool_name (sort keys %data) {
 		    if($pool_nr == $value_no) {
-			debug(0, "$OID_BASE.5.1.$key_nr.$pool_nr = ".$POOLS{$pool_name}{$key_name}."\n") if($CFG{'DEBUG'});
+			debug(0, "$OID_BASE.$oid.1.$key_nr.$pool_nr = ".$data{$pool_name}{$key_name}."\n") if($CFG{'DEBUG'});
 			
-			debug(1, "$OID_BASE.5.1.$key_nr.$pool_nr\n");
+			debug(1, "$OID_BASE.$oid.1.$key_nr.$pool_nr\n");
 			if(($key_name eq 'altroot') ||
 			   ($key_name eq 'name')    ||
 			   ($key_name eq 'dedup'))
 			{
 			    debug(1, "string\n");
+			} elsif(($key_name eq 'oper_reads') || ($key_name eq 'oper_writes') ||
+				($key_name eq 'bandwidth_reads') || ($key_name eq 'bandwidth_writes'))
+			{
+			    debug(1, "counter\n");
 			} else {
 			    debug(1, "integer\n");
 			}
 
 			if($key_name eq 'health') {
-			    my $stat = $POOLS{$pool_name}{$key_name};
+			    my $stat = $data{$pool_name}{$key_name};
 			    debug(1, $pool_status{$stat}."\n");
 			} else {
-			    debug(1, $POOLS{$pool_name}{$key_name}."\n");
+			    debug(1, $data{$pool_name}{$key_name}."\n");
 			}
 			
 			return(1);
@@ -470,30 +597,34 @@ sub print_pool_status_info {
 # }}}
     } else {
 	# {{{ ALL pools
-	foreach my $key_nr (sort keys %keys_pools) {
-	    my $key_name = $keys_pools{$key_nr};
+	foreach my $key_nr (sort keys %keys) {
+	    my $key_name = $keys{$key_nr};
 	    $key_nr =~ s/^0//;
-	    debug(0, "=> OID_BASE.zfsPoolStatusTable.zfsPoolStatusEntry.$key_name.zfsPoolName\n") if($CFG{'DEBUG'} > 1);
+	    debug(0, "=> OID_BASE.$legend.$key_name.$legend_key\n") if($CFG{'DEBUG'} > 1);
 	    
 	    my $pool_nr = 1;
-	    foreach my $pool_name (sort keys %POOLS) {
-		debug(0, "$OID_BASE.5.1.$key_nr.$pool_nr = ".$POOLS{$pool_name}{$key_name}."\n") if($CFG{'DEBUG'});
+	    foreach my $pool_name (sort keys %data) {
+		debug(0, "$OID_BASE.$oid.1.$key_nr.$pool_nr = ".$data{$pool_name}{$key_name}."\n") if($CFG{'DEBUG'});
 		
-		debug(1, "$OID_BASE.5.1.$key_nr.$pool_nr\n");
+		debug(1, "$OID_BASE.$oid.1.$key_nr.$pool_nr\n");
 		if(($key_name eq 'altroot') ||
 		    ($key_name eq 'name')   ||
 		    ($key_name eq 'dedup'))
 		{
 		    debug(1, "string\n");
+		} elsif(($key_name eq 'oper_reads') || ($key_name eq 'oper_writes') ||
+			($key_name eq 'bandwidth_reads') || ($key_name eq 'bandwidth_writes'))
+		{
+		    debug(1, "counter\n");
 		} else {
 		    debug(1, "integer\n");
 		}
 
 		if($key_name eq 'health') {
-		    my $stat = $POOLS{$pool_name}{$key_name};
+		    my $stat = $data{$pool_name}{$key_name};
 		    debug(1, $pool_status{$stat}."\n");
 		} else {
-		    debug(1, $POOLS{$pool_name}{$key_name}."\n");
+		    debug(1, $data{$pool_name}{$key_name}."\n");
 		}
 
 		$success = 1;
@@ -509,85 +640,8 @@ sub print_pool_status_info {
 }
 # }}}
 
-
-# {{{ OID_BASE.6.1.1.x          Output ARC usage index
-sub print_arc_usage_index {
-    my $nr = shift;
-
-    return(print_generic_index($nr, "zfsARCUsageTable.zfsARCUsageEntry",
-			       "zfsARCUsageIndex", "6", \%keys_arc_usage));
-}
-# }}}
-
-# {{{ OID_BASE.6.1.X.x          Output ARC usage information
-sub print_arc_usage_info {
-    my $nr = shift;
-
-    return(print_generic_info($nr, "zfsARCUsageTable.zfsARCUsageEntry",
-			      "6", \%keys_arc_usage, \%ARC));
-}
-# }}}
-
-
-# {{{ OID_BASE.7.1.1.x          Output ARC status index
-sub print_arc_stats_index {
-    my $nr = shift;
-
-    return(print_generic_index($nr, "zfsARCStatsTable.zfsARCStatsEntry",
-			       "zfsARCStatsIndex", "7", \%keys_arc_stats));
-}
-# }}}
-
-# {{{ OID_BASE.7.1.X.x          Output ARC status information
-sub print_arc_stats_info {
-    my $nr = shift;
-
-    return(print_generic_info($nr, "zfsARCStatsTable.zfsARCStatsEntry",
-			      "7", \%keys_arc_stats, \%ARC));
-}
-# }}}
-
-
-# {{{ OID_BASE.8.1.1.x          Output VFS IOPS index
-sub print_vfs_iops_index {
-    my $nr = shift;
-
-    return(print_generic_index($nr, "zfsVFSIOPSTable.zfsVFSIOPSEntry",
-			       "zfsVFSIOPSIndex", "8", \%keys_vfs_iops));
-}
-# }}}
-
-# {{{ OID_BASE.8.1.X.x          Output VFS IOPS information
-sub print_vfs_iops_info {
-    my $nr = shift;
-
-    return(print_generic_info($nr, "zfsARCStatsTable.zfsARCStatsEntry",
-			      "8", \%keys_vfs_iops, \%VFS));
-}
-# }}}
-
-
-# {{{ OID_BASE.9.1.1.x          Output VFS Bandwidth index
-sub print_vfs_bandwidth_index {
-    my $nr = shift;
-
-    return(print_generic_index($nr, "zfsVFSThroughputTable.zfsVFSThroughputEntry",
-			       "zfsVFSThroughputIndex", "9", \%keys_vfs_bwidth));
-}
-# }}}
-
-# {{{ OID_BASE.9.1.1.x          Output VFS Bandwidth information
-sub print_vfs_bandwidth_info {
-    my $nr = shift;
-
-    return(print_generic_info($nr, "zfsVFSThroughputTable.zfsVFSThroughputEntry",
-			      "9", \%keys_vfs_bwidth, \%VFS));
-}
-# }}}
-
-
-# {{{ Generic 'print index' for OID_BASE.[6-9]
-sub print_generic_index {
+# {{{ Generic 'print simple index' for OID_BASE.[67]
+sub print_generic_simple_table_index {
     my $arc_no     = shift;
     my $legend     = shift;
     my $legend_key = shift;
@@ -635,8 +689,8 @@ sub print_generic_index {
 }
 # }}}
 
-# {{{ Generic 'print info' for OID_BASE.[6-9]
-sub print_generic_info {
+# {{{ Generic 'print simple info' for OID_BASE.[67]
+sub print_generic_simple_table_info {
     my $nr     = shift;
     my $legend = shift;
     my $oid    = shift;
@@ -687,7 +741,6 @@ sub print_generic_info {
 }
 # }}}
 
-
 # ====================================================
 # =====        M I S C  F U N C T I O N S        =====
 
@@ -735,29 +788,46 @@ sub call_print {
 
 # {{{ Load all information needed
 sub load_information {
+    # ---------------------------------
     # Load configuration file and connect to SQL server.
     %CFG = get_config($CFG_FILE);
 
-    # Get pools, filesystems, snapshots and volumes
+    # ---------------------------------
+    # Get number of pools and their name
     ($POOLS,     %POOLS)     = &get_pools();
+
+    # ---------------------------------
+    # Get filesystems, snapshots and volumes in each pool
     ($DATASETS,  %DATASETS)  = &get_list('filesystem');
     ($VOLUMES,   %VOLUMES)   = &get_list('volume');
     ($SNAPSHOTS, %SNAPSHOTS) = &get_list('snapshot');
 
-    # Get usedbysnapshots and used for each filesystem+volume in each pool
-    foreach my $pool (keys %POOLS) {
-	my %values = &get_used($pool, "usedbysnapshots,used");
+    # ---------------------------------
+    # Get interesting properties for each filesystem+volume in each pool
+    # Currently only 'usedbysnapshots' and 'used' is used in the MIB.
+    my $props = "usedbysnapshots,usedbydataset,used,".	
+	"usedbychildren,usedbyrefreservation,".
+	"referenced,written,logicalused,".
+	"logicalreferenced";
+    my @props_array = split(',', $props);
 
-	$POOLS{$pool}{'usedbysnapshots'} = $values{'usedbysnapshots'};
-	$POOLS{$pool}{'used'} = $values{'used'};
+    foreach my $pool (keys %POOLS) {
+	my %values = &get_used($pool, $props);
+
+	for(my $i = 0; $props_array[$i]; $i++) {
+	    $POOLS{$pool}{$props_array[$i]} = $values{$props_array[$i]};
+	}
     }
 
+    # ---------------------------------
     # Get ARC/L2ARC status information
     %ARC = &get_arc_status();
 
+    # ---------------------------------
     # Get VFS IOPS and Bandwidth information
     %VFS = &get_vfs_stats();
 
+    # ---------------------------------
     # Schedule an alarm once every ten minute to re-read information.
     alarm(60*$CFG{'RELOAD'});
 }
@@ -815,7 +885,7 @@ sub get_next_oid {
     }
 
     # Global variables for the print function(s).
-    if($tmp[0] == 5) {
+    if(($tmp[0] == 5) || ($tmp[0] == 8) || ($tmp[0] == 9)) {
 	$TYPE_STATUS = $tmp[2];
     } else {
 	if($tmp[2] == 1) {
@@ -858,6 +928,8 @@ if($ALL) {
     $functions{$OID_BASE.".05.1.2"} = "pool_status_info";
     $functions{$OID_BASE.".06.1.2"} = "arc_usage_info";
     $functions{$OID_BASE.".07.1.2"} = "arc_stats_info";
+    $functions{$OID_BASE.".08.1.2"} = "vfs_iops_info";
+    $functions{$OID_BASE.".09.1.2"} = "vfs_bandwidth_info";
 
     foreach my $oid (sort keys %functions) {
 	my $func = $functions{$oid};
@@ -977,14 +1049,14 @@ if($ALL) {
 		}
 # }}} # OID_BASE.[1-4]
 
-	    } elsif( $tmp[0] == 5) {
-		# {{{ ------------------------------------- OID_BASE.5       
+	    } elsif(($tmp[0] == 5) || ($tmp[0] == 8) | ($tmp[0] == 9)) {
+		# {{{ ------------------------------------- OID_BASE.[589]   
 		# {{{ Figure out the NEXT value from the input
-		# NOTE: Make sure to skip the OID_BASE.5.1.1 branch - it's the index and should not be returned!
+		# NOTE: Make sure to skip the OID_BASE.[589].1.1 branch - it's the index and should not be returned!
 		if(!defined($tmp[1]) || !defined($tmp[2])) {
 		    $tmp[1] = 1;
 		    if($CFG{'IGNORE_INDEX'}) {
-			# Called only as 'OID_BASE.5' (jump directly to OID_BASE.5.1.2 because of the index).
+			# Called only as 'OID_BASE.[589]' (jump directly to OID_BASE.[589].1.2 because of the index).
 			$tmp[2] = 2;
 		    } else {
 			$tmp[2] = 1; # Show index.
@@ -992,7 +1064,7 @@ if($ALL) {
 		    $tmp[3] = 1;
 
 		} elsif(!defined($tmp[3])) {
-		    # Called only as 'OID_BASE.5.1.x'
+		    # Called only as 'OID_BASE.[589].1.x'
 		    $tmp[2] = 1 if($tmp[2] == 0);
 
 		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
@@ -1003,8 +1075,11 @@ if($ALL) {
 			$tmp[3] = 1;
 		    }
 		} else {
-		    if($tmp[2] >= keys(%keys_pools)+2) {
-			# We've reached the end of the OID_BASE.5.1.x -> OID_BASE.6.1.1.1.1
+		    if((($tmp[0] == 5) && ($tmp[2] >= keys(%keys_pools)+2)) ||
+		       (($tmp[0] == 8) && ($tmp[2] >= keys(%keys_vfs_iops)+2)) ||
+		       (($tmp[0] == 9) && ($tmp[2] >= keys(%keys_vfs_bwidth)+2)))
+		    {
+			# We've reached the end of the OID_BASE.[589].1.x -> OID_BASE.[589]+1.1.1.1.1
 			$tmp[0]++;
 			for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
 
@@ -1014,19 +1089,33 @@ if($ALL) {
 			    no_value();
 			    next;
 			} else {
-			    # We've reached the end of the OID_BASE.5.1.x.y -> OID_BASE.5.1.x+1.1
-			    $tmp[2]++;
-			    $tmp[3] = 1;
+			    # We've reached the end of the OID_BASE.[589].1.x.y
+			    if((($tmp[0] == 8) || ($tmp[0] == 9)) && ($tmp[2] == 1))
+			    {
+				# Skip the Pool Name column - these two tables augments the 'zfsPoolStatusTable'
+				# !! TODO: Need to verify if we should really do this !!
 
-			    if($tmp[2] >= keys(%keys_pools)+2) {
-				# That was the end of the OID_BASE.5.1.x -> OID_BASE.6.1.1.1.1
+				# -> OID_BASE.[589].1.x+2.1
+				$tmp[2] = 3;
+				$tmp[3] = 1;
+			    } else {
+				# -> OID_BASE.[589].1.x+1.1
+				$tmp[2]++;
+				$tmp[3] = 1;
+			    }
+
+			    if((($tmp[0] == 5) && ($tmp[2] >= keys(%keys_pools)+2)) ||
+			       (($tmp[0] == 8) && ($tmp[2] >= keys(%keys_vfs_iops)+2)) ||
+			       (($tmp[0] == 9) && ($tmp[2] >= keys(%keys_vfs_bwidth)+2)))
+			    {
+				# That was the end of the OID_BASE.[589].1.x -> OID_BASE.[589]+1.1.1.1.1
 				$tmp[0]++;
 				for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
 			    }
 			}
 
 		    } else {
-			# Get OID_BASE.5.1.x.y+1
+			# Get OID_BASE.[589].1.x.y+1
 			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			    # The index, skip it!
 			    no_value();
@@ -1049,14 +1138,14 @@ if($ALL) {
 # }}}
 # }}} # OID_BASE.5
 
-	    } elsif(($tmp[0] >= 6) && ($tmp[0] <= 9)) {
-		# {{{ ------------------------------------- OID_BASE.[6-9]   
+	    } elsif(($tmp[0] >= 6) && ($tmp[0] <= 7)) {
+		# {{{ ------------------------------------- OID_BASE.[6-7]   
 		# {{{ Figure out the NEXT value from the input
-		# NOTE: Make sure to skip the OID_BASE.[6-9].1.1 branch - it's the index and should not be returned!
+		# NOTE: Make sure to skip the OID_BASE.[6-7].1.1 branch - it's the index and should not be returned!
 		if(!defined($tmp[1]) || !defined($tmp[2])) {
 		    $tmp[1] = 1;
 		    if($CFG{'IGNORE_INDEX'}) {
-			# Called only as 'OID_BASE.[6-9]' (jump directly to OID_BASE.[6-9].1.2 because of the index).
+			# Called only as 'OID_BASE.[6-7]' (jump directly to OID_BASE.[6-7].1.2 because of the index).
 			$tmp[2] = 2;
 		    } else {
 			$tmp[2] = 1; # Show index.
@@ -1064,7 +1153,7 @@ if($ALL) {
 		    $tmp[3] = 1;
 
 		} elsif(!defined($tmp[3])) {
-		    # Called only as 'OID_BASE.[6-9].1.x'
+		    # Called only as 'OID_BASE.[6-7].1.x'
 		    $tmp[2] = 1 if($tmp[2] == 0);
 
 		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
@@ -1077,8 +1166,7 @@ if($ALL) {
 
 		} else {
 		    if((($tmp[0] == 6) && ($tmp[2] > keys(%keys_arc_usage))) ||
-		       (($tmp[0] == 7) && ($tmp[2] > keys(%keys_arc_stats))) ||
-		       (($tmp[0] == 8) && ($tmp[2] > keys(%keys_vfs_iops))))
+		       (($tmp[0] == 7) && ($tmp[2] > keys(%keys_arc_stats))))
 		    {
 			# We've reached the end of OID_BASE.X -> OID_BASE.X+1.1.1.1
 			$tmp[0]++;
