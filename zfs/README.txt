@@ -120,16 +120,16 @@ Testing
 4. Check that you can retreive values with 'snmpget'
    and 'snmptable' something like this:
 
-   a. snmpget -v1 -c private localhost .1.3.6.1.4.1.8767.2.6.1.0
-   b. snmpget -v1 -c private localhost zfsTotalPools.0
+   a. snmpget -v 2c -c private localhost .1.3.6.1.4.1.8767.2.6.1.0
+   b. snmpget -v 2c -c private localhost zfsTotalPools.0
 
    Both of these commands should return the number of
    pools in your Bind9 server, something like this:
 
 	.1.3.6.1.4.1.8767.2.6.1.0 = INTEGER: 4
 
-   c. snmptable -v1 -c private localhost .1.3.6.1.4.1.8767.2.6.5
-   d. snmptable -v1 -c private localhost zfsPoolStatusTable
+   c. snmptable -v 2c -c private localhost .1.3.6.1.4.1.8767.2.6.5
+   d. snmptable -v 2c -c private localhost zfsPoolStatusTable
 
 	----- s n i p -----
 	SNMP table: BAYOUR-COM-MIB::zfsPoolStatusTable
