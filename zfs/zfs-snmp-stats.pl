@@ -158,21 +158,30 @@ sub get_pools {
     my(%pools);
     my $pools = 0;
 
-    open(ZPOOL, "$CFG{'ZPOOL'} list -H |") ||
+    open(ZPOOL, "$CFG{'ZPOOL'} list |") ||
 	die("Can't call $CFG{'ZPOOL'}, $!");
+
+    # First line is column
+    my $line = <ZPOOL>;
+    chomp($line);
+    my @cols = split(' ', $line);
+
+    # Make the columns lower case
+    for(my $i=0; $cols[$i]; $i++) {
+	$cols[$i] = lc($cols[$i]);
+    }
+
     while(! eof(ZPOOL)) {
 	my $pool = <ZPOOL>;
-	chomp($pool);
-
 	return(0, ()) if($pool eq 'no pools available');
-	my $pool_name = (split('	', $pool))[0];
 
-	($pools{$pool_name}{'name'},   $pools{$pool_name}{'size'},
-	 $pools{$pool_name}{'alloc'},  $pools{$pool_name}{'free'},
-	 $pools{$pool_name}{'frag'},   $pools{$pool_name}{'cap'},
-	 $pools{$pool_name}{'dedup'},  $pools{$pool_name}{'health'},
-	 $pools{$pool_name}{'altroot'})
-	    = split('	', $pool);
+	my $pool_name = (split(' ', $pool))[0];
+
+	my @data = split(' ', $pool);
+
+	for(my $i=0; $cols[$i]; $i++) {
+	    $pools{$pool_name}{$cols[$i]} = $data[$i];
+	}
 
 	$pools++;
     }
