@@ -169,8 +169,9 @@ sub get_pools {
 
 	($pools{$pool_name}{'name'},   $pools{$pool_name}{'size'},
 	 $pools{$pool_name}{'alloc'},  $pools{$pool_name}{'free'},
-	 $pools{$pool_name}{'cap'},    $pools{$pool_name}{'dedup'},
-	 $pools{$pool_name}{'health'}, $pools{$pool_name}{'altroot'})
+	 $pools{$pool_name}{'frag'},   $pools{$pool_name}{'cap'},
+	 $pools{$pool_name}{'dedup'},  $pools{$pool_name}{'health'},
+	 $pools{$pool_name}{'altroot'})
 	    = split('	', $pool);
 
 	$pools++;
@@ -639,6 +640,7 @@ sub print_generic_complex_table_info {
     return $success;
 }
 # }}}
+
 
 # {{{ Generic 'print simple index' for OID_BASE.[67]
 sub print_generic_simple_table_index {
