@@ -461,7 +461,8 @@ bayourCom MODULE-IDENTITY
                                         ZFS status counters."
           MODULE                       -- this module
           MANDATORY-GROUPS             { zfsGroupTotals, zfsGroupStatus, zfsGroupARCUsage,
-                                         zfsGroupARCStats, zfsGroupVFSIOPS, zfsGroupVFSBandwith }
+                                         zfsGroupARCStats, zfsGroupVFSIOPS, zfsGroupVFSBandwith,
+                                         zfsGroupZILStats }
           ::= { zfsConformance 1 }
 -- }}}
 
@@ -514,6 +515,16 @@ bayourCom MODULE-IDENTITY
             STATUS                     current
             DESCRIPTION                "ZFS VFS Bandwidth status values."
             ::= { zfsGroups 6 }
+
+          zfsGroupZILStats             OBJECT-GROUP
+            OBJECTS                    { zfsZILCommitCnt, zfsZILCommitWriterCnt, zfsZILITXCnt,
+                                         zfsZILITXIndirectCnt, zfsZILITXIndirectBytes, zfsZILITXCopiedCnt,
+                                         zfsZILITXCopiedBytes, zfsZILITXNeedcopyCnt, zfsZILITXNeedcopyBytes,
+                                         zfsZILITXMetaslabNormalCnt, zfsZILITXMetaslabNormalBytes,
+                                         zfsZILITXMetaslabSLOGCnt, zfsZILITXMetaslabSLOGBytes }
+            STATUS                     current
+            DESCRIPTION                "ZFS ZIL status values."
+            ::= { zfsGroups 7 }
 -- }}}
 -- }}}
 -- }}}
@@ -2195,7 +2206,7 @@ bayourCom MODULE-IDENTITY
             ::= { zfsARCStatsEntry 13 }
 -- }}}
 
-      -- {{{  .1.3.6.1.4.1.8767.2.6.8 zfsVFSIOPSTable
+      -- {{{ .1.3.6.1.4.1.8767.2.6.8 zfsVFSIOPSTable
       zfsVFSIOPSTable                  OBJECT-TYPE
         SYNTAX                         SEQUENCE OF ZFSVFSIOPSEntry
         MAX-ACCESS                     not-accessible
@@ -2216,7 +2227,6 @@ bayourCom MODULE-IDENTITY
           ZFSVFSIOPSEntry             ::= SEQUENCE {
             zfsVFSIOPSIndex           CounterIndex,
 
-            zfsPoolName               DisplayString,
             zfsOperReads              Counter32,
             zfsOperWrites             Counter32
           }
@@ -2243,7 +2253,7 @@ bayourCom MODULE-IDENTITY
             ::= { zfsVFSIOPSEntry 4 }
 -- }}}
 
-      -- {{{  .1.3.6.1.4.1.8767.2.6.9 zfsVFSThroughputTable
+      -- {{{ .1.3.6.1.4.1.8767.2.6.9 zfsVFSThroughputTable
       zfsVFSThroughputTable            OBJECT-TYPE
         SYNTAX                         SEQUENCE OF ZFSVFSThroughputEntry
         MAX-ACCESS                     not-accessible
@@ -2264,7 +2274,6 @@ bayourCom MODULE-IDENTITY
           ZFSVFSThroughputEntry        ::= SEQUENCE {
             zfsVFSThroughputIndex      CounterIndex,
 
-            zfsPoolName                DisplayString,
             zfsBandwidthReads          Counter32,
             zfsBandwidthWrites         Counter32
           }
@@ -2289,6 +2298,139 @@ bayourCom MODULE-IDENTITY
             STATUS                     current
             DESCRIPTION                "."
             ::= { zfsVFSThroughputEntry 4 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.6.10 zfsZILStatsTable
+      zfsZILStatsTable                 OBJECT-TYPE
+        SYNTAX                         SEQUENCE OF ZFSZILStatsEntry
+        MAX-ACCESS                     not-accessible
+        STATUS                         current
+        DESCRIPTION                    "A list of ZFS ZIL status information."
+        ::= { zfsStats 10 }
+
+        zfsZILStatsEntry               OBJECT-TYPE
+          SYNTAX                       ZFSZILStatsEntry
+          MAX-ACCESS                   not-accessible
+          STATUS                       current
+          DESCRIPTION                  "An entry containing ZFS ZIL status values."
+          INDEX                        { zfsZILStatsIndex }
+          ::= { zfsZILStatsTable 1 }
+
+          ZFSZILStatsEntry             ::= SEQUENCE {
+            zfsZILStatsIndex           CounterIndex,
+
+            zfsZILCommitCnt            Counter32,
+            zfsZILCommitWriterCnt      Counter32,
+            zfsZILITXCnt               Counter32,
+            zfsZILITXIndirectCnt       Counter32,
+            zfsZILITXIndirectBytes     Counter32,
+            zfsZILITXCopiedCnt         Counter32,
+            zfsZILITXCopiedBytes       Counter32,
+            zfsZILITXNeedcopyCnt       Counter32,
+            zfsZILITXNeedcopyBytes     Counter32,
+            zfsZILITXMetaslabNormalCnt Counter32,
+            zfsZILITXMetaslabNormalBytes Counter32,
+            zfsZILITXMetaslabSLOGCnt   Counter32,
+            zfsZILITXMetaslabSLOGBytes Counter32
+          }
+
+          zfsZILStatsIndex             OBJECT-TYPE
+            SYNTAX                     CounterIndex
+            MAX-ACCESS                 not-accessible
+            STATUS                     current
+            DESCRIPTION                "Reference Index for each counter."
+            ::= { zfsZILStatsEntry 1 }
+
+          zfsZILCommitCnt              OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsZILStatsEntry 2 }
+
+          zfsZILCommitWriterCnt        OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsZILStatsEntry 3 }
+
+          zfsZILITXCnt                 OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsZILStatsEntry 4 }
+
+          zfsZILITXIndirectCnt         OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsZILStatsEntry 5 }
+
+          zfsZILITXIndirectBytes       OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsZILStatsEntry 6 }
+
+          zfsZILITXCopiedCnt           OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsZILStatsEntry 7 }
+
+          zfsZILITXCopiedBytes         OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsZILStatsEntry 8 }
+
+          zfsZILITXNeedcopyCnt         OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsZILStatsEntry 9 }
+
+          zfsZILITXNeedcopyBytes       OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsZILStatsEntry 10 }
+
+          zfsZILITXMetaslabNormalCnt   OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsZILStatsEntry 11 }
+
+          zfsZILITXMetaslabNormalBytes OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsZILStatsEntry 12 }
+
+          zfsZILITXMetaslabSLOGCnt     OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsZILStatsEntry 13 }
+
+          zfsZILITXMetaslabSLOGBytes   OBJECT-TYPE
+            SYNTAX                     Counter32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsZILStatsEntry 14 }
 -- }}}
 -- }}}
 END

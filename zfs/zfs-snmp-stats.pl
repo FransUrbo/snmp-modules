@@ -47,7 +47,9 @@ my %functions  = ($OID_BASE.".01"	=> "amount_pools",
 		  $OID_BASE.".06.1.1"	=> "arc_usage_index",
 		  $OID_BASE.".07.1.1"	=> "arc_stats_index",
 		  $OID_BASE.".08.1.1"	=> "vfs_iops_index",
-		  $OID_BASE.".09.1.1"	=> "vfs_bandwidth_index");
+		  $OID_BASE.".09.1.1"	=> "vfs_bandwidth_index",
+
+		  $OID_BASE.".10.1.1"   => "zil_stats_index");
 
 # OID_BASE.5 => zfsPoolStatusTable
 my %keys_pools =     (#01  => index
@@ -108,10 +110,27 @@ my %pool_status = ('DEGRADED'	=> 1,
 		   'UNAVAIL'	=> 6);
 # }}}
 
+# {{{ ZIL status values
+my %keys_zil_stats = (#01  => index
+		      "02" => "zil_commit_count",
+		      "03" => "zil_commit_writer_count",
+		      "04" => "zil_itx_count",
+		      "05" => "zil_itx_indirect_count",
+		      "06" => "zil_itx_indirect_bytes",
+		      "07" => "zil_itx_copied_count",
+		      "08" => "zil_itx_copied_bytes",
+		      "09" => "zil_itx_needcopy_count",
+		      "10" => "zil_itx_needcopy_bytes",
+		      "11" => "zil_itx_metaslab_normal_count",
+		      "12" => "zil_itx_metaslab_normal_bytes",
+		      "13" => "zil_itx_metaslab_slog_count",
+		      "14" => "zil_itx_metaslab_slog_bytes");
+# }}}
+
 # {{{ Some global data variables
 my(%POOLS, %DATASETS, %SNAPSHOTS, %VOLUMES);
 my($POOLS, $DATASETS, $SNAPSHOTS, $VOLUMES);
-my($oid, $arg, $TYPE_STATUS, %ARC, %VFS);
+my($oid, $arg, $TYPE_STATUS, %ARC, %VFS, %ZIL);
 # }}}
 
 # handle a SIGALRM - reload information/statistics and
@@ -268,7 +287,8 @@ sub get_arc_status {
 
     # Open arcstats file and get what we want...
     open(ARCSTATS, "$CFG{'KSTATDIR'}/arcstats") ||
-	die("Can't open $CFG{'KSTATDIR'}, $!\n");
+	die("Can't open $CFG{'KSTATDIR'}/arcstats, $!\n");
+    my $line = <ARCSTATS>; $line = <ARCSTATS>; # Just get the two first dumy lines
     while(! eof(ARCSTATS)) {
 	my $line = <ARCSTATS>;
 	chomp($line);
@@ -315,6 +335,37 @@ sub get_vfs_stats {
     close(ZPOOL);
 
     return(%vfs);
+}
+# }}}
+
+# {{{ Get ZIL status
+sub get_zil_stats {
+    my(%zil, @all_zil_keys, $key) = ( );
+
+    # Put together an array with ALL the info we want
+    # from the arcstats file...
+    foreach $key (keys %keys_zil_stats) {
+	push(@all_zil_keys, $keys_zil_stats{$key});
+    }
+
+    # Open zil file and get what we want...
+    open(ZILSTATS, "$CFG{'KSTATDIR'}/zil") ||
+	die("Can't open $CFG{'KSTATDIR'}/zil, $!\n");
+    my $line = <ZILSTATS>; $line = <ZILSTATS>; # Just get the two first dumy lines
+    while(! eof(ZILSTATS)) {
+	my $line = <ZILSTATS>;
+	chomp($line);
+
+	my($name, $type, $data) = split(' ', $line);
+	for(my $i = 0; $all_zil_keys[$i]; $i++) {
+	    if($name eq $all_zil_keys[$i]) {
+		$zil{$all_zil_keys[$i]} = $data;
+	    }
+	}
+    }
+    close(ARCSTATS);
+
+    return(%zil);
 }
 # }}}
 
@@ -490,6 +541,25 @@ sub print_vfs_bandwidth_info {
 # }}}
 
 
+# {{{ OID_BASE.10.1.1.x         Output ZIL status index
+sub print_zil_stats_index {
+    my $nr = shift;
+
+    return(print_generic_simple_table_index($nr, "zfsZILStatsTable.zfsZILStatsEntry",
+			       "zfsZILStatsIndex", "10", \%keys_zil_stats));
+}
+# }}}
+
+# {{{ OID_BASE.10.1.X.x         Output ZIL status information
+sub print_zil_stats_info {
+    my $nr = shift;
+
+    return(print_generic_simple_table_info($nr, "zfsZILStatsTable.zfsZILStatsEntry",
+			      "10", \%keys_zil_stats, \%ZIL));
+}
+# }}}
+
+
 # {{{ Generic 'print complex index' for OID_BASE.[589]
 sub print_generic_complex_table_index {
     my $value_no   = shift; # Pool number
@@ -653,7 +723,7 @@ sub print_generic_complex_table_info {
 
 # {{{ Generic 'print simple index' for OID_BASE.[67]
 sub print_generic_simple_table_index {
-    my $arc_no     = shift;
+    my $nr         = shift;
     my $legend     = shift;
     my $legend_key = shift;
     my $oid        = shift;
@@ -662,8 +732,8 @@ sub print_generic_simple_table_index {
     my $success = 0;
     debug(0, "=> OID_BASE.$legend.$legend_key\n") if($CFG{'DEBUG'} > 1);
 
-    if(defined($arc_no)) {
-	# {{{ Specific ARC value
+    if(defined($nr)) {
+	# {{{ Specific value
 	foreach my $key_nr (sort keys %keys) {
 	    my $value = sprintf("%02d", $TYPE_STATUS+1);
 	    if($key_nr == $value) {
@@ -681,7 +751,7 @@ sub print_generic_simple_table_index {
 	}
 # }}}
     } else {
-	# {{{ ALL ARC values
+	# {{{ ALL values
 	my $nr = 1;
 	foreach my $name (sort keys %keys) {
 	    debug(0, "$OID_BASE.$oid.1.1.$nr = $nr\n") if($CFG{'DEBUG'});
@@ -711,7 +781,7 @@ sub print_generic_simple_table_info {
     my $success = 0;
 
     if(defined($nr)) {
-	# {{{ Specific ARC value
+	# {{{ Specific value
 	foreach my $key_nr (sort keys %keys) {
 	    my $value = sprintf("%02d", $TYPE_STATUS);
 	    if($key_nr == $value) {
@@ -729,7 +799,7 @@ sub print_generic_simple_table_info {
 	}
 # }}}
     } else {
-	# {{{ ALL ARC values
+	# {{{ ALL values
 	my $key_ctr = 1;
 	foreach my $key_nr (sort keys %keys) {
 	    my $key_name = $keys{$key_nr};
@@ -837,6 +907,10 @@ sub load_information {
     # ---------------------------------
     # Get VFS IOPS and Bandwidth information
     %VFS = &get_vfs_stats();
+
+    # ---------------------------------
+    # Get ZIL status information
+    %ZIL = &get_zil_stats();
 
     # ---------------------------------
     # Schedule an alarm once every ten minute to re-read information.
@@ -1000,6 +1074,12 @@ if($ALL) {
     for(; $i < keys(%keys_vfs_bwidth); $i++, $j++) {
 	$functions{$OID_BASE.".09.1.$j"} = "vfs_bandwidth_info";
     }
+
+    # ... and ZIL Stats.
+    ($i, $j) = (0, 2);
+    for(; $i < keys(%keys_zil_stats); $i++, $j++) {
+	$functions{$OID_BASE.".10.1.$j"} = "zil_stats_info";
+    }
 # }}}
 
     # {{{ Go through the commands sent on STDIN
@@ -1060,7 +1140,7 @@ if($ALL) {
 		}
 # }}} # OID_BASE.[1-4]
 
-	    } elsif(($tmp[0] == 5) || ($tmp[0] == 8) | ($tmp[0] == 9)) {
+	    } elsif(($tmp[0] == 5) || ($tmp[0] == 8) || ($tmp[0] == 9)) {
 		# {{{ ------------------------------------- OID_BASE.[589]   
 		# {{{ Figure out the NEXT value from the input
 		# NOTE: Make sure to skip the OID_BASE.[589].1.1 branch - it's the index and should not be returned!
@@ -1149,14 +1229,14 @@ if($ALL) {
 # }}}
 # }}} # OID_BASE.5
 
-	    } elsif(($tmp[0] >= 6) && ($tmp[0] <= 7)) {
-		# {{{ ------------------------------------- OID_BASE.[6-7]   
+	    } elsif(($tmp[0] == 6) || ($tmp[0] == 7) || ($tmp[0] == 10)) {
+		# {{{ ------------------------------------- OID_BASE.{6-7,10}   
 		# {{{ Figure out the NEXT value from the input
-		# NOTE: Make sure to skip the OID_BASE.[6-7].1.1 branch - it's the index and should not be returned!
+		# NOTE: Make sure to skip the OID_BASE.{6-7,10}.1.1 branch - it's the index and should not be returned!
 		if(!defined($tmp[1]) || !defined($tmp[2])) {
 		    $tmp[1] = 1;
 		    if($CFG{'IGNORE_INDEX'}) {
-			# Called only as 'OID_BASE.[6-7]' (jump directly to OID_BASE.[6-7].1.2 because of the index).
+			# Called only as 'OID_BASE.{6-7,10}' (jump directly to OID_BASE.{6-7,10}.1.2 because of the index).
 			$tmp[2] = 2;
 		    } else {
 			$tmp[2] = 1; # Show index.
@@ -1164,7 +1244,7 @@ if($ALL) {
 		    $tmp[3] = 1;
 
 		} elsif(!defined($tmp[3])) {
-		    # Called only as 'OID_BASE.[6-7].1.x'
+		    # Called only as 'OID_BASE.{6-7,10}.1.x'
 		    $tmp[2] = 1 if($tmp[2] == 0);
 
 		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
@@ -1176,8 +1256,9 @@ if($ALL) {
 		    }
 
 		} else {
-		    if((($tmp[0] == 6) && ($tmp[2] > keys(%keys_arc_usage))) ||
-		       (($tmp[0] == 7) && ($tmp[2] > keys(%keys_arc_stats))))
+		    if((($tmp[0] == 6)  && ($tmp[2] > keys(%keys_arc_usage))) ||
+		       (($tmp[0] == 7)  && ($tmp[2] > keys(%keys_arc_stats))) ||
+		       (($tmp[0] == 10) && ($tmp[2] > keys(%keys_zil_stats))))
 		    {
 			# We've reached the end of OID_BASE.X -> OID_BASE.X+1.1.1.1
 			$tmp[0]++;
