@@ -48,8 +48,8 @@ my %functions  = ($OID_BASE.".01"	=> "amount_pools",
 		  $OID_BASE.".07.1.1"	=> "arc_stats_index",
 		  $OID_BASE.".08.1.1"	=> "vfs_iops_index",
 		  $OID_BASE.".09.1.1"	=> "vfs_bandwidth_index",
-
-		  $OID_BASE.".10.1.1"   => "zil_stats_index");
+		  $OID_BASE.".10.1.1"	=> "zil_stats_index",
+		  $OID_BASE.".11.1.1"	=> "pool_device_status_index");
 
 # OID_BASE.5 => zfsPoolStatusTable
 my %keys_pools =     (#01  => index
@@ -99,18 +99,7 @@ my %keys_vfs_bwidth =(#01  => index
 		      "03" => "bandwidth_reads",
 		      "04" => "bandwidth_writes");
 
-# }}}
-
-# {{{ Pool status values
-my %pool_status = ('DEGRADED'	=> 1,
-		   'FAULTED'	=> 2,
-		   'OFFLINE'	=> 3,
-		   'ONLINE'	=> 4,
-		   'REMOVED'	=> 5,
-		   'UNAVAIL'	=> 6);
-# }}}
-
-# {{{ ZIL status values
+# OID_BASE.10 => ZIL status values
 my %keys_zil_stats = (#01  => index
 		      "02" => "zil_commit_count",
 		      "03" => "zil_commit_writer_count",
@@ -125,11 +114,28 @@ my %keys_zil_stats = (#01  => index
 		      "12" => "zil_itx_metaslab_normal_bytes",
 		      "13" => "zil_itx_metaslab_slog_count",
 		      "14" => "zil_itx_metaslab_slog_bytes");
+
+# OID_BASE.11 => Pool status values
+my %pool_dev_stats = (#01  => index
+		      "02" => "name",
+		      "03" => "state",
+		      "04" => "read",
+		      "05" => "write",
+		      "06" => "cksum");
+# }}}
+
+# {{{ Pool device status
+my %pool_status = ('DEGRADED'	=> 1,
+		   'FAULTED'	=> 2,
+		   'OFFLINE'	=> 3,
+		   'ONLINE'	=> 4,
+		   'REMOVED'	=> 5,
+		   'UNAVAIL'	=> 6);
 # }}}
 
 # {{{ Some global data variables
-my(%POOLS, %DATASETS, %SNAPSHOTS, %VOLUMES);
-my($POOLS, $DATASETS, $SNAPSHOTS, $VOLUMES);
+my(%POOLS, %DATASETS, %SNAPSHOTS, %VOLUMES, %STATUS_INFO);
+my($POOLS, $DATASETS, $SNAPSHOTS, $VOLUMES, $DEVICES);
 my($oid, $arg, $TYPE_STATUS, %ARC, %VFS, %ZIL);
 # }}}
 
@@ -219,6 +225,77 @@ sub get_pools {
     }
 
     return($pools, %pools);
+}
+# }}}
+
+# {{{ Get all pool status
+sub zpool_get_status {
+    my($pool, $state, $vdev, %status, $devices);
+    $devices = 0;
+
+    open(ZPOOL, "$CFG{'ZPOOL'} status |") ||
+	die("Can't call zpool, $!");
+    while(! eof(ZPOOL)) {
+	my $zpool = <ZPOOL>;
+	chomp($zpool);
+
+	next if ($zpool =~ /^$/ || $zpool =~ /^errors: /);
+
+	if ($zpool =~ /^  pool: /) {
+	    $pool =  $zpool;
+	    $pool =~ s/.* //;
+
+	    # Start from scratch - start of a pool status
+	    undef($state);
+	    undef($vdev);
+
+	    next;
+	} elsif ($zpool =~ /^ state: /) {
+	    $state =  $zpool;
+	    $state =~ s/.* //;
+
+	    # Skip to the interesting bit (first VDEV)
+	    while (! eof(ZPOOL)) {
+		$zpool = <ZPOOL>;
+
+		if ($zpool =~ /NAME.*STATE.*READ.*WRITE.*CKSUM/) {
+		    last;
+		}
+	    }
+	} elsif ($zpool =~ /raid|mirror/) {
+	    $zpool =~ s/^	//; # Remove initial tab to get something to split on
+	    $vdev = (split(' ', $zpool))[0];
+
+	    # Get next line - the dev
+	    $zpool = <ZPOOL>;
+	    chomp($zpool);
+	} elsif ($zpool =~ /spares|cache/) {
+	    # For spares and caches - ignore. They aren't online, so no read/write/cksum values
+	    undef($vdev); # Don't reuse the previous vdev value.
+	    next;
+	}
+
+	if ($zpool && $state && $vdev) {
+	    $zpool =~ s/^	//; # Remove initial tab to get something to split on
+	    my $dev = (split(' ', $zpool))[0];
+
+	    ($status{$dev}{'name'}, $status{$dev}{'state'}, $status{$dev}{'read'},
+	     $status{$dev}{'write'}, $status{$dev}{'cksum'}) = split(' ', $zpool);
+
+	    # Translate the status to a number according to %pool_status
+	    foreach my $stat (keys %pool_status) {
+		if ($status{$dev}{'state'} eq $stat) {
+		    $status{$dev}{'state'} = $pool_status{$stat};
+		}
+	    }
+
+	    $devices++;
+	}
+    }
+
+    close(ZPOOL);
+
+    return($devices, %status);
 }
 # }}}
 
@@ -560,9 +637,31 @@ sub print_zil_stats_info {
 # }}}
 
 
-# {{{ Generic 'print complex index' for OID_BASE.[589]
+# {{{ OID_BASE.11.1.1.x          Output pool device status index
+sub print_pool_device_status_index {
+    my $nr = shift;
+
+    return(print_generic_complex_table_index($nr,
+		"zfsPoolDevStatusTable.zfsPoolDevStatusEntry",
+		"zfsPoolDevName", "zfsPoolDevStatusIndex",
+		"11", \%pool_dev_stats, \%STATUS_INFO));
+}
+# }}}
+
+# {{{ OID_BASE.11.1.X.x          Output pool device status information
+sub print_pool_device_status_info {
+    my $nr = shift;
+
+    return(print_generic_complex_table_info($nr,
+		"zfsPoolDevStatusTable.zfsDevPoolStatusEntry",
+		"zfsPoolDevName", "11", \%pool_dev_stats, \%STATUS_INFO));
+}
+# }}}
+
+
+# {{{ Generic 'print complex index' for OID_BASE.{5,8,9,11}
 sub print_generic_complex_table_index {
-    my $value_no   = shift; # Pool number
+    my $value_no   = shift;
     my $legend     = shift;
     my $legend_key = shift;
     my $index_key  = shift;
@@ -571,7 +670,7 @@ sub print_generic_complex_table_index {
     my %data       = %{shift()};
 
     my $success = 0;
-    debug(0, "=> OID_BASE.$legend.$index_key\n") if($CFG{'DEBUG'} > 1);
+    debug(0, "=>> OID_BASE.$legend.$index_key\n") if($CFG{'DEBUG'} > 1);
 
     if(defined($value_no)) {
 	# {{{ Specific pool name
@@ -621,9 +720,9 @@ sub print_generic_complex_table_index {
 }
 # }}}
 
-# {{{ Generic 'print complex info'  for OID_BASE.[589]
+# {{{ Generic 'print complex info'  for OID_BASE.{5,8,9,11}
 sub print_generic_complex_table_info {
-    my $value_no   = shift; # Pool number
+    my $value_no   = shift; # Row number
     my $legend     = shift;
     my $legend_key = shift;
     my $oid        = shift;
@@ -721,7 +820,7 @@ sub print_generic_complex_table_info {
 # }}}
 
 
-# {{{ Generic 'print simple index' for OID_BASE.[67]
+# {{{ Generic 'print simple index' for OID_BASE.{6,7,10}
 sub print_generic_simple_table_index {
     my $nr         = shift;
     my $legend     = shift;
@@ -770,7 +869,7 @@ sub print_generic_simple_table_index {
 }
 # }}}
 
-# {{{ Generic 'print simple info' for OID_BASE.[67]
+# {{{ Generic 'print simple info' for OID_BASE.{6,7,10}
 sub print_generic_simple_table_info {
     my $nr     = shift;
     my $legend = shift;
@@ -878,6 +977,10 @@ sub load_information {
     ($POOLS,     %POOLS)     = &get_pools();
 
     # ---------------------------------
+    # Get the pool status (read/write/cksum info)
+    ($DEVICES, %STATUS_INFO) = &zpool_get_status();
+
+    # ---------------------------------
     # Get filesystems, snapshots and volumes in each pool
     ($DATASETS,  %DATASETS)  = &get_list('filesystem');
     ($VOLUMES,   %VOLUMES)   = &get_list('volume');
@@ -970,7 +1073,7 @@ sub get_next_oid {
     }
 
     # Global variables for the print function(s).
-    if(($tmp[0] == 5) || ($tmp[0] == 8) || ($tmp[0] == 9)) {
+    if(($tmp[0] == 5) || ($tmp[0] == 8) || ($tmp[0] == 9) || ($tmp[0] == 11)) {
 	$TYPE_STATUS = $tmp[2];
     } else {
 	if($tmp[2] == 1) {
@@ -1080,6 +1183,12 @@ if($ALL) {
     for(; $i < keys(%keys_zil_stats); $i++, $j++) {
 	$functions{$OID_BASE.".10.1.$j"} = "zil_stats_info";
     }
+
+    # ... and zpool device stats.
+    ($i, $j) = (0, 2);
+    for(; $i < keys(%pool_dev_stats); $i++, $j++) {
+	$functions{$OID_BASE.".11.1.$j"} = "pool_device_status_info";
+    }
 # }}}
 
     # {{{ Go through the commands sent on STDIN
@@ -1140,14 +1249,14 @@ if($ALL) {
 		}
 # }}} # OID_BASE.[1-4]
 
-	    } elsif(($tmp[0] == 5) || ($tmp[0] == 8) || ($tmp[0] == 9)) {
-		# {{{ ------------------------------------- OID_BASE.[589]   
+	    } elsif(($tmp[0] == 5) || ($tmp[0] == 8) || ($tmp[0] == 9) || ($tmp[0] == 11)) {
+		# {{{ ------------------------------------- OID_BASE.{5,8,9,11}   
 		# {{{ Figure out the NEXT value from the input
-		# NOTE: Make sure to skip the OID_BASE.[589].1.1 branch - it's the index and should not be returned!
+		# NOTE: Make sure to skip the OID_BASE.{5,8,9,11}.1.1 branch - it's the index and should not be returned!
 		if(!defined($tmp[1]) || !defined($tmp[2])) {
 		    $tmp[1] = 1;
 		    if($CFG{'IGNORE_INDEX'}) {
-			# Called only as 'OID_BASE.[589]' (jump directly to OID_BASE.[589].1.2 because of the index).
+			# Called only as 'OID_BASE.{5,8,9,11}' (jump directly to OID_BASE.{5,8,9,11}.1.2 because of the index).
 			$tmp[2] = 2;
 		    } else {
 			$tmp[2] = 1; # Show index.
@@ -1155,7 +1264,7 @@ if($ALL) {
 		    $tmp[3] = 1;
 
 		} elsif(!defined($tmp[3])) {
-		    # Called only as 'OID_BASE.[589].1.x'
+		    # Called only as 'OID_BASE.{5,8,9,11}.1.x'
 		    $tmp[2] = 1 if($tmp[2] == 0);
 
 		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
@@ -1166,47 +1275,53 @@ if($ALL) {
 			$tmp[3] = 1;
 		    }
 		} else {
-		    if((($tmp[0] == 5) && ($tmp[2] >= keys(%keys_pools)+2)) ||
-		       (($tmp[0] == 8) && ($tmp[2] >= keys(%keys_vfs_iops)+2)) ||
-		       (($tmp[0] == 9) && ($tmp[2] >= keys(%keys_vfs_bwidth)+2)))
+		    if((($tmp[0] == 5)  && ($tmp[2] >= keys(%keys_pools)+2)) ||
+		       (($tmp[0] == 8)  && ($tmp[2] >= keys(%keys_vfs_iops)+2)) ||
+		       (($tmp[0] == 9)  && ($tmp[2] >= keys(%keys_vfs_bwidth)+2)) ||
+			($tmp[0] == 11) && ($tmp[2] >= keys(%pool_dev_stats)+2))
 		    {
-			# We've reached the end of the OID_BASE.[589].1.x -> OID_BASE.[589]+1.1.1.1.1
+			# We've reached the end of the OID_BASE.{5,8,9,11}.1.x -> OID_BASE.{5,8,9,11}+1.1.1.1.1
 			$tmp[0]++;
 			for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
 
-		    } elsif($tmp[3] >= $POOLS) {
+		    } elsif(((($tmp[0] == 5) || ($tmp[0] == 8) || ($tmp[0] == 9)) && ($tmp[3] >= $POOLS)) ||
+			    (($tmp[0] == 11) && ($tmp[3] >= $DEVICES))) {
+			debug(0, "xx: --------- (devices=".$DEVICES.")\n");
 			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
+			    debug(0, "    skipping index\n");
 			    # The index, skip it!
 			    no_value();
 			    next;
 			} else {
-			    # We've reached the end of the OID_BASE.[589].1.x.y
+			    # We've reached the end of the OID_BASE.{5,8,9,11}.1.x.y
 			    if((($tmp[0] == 8) || ($tmp[0] == 9)) && ($tmp[2] == 1))
 			    {
 				# Skip the Pool Name column - these two tables augments the 'zfsPoolStatusTable'
 				# !! TODO: Need to verify if we should really do this !!
 
-				# -> OID_BASE.[589].1.x+2.1
+				# -> OID_BASE.{5,8,9,11}.1.x+2.1
 				$tmp[2] = 3;
 				$tmp[3] = 1;
 			    } else {
-				# -> OID_BASE.[589].1.x+1.1
+				# -> OID_BASE.{5,8,9,11}.1.x+1.1
 				$tmp[2]++;
 				$tmp[3] = 1;
 			    }
 
-			    if((($tmp[0] == 5) && ($tmp[2] >= keys(%keys_pools)+2)) ||
-			       (($tmp[0] == 8) && ($tmp[2] >= keys(%keys_vfs_iops)+2)) ||
-			       (($tmp[0] == 9) && ($tmp[2] >= keys(%keys_vfs_bwidth)+2)))
+			    if((($tmp[0] == 5)  && ($tmp[2] >= keys(%keys_pools)+2)) ||
+			       (($tmp[0] == 8)  && ($tmp[2] >= keys(%keys_vfs_iops)+2)) ||
+			       (($tmp[0] == 9)  && ($tmp[2] >= keys(%keys_vfs_bwidth)+2)) ||
+			       (($tmp[0] == 11) && ($tmp[2] >= keys(%pool_dev_stats)+2)))
 			    {
-				# That was the end of the OID_BASE.[589].1.x -> OID_BASE.[589]+1.1.1.1.1
+				# That was the end of the OID_BASE.{5,8,9,11}.1.x -> OID_BASE.{5,8,9,11}+1.1.1.1.1
 				$tmp[0]++;
 				for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
 			    }
 			}
 
 		    } else {
-			# Get OID_BASE.[589].1.x.y+1
+			debug(0, "yy: ---------\n");
+			# Get OID_BASE.{5,8,9,11}.1.x.y+1
 			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			    # The index, skip it!
 			    no_value();
