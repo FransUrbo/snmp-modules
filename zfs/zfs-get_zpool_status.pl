@@ -7,13 +7,14 @@ my %pool_status = ('DEGRADED'	=> 1,
 		   'ONLINE'	=> 4,
 		   'REMOVED'	=> 5,
 		   'UNAVAIL'	=> 6);
-my(%CFG, %STATUS);
+my(%CFG);
 $CFG{'ZPOOL'} = "zpool";
 
 # ========================================
 
 sub zpool_get_status {
-    my($pool, $state, $vdev);
+    my($pool, $state, $vdev, %status, $devices);
+    $devices = 0;
 
     open(ZPOOL, "$CFG{'ZPOOL'} status |") ||
 	die("Can't call zpool, $!");
@@ -44,6 +45,22 @@ sub zpool_get_status {
 		    last;
 		}
 	    }
+
+	    # Next line after the header is the pool status line
+	    $zpool = <ZPOOL>;
+	    chomp($zpool);
+
+	    my $dev = (split(' ', $zpool))[0];
+
+	    ($status{$dev}{'name'}, $status{$dev}{'state'}, $status{$dev}{'read'},
+	     $status{$dev}{'write'}, $status{$dev}{'cksum'}) = split(' ', $zpool);
+
+	    # Translate the status to a number according to %pool_status
+	    foreach my $stat (keys %pool_status) {
+		if ($status{$dev}{'state'} eq $stat) {
+		    $status{$dev}{'state'} = $pool_status{$stat};
+		}
+	    }
 	} elsif ($zpool =~ /raid|mirror/) {
 	    $zpool =~ s/^	//; # Remove initial tab to get something to split on
 	    $vdev = (split(' ', $zpool))[0];
@@ -61,43 +78,32 @@ sub zpool_get_status {
 	    $zpool =~ s/^	//; # Remove initial tab to get something to split on
 	    my $dev = (split(' ', $zpool))[0];
 
-#	    print "=> {$pool}{$vdev}{$dev} = '$zpool'\n";
-
-	    ($STATUS{$pool}{$vdev}{$dev}{'dev'}, $STATUS{$pool}{$vdev}{$dev}{'state'},
-	     $STATUS{$pool}{$vdev}{$dev}{'read'}, $STATUS{$pool}{$vdev}{$dev}{'write'},
-	     $STATUS{$pool}{$vdev}{$dev}{'cksum'}) = split(' ', $zpool);
+	    ($status{$dev}{'name'}, $status{$dev}{'state'}, $status{$dev}{'read'},
+	     $status{$dev}{'write'}, $status{$dev}{'cksum'}) = split(' ', $zpool);
 
 	    # Translate the status to a number according to %pool_status
 	    foreach my $stat (keys %pool_status) {
-		if ($STATUS{$pool}{$vdev}{$dev}{'state'} eq $stat) {
-		    $STATUS{$pool}{$vdev}{$dev}{'state'} = $pool_status{$stat};
+		if ($status{$dev}{'state'} eq $stat) {
+		    $status{$dev}{'state'} = $pool_status{$stat};
 		}
 	    }
 
-#	    printf("  %s\t%s\t%s\t%s\t%s\n", 
-#		   $STATUS{$pool}{$vdev}{$dev}{'dev'}, $STATUS{$pool}{$vdev}{$dev}{'state'},
-#		   $STATUS{$pool}{$vdev}{$dev}{'read'}, $STATUS{$pool}{$vdev}{$dev}{'write'},
-#		   $STATUS{$pool}{$vdev}{$dev}{'cksum'});
+	    $devices++;
 	}
     }
 
     close(ZPOOL);
+
+    return($devices, %status);
 }
 
 # ========================================
 
-&zpool_get_status();
-foreach my $pool (keys %STATUS) {
-    print "$pool\n";
-    foreach my $vdev (keys %{$STATUS{$pool}}) {
-	print "  $vdev\n";
-	foreach my $dev (keys %{$STATUS{$pool}{$vdev}}) {
-	    print "    $dev\n";
-	    foreach my $key (keys %{$STATUS{$pool}{$vdev}{$dev}}) {
-		print "      key = ".$STATUS{$pool}{$vdev}{$dev}{$key}."\n";
-	    }
-	    print "\n";
-	}
-	print "\n";
+my ($devs, %stats) = &zpool_get_status();
+foreach my $dev (keys %stats) {
+    print "$dev\n";
+    foreach my $key (keys %{$stats{$dev}}) {
+	print "  key = ".$stats{$dev}{$key}."\n";
     }
+    print "\n";
 }

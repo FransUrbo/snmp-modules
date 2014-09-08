@@ -262,6 +262,24 @@ sub zpool_get_status {
 		    last;
 		}
 	    }
+
+	    # Next line after the header is the pool status line
+	    $zpool = <ZPOOL>;
+	    chomp($zpool);
+
+	    my $dev = (split(' ', $zpool))[0];
+
+	    ($status{$dev}{'name'}, $status{$dev}{'state'}, $status{$dev}{'read'},
+	     $status{$dev}{'write'}, $status{$dev}{'cksum'}) = split(' ', $zpool);
+
+	    # Translate the status to a number according to %pool_status
+	    foreach my $stat (keys %pool_status) {
+		if ($status{$dev}{'state'} eq $stat) {
+		    $status{$dev}{'state'} = $pool_status{$stat};
+		}
+	    }
+
+	    $devices++;
 	} elsif ($zpool =~ /raid|mirror/) {
 	    $zpool =~ s/^	//; # Remove initial tab to get something to split on
 	    $vdev = (split(' ', $zpool))[0];
