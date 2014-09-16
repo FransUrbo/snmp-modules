@@ -287,7 +287,7 @@ sub zpool_get_status {
 	    # Get next line - the dev
 	    $zpool = <ZPOOL>;
 	    chomp($zpool);
-	} elsif ($zpool =~ /spares|cache/) {
+	} elsif ($zpool =~ /spares|cache|logs/) {
 	    # For spares and caches - ignore. They aren't online, so no read/write/cksum values
 	    undef($vdev); # Don't reuse the previous vdev value.
 	    next;
