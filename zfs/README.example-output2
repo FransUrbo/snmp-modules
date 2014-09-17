@@ -5,7 +5,6 @@ used only for testing so the values isn't very exiting...
 
 * Number of pools, datasets, volumes and snapshots
 
-```
 # snmpget -uro -v2c -cpublic localhost zfsTotalPools
 BAYOUR-COM-MIB::zfsTotalPools.0 = INTEGER: 2
 # snmpget -uro -v2c -cpublic localhost zfsTotalDatasets
@@ -14,71 +13,57 @@ BAYOUR-COM-MIB::zfsTotalDatasets.0 = INTEGER: 2
 BAYOUR-COM-MIB::zfsTotalVolumes.0 = INTEGER: 0
 # snmpget -uro -v2c -cpublic localhost zfsTotalSnapshots
 BAYOUR-COM-MIB::zfsTotalSnapshots.0 = INTEGER: 0
-```
 
 * The basic pool status table
-```
 # snmptable -uro -v2c -cpublic localhost zfsPoolStatusTable
 SNMP table: BAYOUR-COM-MIB::zfsPoolStatusTable
  
  zfsPoolName zfsPoolSize zfsPoolAlloc zfsPoolFree zfsPoolCap zfsPoolDedup zfsPoolHealth zfsPoolAltRoot zfsPoolUsedBySnaps zfsPoolUsed
        rpool  4080218931       393216  4080218931          0         1.00        online              -                  0      319488
        test1  2115271393       175104  2115271393          0         1.00        online              -                  0      104448
-```
 
 * The ARC usage table
-```
 # snmptable -uro -v2c -cpublic localhost zfsARCUsageTable
 SNMP table: BAYOUR-COM-MIB::zfsARCUsageTable
  
  zfsARCMetaMax zfsARCMetaUsed zfsARCMetaLimit zfsARCCMax zfsARCSize
         986440         985288      1559616000 2079488000     985288
-```
 
 * The ARC stats table
-```
 # snmptable -uro -v2c -cpublic localhost zfsARCStatsTable
 SNMP table: BAYOUR-COM-MIB::zfsARCStatsTable
 
  zfsARCHits zfsARCMisses zfsARCDemandDataHits zfsARCDemandDataMisses zfsARCDemandMetaHits zfsARCDemandMetaMisses zfsARCPrefetchDataHits zfsARCPrefetchDataMisses zfsARCPrefetchMetaHits zfsARCPrefetchMetaMisses zfsARCL2Hits zfsARCL2Misses
        1955         2642                    0                      0                 1955                   2642                      0                        0                      0                        0            0              0
-```
 
 * The VFS IOPS table
   This augments the zfsPoolStatusTable, so the lines corresponds
   to the same lines (pools)
-```
 # snmptable -uro -v2c -cpublic localhost zfsVFSIOPSTable
 SNMP table: BAYOUR-COM-MIB::zfsVFSIOPSTable
  
  zfsOperReads zfsOperWrites
             0             0
             0             0
-```
 
 * The VFS throughput table
   This augments the zfsPoolStatusTable, so the lines corresponds
   to the same lines (pools)
-```
 # snmptable -uro -v2c -cpublic localhost zfsVFSThroughputTable
 SNMP table: BAYOUR-COM-MIB::zfsVFSThroughputTable
  
  zfsBandwidthReads zfsBandwidthWrites
                  3                 23
                  0                 28
-```
 
 * The ZIL stats table
-```
 # snmptable -uro -v2c -cpublic localhost zfsZILStatsTable
 SNMP table: BAYOUR-COM-MIB::zfsZILStatsTable
 
  zfsZILCommitCnt zfsZILCommitWriterCnt zfsZILITXCnt zfsZILITXIndirectCnt zfsZILITXIndirectBytes zfsZILITXCopiedCnt zfsZILITXCopiedBytes zfsZILITXNeedcopyCnt zfsZILITXNeedcopyBytes zfsZILITXMetaslabNormalCnt zfsZILITXMetaslabNormalBytes zfsZILITXMetaslabSLOGCnt zfsZILITXMetaslabSLOGBytes
                0                     0            0                    0                      0                  0                    0                    0                      0                          0                            0                        0                          0
-```
 
 * The pool device status table
-```
 # snmptable -uro -v2c -cpublic localhost zfsPoolDevStatusTable
 SNMP table: BAYOUR-COM-MIB::zfsPoolDevStatusTable
 
@@ -98,10 +83,8 @@ SNMP table: BAYOUR-COM-MIB::zfsPoolDevStatusTable
  ata-VBOX_HARDDISK_VBd15b7714-c746e03e          online              0               0               0
                                  rpool          online              0               0               0
                                  test1          online              0               0               0
-```
 
 * The DBUF stats table
-```
 SNMP table: BAYOUR-COM-MIB::zfsDbufStatsTable
 
  zfsDbufPoolName zfsDbufObjSet zfsDbufObject zfsDbufLevel zfsDbufBlkId zfsDbufOffset zfsDbufDBSize zfsDbufMeta zfsDbufState zfsDbufDBHolds zfsDbufList zfsDbufAType zfsDbufIndex zfsDbufFlags zfsDbufCount zfsDbufASize zfsDbufAccess zfsDbufMRU zfsDbufGMRU zfsDbufMFU zfsDbufGMFU zfsDbufL2 zfsDbufL2DAttr zfsDbufL2ASize zfsDbufL2Comp zfsDbufAHolds       zfsDbufDType      zfsDbufBType zfsDbufDataBS zfsDbufMetaBS zfsDbufBSize zfsDbufLvls zfsDbufDHolds zfsDbufBlocks zfsDbufDSize
@@ -155,4 +138,3 @@ SNMP table: BAYOUR-COM-MIB::zfsDbufStatsTable
            test1             0            30            0            0             0         16384           1       online              0           1            1           -1        0x260            1        16384       7991582          0           0          0           0         0              0              0       inherit             0            unknown              none         16384         16384            0           1             2             2        32768
            test1            21             5            0            0             0          1536           1       online              0           3            1           -1        0x260            1         1536       7991616          1           0          6           0         0              0              0       inherit             0 saattrregistration              none          1536         16384            0           1             1             1         1536
            test1             0            36            0            0             0          4096           1       online              0           1            1           -1        0x260            1         4096       7992831          0           0          0           0         0              0              0       inherit             0           spacemap    spacemapheader          4096         16384          320           1             2             1         4096
-```
