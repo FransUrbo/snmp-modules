@@ -42,8 +42,7 @@ use BayourCOM_SNMP;
 
 $ENV{PATH} = "/bin:/usr/bin:/usr/sbin";
 
-my $OID_BASE;
-$OID_BASE = "OID_BASE"; # When debugging, it's easier to type this than the full OID
+my $OID_BASE = "OID_BASE"; # When debugging, it's easier to type this than the full OID
 if($ENV{'MIBDIRS'}) {
     # ALWAYS override this if we're running through the SNMP daemon!
     $OID_BASE = ".1.3.6.1.4.1.8767.2.4"; # .iso.org.dod.internet.private.enterprises.bayourcom.snmp.systemStats
@@ -82,35 +81,6 @@ my %loastats  = ('14' => 'load_01',
 $SIG{'ALRM'} = \&load_information;
 # }}}
 
-# {{{ OID tree
-# smidump -f tree BAYOUR-COM-MIB.txt
-#  +--systemStats(4)
-#     +-- r-n Integer32 systemUptime(1)
-#     |
-#     +-- r-n Integer32 systemMemoryTotal(2)
-#     +-- r-n Integer32 systemMemoryUsed(3)
-#     +-- r-n Integer32 systemMemoryFree(4)
-#     +-- r-n Integer32 systemMemoryBuffered(5)
-#     +-- r-n Integer32 systemMemoryCached(6)
-#     +-- r-n Integer32 systemMemorySwapTotal(7)
-#     +-- r-n Integer32 systemMemorySwapUsed(8)
-#     +-- r-n Integer32 systemMemorySwapFree(9)
-#     |
-#     +-- r-n Integer32 systemCPUTasksTotal(10)
-#     +-- r-n Integer32 systemCPUTasksRunning(11)
-#     +-- r-n Integer32 systemCPUTasksSleeping(12)
-#     +-- r-n Integer32 systemCPUTasksStopped(13)
-#     +-- r-n Integer32 systemCPUTasksZombies(14)
-#     +-- r-n Integer32 systemCPUUsageUser(15)
-#     +-- r-n Integer32 systemCPUUsageSystem(16)
-#     +-- r-n Integer32 systemCPUUsageNice(17)
-#     +-- r-n Integer32 systemCPUUsageIdle(18)
-#     +-- r-n Integer32 systemCPUUsageIOWait(19)
-#     |
-#     +-- r-n Integer32 systemLoadLastOne(20)
-#     +-- r-n Integer32 systemLoadLastFive(21)
-#     +-- r-n Integer32 systemLoadLastFifteen(22)
-# }}}
 
 # ====================================================
 # =====    R E T R E I V E  F U N C T I O N S    =====
@@ -125,7 +95,14 @@ sub get_uptime {
     
     $days   = $tmp[2];
     $hours  = (split(':', $tmp[4]))[0];
-    $mins   = (split(':', $tmp[4]))[1]; $mins   =~ s/,$//;
+    $mins   = (split(':', $tmp[4]))[1];
+    if(defined($mins)) {
+	$mins   =~ s/,$//;
+    } else {
+	# 23:13:51 up 1 day, 28 min,  3 users,  load average: 0.02, 0.02, 0.05
+	$mins = $hours;
+	$hours = 0;
+    }
     
     $DATA{'uptime'} = ((($days * 24) + $hours) * 60) + $mins; # total in minutes
     debug(0, "get_uptime: '".$DATA{'uptime'}."'\n");
@@ -179,12 +156,12 @@ sub get_memstats_linux {
     }
     close(MEM);
 
-    if($DATA{'mem'}{'total'} && $DATA{'mem'}{'free'}) {
+    if(defined($DATA{'mem'}{'total'}) && defined($DATA{'mem'}{'free'})) {
 	$DATA{'mem'}{'used'} = $DATA{'mem'}{'total'} - $DATA{'mem'}{'free'};
 	debug(0, "get_memstats_linux: used=".$DATA{'mem'}{'used'}."\n");
     }
 
-    if($DATA{'mem'}{'swaptotal'} && $DATA{'mem'}{'swapfree'}) {
+    if(defined($DATA{'mem'}{'swaptotal'}) && defined($DATA{'mem'}{'swapfree'})) {
 	$DATA{'mem'}{'swapused'} = $DATA{'mem'}{'swaptotal'} - $DATA{'mem'}{'swapfree'};
 	debug(0, "get_memstats_linux: swapused=".$DATA{'mem'}{'swapused'}."\n");
     }
@@ -198,12 +175,12 @@ sub get_cpuusage {
     open(TOP, "/usr/bin/top n 1 b |") || die("Can't start top: $!\n");
     while(!eof(TOP)) {
 	$line = <TOP>; chomp($line);
-	if(($line =~ /^CPU states/) || ($line =~ /^Cpu\(s\)/)) {
+	if(($line =~ /^CPU states/) || ($line =~ /^Cpu\(s\)/) ||  ($line =~ /^%Cpu\(s\)/)) {
 	    close(TOP);
 	    
 	    if($line =~ /^CPU states/) {
 		$TYPE = 'old';
-	    } elsif($line =~ /^Cpu\(s\)/) {
+	    } elsif(($line =~ /^Cpu\(s\)/) || ($line =~ /^%Cpu\(s\)/)) {
 		$TYPE = 'new';
 	    }
 	    
@@ -458,6 +435,7 @@ if($ALL) {
 	if($arg eq 'getnext') {
 	    # {{{ Get next OID
 # }}}
+
 	} elsif($arg eq 'get') {
 	    # {{{ Get _this_ OID
 # }}}
