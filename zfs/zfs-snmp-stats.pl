@@ -1293,7 +1293,8 @@ sub load_information {
 
     # ---------------------------------
     # Get DBUFS status information
-    %DBUFS = &get_dbufs_stats();
+# Could be dangerous - see https://github.com/zfsonlinux/zfs/issues/2495
+#    %DBUFS = &get_dbufs_stats();
 
     # ---------------------------------
     # Schedule an alarm once every ten minute to re-read information.

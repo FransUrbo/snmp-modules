@@ -19,6 +19,20 @@ the GIT version!
    shown for a Debian GNU/Linux system!!
                         !!!!! NOTE !!!!!
 
+                        !!!!! NOTE !!!!!
+   Because of a bug in ZoL version <0.6.4, reading DBUF info (the
+   zfsDbufStatsTable table), reading DBUF values from /proc/spl/kstat/zfs/dbufs
+   is disabled. If you want to enable it, look for the lines:
+
+	     # ---------------------------------
+	     # Get DBUFS status information
+	# Could be dangerous - see https://github.com/zfsonlinux/zfs/issues/2495
+	#    %DBUFS = &get_dbufs_stats();
+
+   Remove the dash at the front of that last line. There is a fix,
+   but it have yet to be merged/issued.
+                        !!!!! NOTE !!!!!
+
 SNMP Setup files
 ================
 * BAYOUR-COM-MIB.txt
