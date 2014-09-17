@@ -1,0 +1,123 @@
+<interface>
+	<name>Get ZIL Stats</name>
+	<description>Use zpool and zfs to retreive ZIL Stats.</description>
+	<oid_index>.1.3.6.1.4.1.8767.2.6.10.1.1</oid_index>
+	<oid_num_indexes>.1.3.6.1.4.1.8767.2.6.1.0</oid_num_indexes>
+	<index_order>zfsZILCommitCnt,zfsZILCommitWriterCnt,zfsZILITXCnt,zfsZILITXIndirectCnt,zfsZILITXIndirectBytes,zfsZILITXCopiedCnt,zfsZILITXCopiedBytes,zfsZILITXNeedcopyCnt,zfsZILITXNeedcopyBytes,zfsZILITXMetaslabNormalCnt,zfsZILITXMetaslabNormalBytes,zfsZILITXMetaslabSLOGCnt,zfsZILITXMetaslabSLOGBytes</index_order>
+	<index_order_type>numeric</index_order_type>
+	<index_title_format>|chosen_order_field|</index_title_format>
+
+	<fields>
+		<zfsZILStatsIndex>
+			<name>Index (stats)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.10.1.1</oid>
+		</zfsZILStatsIndex>
+
+		<zfsZILCommitCnt>
+			<name>Commit count</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.10.1.2</oid>
+		</zfsZILCommitCnt>
+
+		<zfsZILCommitWriterCnt>
+			<name>Commit writer count</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.10.1.3</oid>
+		</zfsZILCommitWriterCnt>
+
+		<zfsZILITXCnt>
+			<name>ITX count</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.10.1.4</oid>
+		</zfsZILITXCnt>
+
+		<zfsZILITXIndirectCnt>
+			<name>ITX indirect count</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.10.1.5</oid>
+		</zfsZILITXIndirectCnt>
+
+		<zfsZILITXIndirectBytes>
+			<name>ITX indirect bytes</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.10.1.6</oid>
+		</zfsZILITXIndirectBytes>
+
+		<zfsZILITXCopiedCnt>
+			<name>ITX copies count</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.10.1.7</oid>
+		</zfsZILITXCopiedCnt>
+
+		<zfsZILITXCopiedBytes>
+			<name>ITX copied bytes</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.10.1.8</oid>
+		</zfsZILITXCopiedBytes>
+
+		<zfsZILITXNeedcopyCnt>
+			<name>ITX need copy count</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.10.1.9</oid>
+		</zfsZILITXNeedcopyCnt>
+
+		<zfsZILITXNeedcopyBytes>
+			<name>ITX need copy bytes</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.10.1.10</oid>
+		</zfsZILITXNeedcopyBytes>
+
+		<zfsZILITXMetaslabNormalCnt>
+			<name>Metaslab normal count</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.10.1.11</oid>
+		</zfsZILITXMetaslabNormalCnt>
+
+		<zfsZILITXMetaslabNormalBytes>
+			<name>Metaslab normal bytes</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.10.1.12</oid>
+		</zfsZILITXMetaslabNormalBytes>
+
+		<zfsZILITXMetaslabSLOGCnt>
+			<name>Metaslab SLOG count</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.10.1.13</oid>
+		</zfsZILITXMetaslabSLOGCnt>
+
+		<zfsZILITXMetaslabSLOGBytes>
+			<name>Metaslab SLOG bytes</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.10.1.14</oid>
+		</zfsZILITXMetaslabSLOGBytes>
+	</fields>
+</interface>

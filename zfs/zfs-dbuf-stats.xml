@@ -1,0 +1,307 @@
+<interface>
+	<name>DBUF stats information</name>
+	<description>Get stats from /proc/spl/kstat/zfs/dbufs.</description>
+	<oid_index>.1.3.6.1.4.1.8767.2.6.12.1.1</oid_index>
+	<oid_num_indexes>.1.3.6.1.4.1.8767.2.6.1.0</oid_num_indexes>
+	<index_order>zfsDbufPoolName,zfsDbufObjSet,zfsDbufObject,zfsDbufLevel,zfsDbufBlkId,zfsDbufOffset,zfsDbufDBSize,zfsDbufMeta,zfsDbufState,zfsDbufDBHolds,zfsDbufList,zfsDbufAType,zfsDbufIndex,zfsDbufFlags,zfsDbufCount,zfsDbufASize,zfsDbufAccess,zfsDbufMRU,zfsDbufGMRU,zfsDbufMFU,zfsDbufGMFU,zfsDbufL2,zfsDbufL2DAttr,zfsDbufL2ASize,zfsDbufL2Comp,zfsDbufAHolds,zfsDbufDType,zfsDbufBType,zfsDbufDataBS,zfsDbufMetaBS,zfsDbufBSize,zfsDbufLvls,zfsDbufDHolds,zfsDbufBlocks,zfsDbufDSize</index_order>
+	<index_order_type>numeric</index_order_type>
+	<index_title_format>|chosen_order_field|</index_title_format>
+
+	<fields>
+		<zfsDbufStatsIndex>
+			<name>Index (status)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.1</oid>
+		</zfsDbufStatsIndex>
+
+		<zfsDbufPoolName>
+			<name>Pool name</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.2</oid>
+		</zfsDbufPoolName>
+
+		<zfsDbufPoolName>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.2</oid>
+		</zfsDbufPoolName>
+
+		<zfsDbufObjSet>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.3</oid>
+		</zfsDbufObjSet>
+
+		<zfsDbufObject>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.4</oid>
+		</zfsDbufObject>
+
+		<zfsDbufLevel>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.5</oid>
+		</zfsDbufLevel>
+
+		<zfsDbufBlkId>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.6</oid>
+		</zfsDbufBlkId>
+
+		<zfsDbufOffset>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.7</oid>
+		</zfsDbufOffset>
+
+		<zfsDbufDBSize>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.8</oid>
+		</zfsDbufDBSize>
+
+		<zfsDbufMeta>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.9</oid>
+		</zfsDbufMeta>
+
+		<zfsDbufState>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.10</oid>
+		</zfsDbufState>
+
+		<zfsDbufDBHolds>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.11</oid>
+		</zfsDbufDBHolds>
+
+		<zfsDbufList>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.12</oid>
+		</zfsDbufList>
+
+		<zfsDbufAType>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.13</oid>
+		</zfsDbufAType>
+
+		<zfsDbufIndex>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.14</oid>
+		</zfsDbufIndex>
+
+		<zfsDbufFlags>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.15</oid>
+		</zfsDbufFlags>
+
+		<zfsDbufCount>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.16</oid>
+		</zfsDbufCount>
+
+		<zfsDbufASize>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.17</oid>
+		</zfsDbufASize>
+
+		<zfsDbufAccess>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.18</oid>
+		</zfsDbufAccess>
+
+		<zfsDbufMRU>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.19</oid>
+		</zfsDbufMRU>
+
+		<zfsDbufGMRU>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.20</oid>
+		</zfsDbufGMRU>
+
+		<zfsDbufMFU>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.21</oid>
+		</zfsDbufMFU>
+
+		<zfsDbufGMFU>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.22</oid>
+		</zfsDbufGMFU>
+
+		<zfsDbufL2>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.23</oid>
+		</zfsDbufL2>
+
+		<zfsDbufL2DAttr>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.24</oid>
+		</zfsDbufL2DAttr>
+
+		<zfsDbufL2ASize>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.25</oid>
+		</zfsDbufL2ASize>
+
+		<zfsDbufL2Comp>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.26</oid>
+		</zfsDbufL2Comp>
+
+		<zfsDbufAHolds>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.27</oid>
+		</zfsDbufAHolds>
+
+		<zfsDbufDType>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.28</oid>
+		</zfsDbufDType>
+
+		<zfsDbufBType>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.29</oid>
+		</zfsDbufBType>
+
+		<zfsDbufDataBS>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.30</oid>
+		</zfsDbufDataBS>
+
+		<zfsDbufMetaBS>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.31</oid>
+		</zfsDbufMetaBS>
+
+		<zfsDbufBSize>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.32</oid>
+		</zfsDbufBSize>
+
+		<zfsDbufLvls>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.33</oid>
+		</zfsDbufLvls>
+
+		<zfsDbufDHolds>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.34</oid>
+		</zfsDbufDHolds>
+
+		<zfsDbufBlocks>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.35</oid>
+		</zfsDbufBlocks>
+
+		<zfsDbufDSize>
+			<name></name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.12.1.36</oid>
+		</zfsDbufDSize>
+	</fields>
+</interface>

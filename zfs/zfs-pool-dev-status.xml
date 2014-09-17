@@ -1,0 +1,59 @@
+<interface>
+	<name>ZPool device status information</name>
+	<description>Use zpool retreive device status.</description>
+	<oid_index>.1.3.6.1.4.1.8767.2.6.11.1.1</oid_index>
+	<oid_num_indexes>.1.3.6.1.4.1.8767.2.6.1.0</oid_num_indexes>
+	<index_order>zfsPoolDevName,zfsPoolDevState,zfsPoolDevRead,zfsPoolDevWrite,zfsPoolDevCksum</index_order>
+	<index_order_type>numeric</index_order_type>
+	<index_title_format>|chosen_order_field|</index_title_format>
+
+	<fields>
+		<zfsPoolDevStatusIndex>
+			<name>Index (status)</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.11.1.1</oid>
+		</zfsPoolDevStatusIndex>
+
+		<zfsPoolDevName>
+			<name>Device name</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.11.1.2</oid>
+		</zfsPoolDevName>
+
+		<zfsPoolDevState>
+			<name>Device state</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.11.1.3</oid>
+		</zfsPoolDevState>
+
+		<zfsPoolDevRead>
+			<name>Device read status</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.11.1.4</oid>
+		</zfsPoolDevRead>
+
+		<zfsPoolDevWrite>
+			<name>Device write status</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.11.1.5</oid>
+		</zfsPoolDevWrite>
+
+		<zfsPoolDevCksum>
+			<name>Device checksum status</name>
+			<method>walk</method>
+			<source>value</source>
+			<direction>input</direction>
+			<oid>.1.3.6.1.4.1.8767.2.6.11.1.6</oid>
+		</zfsPoolDevCksum>
+	</fields>
+</interface>
