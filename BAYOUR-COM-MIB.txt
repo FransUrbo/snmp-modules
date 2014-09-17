@@ -13,7 +13,7 @@ IMPORTS
 
 -- {{{ bayourCom Module identity
 bayourCom MODULE-IDENTITY
-  LAST-UPDATED                         "201409082041Z"  -- September 8, 2014
+  LAST-UPDATED                         "201409170211Z"  -- September 17, 2014
   ORGANIZATION                         "Bayour.COM"
   CONTACT-INFO                         "Postal:      Turbo Fredriksson
                                                      Dobelnsgatan 69
@@ -23,6 +23,9 @@ bayourCom MODULE-IDENTITY
                                         Tel:         +46 704-697645
                                         E-Mail:      turbo@bayour.com"
   DESCRIPTION                          "The MIB module defines the Bayour.COM Bind9, Bacula and ZFS statistics."
+
+  REVISION                             "201409170211Z"  -- September 17, 2014
+  DESCRIPTION                          "Added ZFS DBUF status information."
 
   REVISION                             "201409082041Z"  -- September 8, 2014
   DESCRIPTION                          "Added ZPOOL device status information."
@@ -244,6 +247,175 @@ bayourCom MODULE-IDENTITY
                                           online(4),
                                           removed(5),
                                           unavail(6)
+                                       }
+-- }}}
+
+    -- {{{ ZFSDbufTypeValue
+    ZFSDbufTypeValue                   ::= TEXTUAL-CONVENTION
+      STATUS                           current
+      DESCRIPTION                      "ZFS DBUF btype and dtype status values:
+                                          DMU_OT_NONE
+                                          # General:
+                                          DMU_OT_OBJECT_DIRECTORY
+                                          DMU_OT_OBJECT_ARRAY
+                                          DMU_OT_PACKED_NVLIST
+                                          DMU_OT_PACKED_NVLIST_SIZE
+                                          DMU_OT_BPOBJ
+                                          DMU_OT_BPOBJ_HDR
+                                          # SPA:
+                                          DMU_OT_SPACE_MAP_HEADER
+                                          DMU_OT_SPACE_MAP
+                                          # ZIL:
+                                          DMU_OT_INTENT_LOG
+                                          # DMU:
+                                          DMU_OT_DNODE
+                                          DMU_OT_OBJSET
+                                          # DSL:
+                                          DMU_OT_DSL_DIR
+                                          DMU_OT_DSL_DIR_CHILD_MAP
+                                          DMU_OT_DSL_DS_SNAP_MAP
+                                          DMU_OT_DSL_PROPS
+                                          DMU_OT_DSL_DATASET
+                                          # ZPL:
+                                          DMU_OT_ZNODE
+                                          DMU_OT_OLDACL
+                                          DMU_OT_PLAIN_FILE_CONTENTS
+                                          DMU_OT_DIRECTORY_CONTENTS
+                                          DMU_OT_MASTER_NODE
+                                          DMU_OT_UNLINKED_SET
+                                          # ZVOL:
+                                          DMU_OT_ZVOL
+                                          DMU_OT_ZVOL_PROP
+                                          # other; for testing only!
+                                          DMU_OT_PLAIN_OTHER
+                                          DMU_OT_UINT64_OTHER
+                                          DMU_OT_ZAP_OTHER
+                                          # New object types:
+                                          DMU_OT_ERROR_LOG
+                                          DMU_OT_SPA_HISTORY
+                                          DMU_OT_SPA_HISTORY_OFFSETS
+                                          DMU_OT_POOL_PROPS
+                                          DMU_OT_DSL_PERMS
+                                          DMU_OT_ACL
+                                          DMU_OT_SYSACL
+                                          DMU_OT_FUID
+                                          DMU_OT_FUID_SIZE
+                                          DMU_OT_NEXT_CLONES
+                                          DMU_OT_SCAN_QUEUE
+                                          DMU_OT_USERGROUP_USED
+                                          DMU_OT_USERGROUP_QUOTA
+                                          DMU_OT_USERREFS
+                                          DMU_OT_DDT_ZAP
+                                          DMU_OT_DDT_STATS
+                                          DMU_OT_SA
+                                          DMU_OT_SA_MASTER_NODE
+                                          DMU_OT_SA_ATTR_REGISTRATION
+                                          DMU_OT_SA_ATTR_LAYOUTS
+                                          DMU_OT_SCAN_XLATE
+                                          DMU_OT_DEDUP
+                                          DMU_OT_DEADLIST
+                                          DMU_OT_DEADLIST_HDR
+                                          DMU_OT_DSL_CLONES
+                                          DMU_OT_BPOBJ_SUBOBJ
+                                          UNKNOWN (196)"
+      SYNTAX                           INTEGER {
+                                          none(0),
+                                          objectdirectory(1),
+                                          objectarray(2),
+                                          packednvlist(3),
+                                          packednvlistsize(4),
+                                          bpobj(5),
+                                          bpobjhdr(6),
+                                          spacemapheader(7),
+                                          spacemap(8),
+                                          intentlog(9),
+                                          dnode(10),
+                                          objset(11),
+                                          dsldir(12),
+                                          dsldirchildmap(13),
+                                          dsldssnapmap(14),
+                                          dslprops(15),
+                                          dsldataset(16),
+                                          znode(17),
+                                          oldacl(18),
+                                          plainfilecontents(19),
+                                          directorycontents(20),
+                                          masternode(21),
+                                          unlinkedset(22),
+                                          zvol(23),
+                                          zvolprop(24),
+                                          plainother(25),
+                                          uint64other(26),
+                                          zapother(27),
+                                          errorlog(28),
+                                          spahistory(29),
+                                          spahistoryoffsets(30),
+                                          poolprops(31),
+                                          dslperms(32),
+                                          acl(33),
+                                          sysacl(34),
+                                          fuid(35),
+                                          fuidsize(36),
+                                          nextclones(37),
+                                          scanqueue(38),
+                                          usergroupused(39),
+                                          usergroupquota(40),
+                                          userrefs(41),
+                                          ddtzap(42),
+                                          ddtstats(43),
+                                          sa(44),
+                                          samasternode(45),
+                                          saattrregistration(46),
+                                          saattrlayouts(47),
+                                          scanxlate(48),
+                                          dedup(49),
+                                          deadlist(50),
+                                          deadlisthdr(51),
+                                          dslclones(52),
+                                          bpobjsubobj(53),
+                                          unknown(196)
+                                       }
+-- }}}
+
+    -- {{{ ZFSDbufL2CompValue
+    ZFSDbufL2CompValue                 ::= TEXTUAL-CONVENTION
+      STATUS                           current
+      DESCRIPTION                      "ZFS DBUF l2_comp status values:
+                                          ZIO_COMPRESS_INHERIT
+                                          ZIO_COMPRESS_ON
+                                          ZIO_COMPRESS_OFF
+                                          ZIO_COMPRESS_LZJB
+                                          ZIO_COMPRESS_EMPTY
+                                          ZIO_COMPRESS_GZIP_1
+                                          ZIO_COMPRESS_GZIP_2
+                                          ZIO_COMPRESS_GZIP_3
+                                          ZIO_COMPRESS_GZIP_4
+                                          ZIO_COMPRESS_GZIP_5
+                                          ZIO_COMPRESS_GZIP_6
+                                          ZIO_COMPRESS_GZIP_7
+                                          ZIO_COMPRESS_GZIP_8
+                                          ZIO_COMPRESS_GZIP_9
+                                          ZIO_COMPRESS_ZLE
+                                          ZIO_COMPRESS_LZ4
+                                          ZIO_COMPRESS_FUNCTION"
+      SYNTAX                           INTEGER {
+                                          inherit(0),
+                                          on(1),
+                                          off(2),
+                                          lzjb(3),
+                                          empty(4),
+                                          gzip1(5),
+                                          gzip2(6),
+                                          gzip3(7),
+                                          gzip4(8),
+                                          gzip5(9),
+                                          gzip6(10),
+                                          gzip7(11),
+                                          gzip8(12),
+                                          gzip9(13),
+                                          zle(14),
+                                          lz4(15),
+                                          function(16)
                                        }
 -- }}}
 -- }}}
@@ -468,7 +640,7 @@ bayourCom MODULE-IDENTITY
           MODULE                       -- this module
           MANDATORY-GROUPS             { zfsGroupTotals, zfsGroupStatus, zfsGroupARCUsage,
                                          zfsGroupARCStats, zfsGroupVFSIOPS, zfsGroupVFSBandwith,
-                                         zfsGroupZILStats, zfsGroupDevStats }
+                                         zfsGroupZILStats, zfsGroupDevStats, zfsGroupDbufStats }
           ::= { zfsConformance 1 }
 -- }}}
 
@@ -485,8 +657,8 @@ bayourCom MODULE-IDENTITY
           zfsGroupStatus               OBJECT-GROUP
             OBJECTS                    { zfsPoolName, zfsPoolSize, zfsPoolAlloc, zfsPoolFree,
                                          zfsPoolCap, zfsPoolDedup, zfsPoolHealth, zfsPoolAltRoot,
-                                         zfsPoolUsedBySnaps, zfsPoolUsed,
-                                         zfsOperReads, zfsOperWrites, zfsBandwidthReads, zfsBandwidthWrites }
+                                         zfsPoolUsedBySnaps, zfsPoolUsed, zfsOperReads, zfsOperWrites,
+                                         zfsBandwidthReads, zfsBandwidthWrites }
             STATUS                     current
             DESCRIPTION                "ZFS Pool status values."
             ::= { zfsGroups 2 }
@@ -538,6 +710,23 @@ bayourCom MODULE-IDENTITY
             STATUS                     current
             DESCRIPTION                "ZFS device status values."
             ::= { zfsGroups 8 }
+
+          zfsGroupDbufStats            OBJECT-GROUP
+            OBJECTS                    { zfsDbufPoolName, zfsDbufObjSet, zfsDbufObject,
+                                         zfsDbufLevel, zfsDbufBlkId, zfsDbufOffset,
+                                         zfsDbufDBSize, zfsDbufMeta, zfsDbufState,
+                                         zfsDbufDBHolds, zfsDbufList, zfsDbufAType,
+                                         zfsDbufIndex, zfsDbufFlags, zfsDbufCount,
+                                         zfsDbufASize, zfsDbufAccess, zfsDbufMRU,
+                                         zfsDbufGMRU, zfsDbufMFU, zfsDbufGMFU, zfsDbufL2,
+                                         zfsDbufL2DAttr, zfsDbufL2ASize, zfsDbufL2Comp,
+                                         zfsDbufAHolds, zfsDbufDType, zfsDbufBType,
+                                         zfsDbufDataBS, zfsDbufMetaBS, zfsDbufBSize,
+                                         zfsDbufLvls, zfsDbufDHolds, zfsDbufBlocks,
+                                         zfsDbufDSize }
+            STATUS                     current
+            DESCRIPTION                "ZFS dbuf status values."
+            ::= { zfsGroups 9 }
 -- }}}
 -- }}}
 -- }}}
@@ -2513,6 +2702,315 @@ bayourCom MODULE-IDENTITY
             STATUS                     current
             DESCRIPTION                "Number of cksum errors on ZFS pool device."
             ::= { zfsPoolDevStatusEntry 6 }
+-- }}}
+
+      -- {{{ .1.3.6.1.4.1.8767.2.6.12 zfsDufsStatsTable
+      zfsDbufStatsTable                OBJECT-TYPE
+        SYNTAX                         SEQUENCE OF ZFSDbufStatsEntry
+        MAX-ACCESS                     not-accessible
+        STATUS                         current
+        DESCRIPTION                    "A list of ZFS dbuf status information."
+        ::= { zfsStats 12 }
+
+        zfsDbufStatsEntry              OBJECT-TYPE
+          SYNTAX                       ZFSDbufStatsEntry
+          MAX-ACCESS                   not-accessible
+          STATUS                       current
+          DESCRIPTION                  "An entry containing ZFS dbuf status values."
+          INDEX                        { zfsDbufStatsIndex }
+          ::= { zfsDbufStatsTable 1 }
+
+          ZFSDbufStatsEntry            ::= SEQUENCE {
+            zfsDbufStatsIndex          CounterIndex,
+
+            zfsDbufPoolName            DisplayString,
+            zfsDbufObjSet              Integer32,
+            zfsDbufObject              Integer32,
+            zfsDbufLevel               Integer32,
+            zfsDbufBlkId               Integer32,
+            zfsDbufOffset              Integer32,
+            zfsDbufDBSize              Integer32,
+            zfsDbufMeta                Integer32,
+            zfsDbufState               ZFSPoolStatusValue,
+            zfsDbufDBHolds             Integer32,
+            zfsDbufList                Integer32,
+            zfsDbufAType               Integer32,
+            zfsDbufIndex               Integer32,
+            zfsDbufFlags               DisplayString,
+            zfsDbufCount               Integer32,
+            zfsDbufASize               Integer32,
+            zfsDbufAccess              Integer32,
+            zfsDbufMRU                 Integer32,
+            zfsDbufGMRU                Integer32,
+            zfsDbufMFU                 Integer32,
+            zfsDbufGMFU                Integer32,
+            zfsDbufL2                  Integer32,
+            zfsDbufL2DAttr             Integer32,
+            zfsDbufL2ASize             Integer32,
+            zfsDbufL2Comp              Integer32,
+            zfsDbufAHolds              Integer32,
+            zfsDbufDType               ZFSDbufTypeValue,
+            zfsDbufBType               ZFSDbufTypeValue,
+            zfsDbufDataBS              Integer32,
+            zfsDbufMetaBS              Integer32,
+            zfsDbufBSize               Integer32,
+            zfsDbufLvls                Integer32,
+            zfsDbufDHolds              Integer32,
+            zfsDbufBlocks              Integer32,
+            zfsDbufDSize               Integer32
+          }
+
+          zfsDbufStatsIndex            OBJECT-TYPE
+            SYNTAX                     CounterIndex
+            MAX-ACCESS                 not-accessible
+            STATUS                     current
+            DESCRIPTION                "Reference Index for each counter."
+            ::= { zfsDbufStatsEntry 1 }
+
+          zfsDbufPoolName              OBJECT-TYPE
+            SYNTAX                     DisplayString
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "Name of ZFS pool."
+            ::= { zfsDbufStatsEntry 2 }
+
+          zfsDbufObjSet                OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 3 }
+
+          zfsDbufObject                OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 4 }
+
+          zfsDbufLevel                 OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 5 }
+
+          zfsDbufBlkId                 OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 6 }
+
+          zfsDbufOffset                OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 7 }
+
+          zfsDbufDBSize                OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 8 }
+
+          zfsDbufMeta                  OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 9 }
+
+          zfsDbufState                 OBJECT-TYPE
+            SYNTAX                     ZFSPoolStatusValue
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 10 }
+
+          zfsDbufDBHolds               OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 11 }
+
+          zfsDbufList                  OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 12 }
+
+          zfsDbufAType                 OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 13 }
+
+          zfsDbufIndex                 OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 14 }
+
+          zfsDbufFlags                 OBJECT-TYPE
+            SYNTAX                     DisplayString
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 15 }
+
+          zfsDbufCount                 OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 16 }
+
+          zfsDbufASize                 OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 17 }
+
+          zfsDbufAccess                OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 18 }
+
+          zfsDbufMRU                   OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 19 }
+
+          zfsDbufGMRU                  OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 20 }
+
+          zfsDbufMFU                   OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 21 }
+
+          zfsDbufGMFU                  OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 22 }
+
+          zfsDbufL2                    OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 23 }
+
+          zfsDbufL2DAttr               OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 24 }
+
+          zfsDbufL2ASize               OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 25 }
+
+          zfsDbufL2Comp                OBJECT-TYPE
+            SYNTAX                     ZFSDbufL2CompValue
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 26 }
+
+          zfsDbufAHolds                OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 27 }
+
+          zfsDbufDType                 OBJECT-TYPE
+            SYNTAX                     ZFSDbufTypeValue
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 28 }
+
+          zfsDbufBType                 OBJECT-TYPE
+            SYNTAX                     ZFSDbufTypeValue
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 29 }
+
+          zfsDbufDataBS                OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 30 }
+
+          zfsDbufMetaBS                OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 31 }
+
+          zfsDbufBSize                 OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 32 }
+
+          zfsDbufLvls                  OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 33 }
+
+          zfsDbufDHolds                OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 34 }
+
+          zfsDbufBlocks                OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 35 }
+
+          zfsDbufDSize                 OBJECT-TYPE
+            SYNTAX                     Integer32
+            MAX-ACCESS                 read-only
+            STATUS                     current
+            DESCRIPTION                "."
+            ::= { zfsDbufStatsEntry 36 }
 -- }}}
 -- }}}
 END

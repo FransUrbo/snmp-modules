@@ -49,7 +49,10 @@ my %functions  = ($OID_BASE.".01"	=> "amount_pools",
 		  $OID_BASE.".08.1.1"	=> "vfs_iops_index",
 		  $OID_BASE.".09.1.1"	=> "vfs_bandwidth_index",
 		  $OID_BASE.".10.1.1"	=> "zil_stats_index",
-		  $OID_BASE.".11.1.1"	=> "pool_device_status_index");
+		  $OID_BASE.".11.1.1"	=> "pool_device_status_index",
+		  $OID_BASE.".12.1.1"	=> "dbuf_stats_index");
+
+# These hashes are a mapping for the data hash key.
 
 # OID_BASE.5 => zfsPoolStatusTable
 my %keys_pools =     (#01  => index
@@ -116,27 +119,153 @@ my %keys_zil_stats = (#01  => index
 		      "14" => "zil_itx_metaslab_slog_bytes");
 
 # OID_BASE.11 => Pool status values
-my %pool_dev_stats = (#01  => index
+my %keys_dev_stats = (#01  => index
 		      "02" => "name",
 		      "03" => "state",
 		      "04" => "read",
 		      "05" => "write",
 		      "06" => "cksum");
+
+# OID_BASE.12 => DBUF status values
+my %keys_dbuf_stats =(#01  => index
+		      "02" => "pool",
+		      "03" => "objset",
+		      "04" => "object",
+		      "05" => "level",
+		      "06" => "blkid",
+		      "07" => "offset",
+		      "08" => "dbsize",
+		      "09" => "meta",
+		      "10" => "state",
+		      "11" => "dbholds",
+		      "12" => "list",
+		      "13" => "atype",
+		      "14" => "index",
+		      "15" => "flags",
+		      "16" => "count",
+		      "17" => "asize",
+		      "18" => "access",
+		      "19" => "mru",
+		      "20" => "gmru",
+		      "21" => "mfu",
+		      "22" => "gmfu",
+		      "23" => "l2",
+		      "24" => "l2_dattr",
+		      "25" => "l2_asize",
+		      "26" => "l2_comp",
+		      "27" => "aholds",
+		      "28" => "dtype",
+		      "29" => "btype",
+		      "30" => "data_bs",
+		      "31" => "meta_bs",
+		      "32" => "bsize",
+		      "33" => "lvls",
+		      "34" => "dholds",
+		      "35" => "blocks",
+		      "36" => "dsize");
 # }}}
 
-# {{{ Pool device status
+# These hases are for the textual conventions in the MIB
+
+# {{{ Textual conventions
+# ZFSPoolStatusValue - Pool device status
 my %pool_status = ('DEGRADED'	=> 1,
 		   'FAULTED'	=> 2,
 		   'OFFLINE'	=> 3,
 		   'ONLINE'	=> 4,
 		   'REMOVED'	=> 5,
 		   'UNAVAIL'	=> 6);
+
+# ZFSDbufTypeValue - DBUF [bd]type
+my %dbuf_types = ('DMU_OT_NONE'			=>  0,
+		  # General:
+		  'DMU_OT_OBJECT_DIRECTORY'	=>  1,
+		  'DMU_OT_OBJECT_ARRAY'		=>  2,
+		  'DMU_OT_PACKED_NVLIST'	=>  3,
+		  'DMU_OT_PACKED_NVLIST_SIZE'	=>  4,
+		  'DMU_OT_BPOBJ'		=>  5,
+		  'DMU_OT_BPOBJ_HDR'		=>  6,
+		  # SPA:
+		  'DMU_OT_SPACE_MAP_HEADER'	=>  7,
+		  'DMU_OT_SPACE_MAP'		=>  8,
+		  # ZIL:
+		  'DMU_OT_INTENT_LOG'		=>  9,
+		  # DMU:
+		  'DMU_OT_DNODE'		=> 10,
+		  'DMU_OT_OBJSET'		=> 11,
+		  # DSL:
+		  'DMU_OT_DSL_DIR'		=> 12,
+		  'DMU_OT_DSL_DIR_CHILD_MAP'	=> 13,
+		  'DMU_OT_DSL_DS_SNAP_MAP'	=> 14,
+		  'DMU_OT_DSL_PROPS'		=> 15,
+		  'DMU_OT_DSL_DATASET'		=> 16,
+		  # ZPL:
+		  'DMU_OT_ZNODE'		=> 17,
+		  'DMU_OT_OLDACL'		=> 18,
+		  'DMU_OT_PLAIN_FILE_CONTENTS'	=> 19,
+		  'DMU_OT_DIRECTORY_CONTENTS'	=> 20,
+		  'DMU_OT_MASTER_NODE'		=> 21,
+		  'DMU_OT_UNLINKED_SET'		=> 22,
+		  # ZVOL:
+		  'DMU_OT_ZVOL'			=> 23,
+		  'DMU_OT_ZVOL_PROP'		=> 24,
+		  # other; for testing only!
+		  'DMU_OT_PLAIN_OTHER'		=> 25,
+		  'DMU_OT_UINT64_OTHER'		=> 26,
+		  'DMU_OT_ZAP_OTHER'		=> 27,
+		  # New object types:
+		  'DMU_OT_ERROR_LOG'		=> 28,
+		  'DMU_OT_SPA_HISTORY'		=> 29,
+		  'DMU_OT_SPA_HISTORY_OFFSETS'	=> 30,
+		  'DMU_OT_POOL_PROPS'		=> 31,
+		  'DMU_OT_DSL_PERMS'		=> 32,
+		  'DMU_OT_ACL'			=> 33,
+		  'DMU_OT_SYSACL'		=> 34,
+		  'DMU_OT_FUID'			=> 35,
+		  'DMU_OT_FUID_SIZE'		=> 36,
+		  'DMU_OT_NEXT_CLONES'		=> 37,
+		  'DMU_OT_SCAN_QUEUE'		=> 38,
+		  'DMU_OT_USERGROUP_USED'	=> 39,
+		  'DMU_OT_USERGROUP_QUOTA'	=> 40,
+		  'DMU_OT_USERREFS'		=> 41,
+		  'DMU_OT_DDT_ZAP'		=> 42,
+		  'DMU_OT_DDT_STATS'		=> 43,
+		  'DMU_OT_SA'			=> 44,
+		  'DMU_OT_SA_MASTER_NODE'	=> 45,
+		  'DMU_OT_SA_ATTR_REGISTRATION'	=> 46,
+		  'DMU_OT_SA_ATTR_LAYOUTS'	=> 47,
+		  'DMU_OT_SCAN_XLATE'		=> 48,
+		  'DMU_OT_DEDUP'		=> 49,
+		  'DMU_OT_DEADLIST'		=> 50,
+		  'DMU_OT_DEADLIST_HDR'		=> 51,
+		  'DMU_OT_DSL_CLONES'		=> 52,
+		  'DMU_OT_BPOBJ_SUBOBJ'		=> 53,
+		  'UNKNOWN'			=> 196);
+
+# ZFSDbufL2CompValue - DBUF l2_comp
+my %dbuf_l2comp = ('ZIO_COMPRESS_INHERIT'	=>  0,
+		   'ZIO_COMPRESS_ON'		=>  1,
+		   'ZIO_COMPRESS_OFF'		=>  2,
+		   'ZIO_COMPRESS_LZJB'		=>  3,
+		   'ZIO_COMPRESS_EMPTY'		=>  4,
+		   'ZIO_COMPRESS_GZIP_1'	=>  5,
+		   'ZIO_COMPRESS_GZIP_2'	=>  6,
+		   'ZIO_COMPRESS_GZIP_3'	=>  7,
+		   'ZIO_COMPRESS_GZIP_4'	=>  8,
+		   'ZIO_COMPRESS_GZIP_5'	=>  9,
+		   'ZIO_COMPRESS_GZIP_6'	=> 10,
+		   'ZIO_COMPRESS_GZIP_7'	=> 11,
+		   'ZIO_COMPRESS_GZIP_8'	=> 12,
+		   'ZIO_COMPRESS_GZIP_9'	=> 13,
+		   'ZIO_COMPRESS_ZLE'		=> 14,
+		   'ZIO_COMPRESS_LZ4'		=> 15,
+		   'ZIO_COMPRESS_FUNCTION'	=> 16);
 # }}}
 
 # {{{ Some global data variables
 my(%POOLS, %DATASETS, %SNAPSHOTS, %VOLUMES, %STATUS_INFO);
 my($POOLS, $DATASETS, $SNAPSHOTS, $VOLUMES, $DEVICES);
-my($oid, $arg, $TYPE_STATUS, %ARC, %VFS, %ZIL);
+my($oid, $arg, $TYPE_STATUS, %ARC, %VFS, %ZIL, %DBUFS);
 # }}}
 
 # handle a SIGALRM - reload information/statistics and
@@ -446,7 +575,7 @@ sub get_zil_stats {
     # Open zil file and get what we want...
     open(ZILSTATS, "$CFG{'KSTATDIR'}/zil") ||
 	die("Can't open $CFG{'KSTATDIR'}/zil, $!\n");
-    my $line = <ZILSTATS>; $line = <ZILSTATS>; # Just get the two first dumy lines
+    my $line = <ZILSTATS>; $line = <ZILSTATS>; # Just get the two first dummy lines
     while(! eof(ZILSTATS)) {
 	my $line = <ZILSTATS>;
 	chomp($line);
@@ -461,6 +590,57 @@ sub get_zil_stats {
     close(ARCSTATS);
 
     return(%zil);
+}
+# }}}
+
+# {{{ Get DBUF stats
+sub get_dbufs_stats {
+    my($linenr, $line, @colnames, @data, %data, %dbufs) = ( );
+
+    # Open zil file and get what we want...
+    open(DBUFSSTATS, "$CFG{'KSTATDIR'}/dbufs") ||
+	die("Can't open $CFG{'KSTATDIR'}/dbufs, $!\n");
+
+    # Just get the two first dummy lines
+    for(my $i=0; $i <= 1; $i++) {
+	$line = <DBUFSSTATS>;
+    }
+
+    # The column names line
+    $line = <DBUFSSTATS>;
+    $line =~ s/\|//g;
+    @colnames = split(' ', $line);
+
+    $linenr = 0;
+    while(! eof(DBUFSSTATS)) {
+	$line = <DBUFSSTATS>;
+	chomp($line);
+	$line =~ s/\|//g;
+
+	@data = split(' ', $line);
+	my $pool_name = $data[0];
+
+	for(my $i = 0; $colnames[$i]; $i++) {
+	    $data{$pool_name}{$linenr}{$colnames[$i]} = $data[$i];
+	}
+
+	$linenr++;
+    }
+    close(DBUFSSTATS);
+
+    # Sort by pool name and flatten hash
+    my $j = 0;
+    foreach my $pool_name (sort keys %data) {
+	foreach my $nr (sort {$a <=> $b} keys %{$data{$pool_name}}) {
+	    foreach my $col (keys %{$data{$pool_name}{$nr}}) {
+		my $k = sprintf("%02d", $j);
+		$dbufs{$k}{$col} = $data{$pool_name}{$nr}{$col};
+	    }
+	    $j++;
+	}
+    }
+
+    return(%dbufs);
 }
 # }}}
 
@@ -655,29 +835,52 @@ sub print_zil_stats_info {
 # }}}
 
 
-# {{{ OID_BASE.11.1.1.x          Output pool device status index
+# {{{ OID_BASE.11.1.1.x         Output pool device status index
 sub print_pool_device_status_index {
     my $nr = shift;
 
     return(print_generic_complex_table_index($nr,
 		"zfsPoolDevStatusTable.zfsPoolDevStatusEntry",
 		"zfsPoolDevName", "zfsPoolDevStatusIndex",
-		"11", \%pool_dev_stats, \%STATUS_INFO));
+		"11", \%keys_dev_stats, \%STATUS_INFO));
 }
 # }}}
 
-# {{{ OID_BASE.11.1.X.x          Output pool device status information
+# {{{ OID_BASE.11.1.X.x         Output pool device status information
 sub print_pool_device_status_info {
     my $nr = shift;
 
     return(print_generic_complex_table_info($nr,
 		"zfsPoolDevStatusTable.zfsDevPoolStatusEntry",
-		"zfsPoolDevName", "11", \%pool_dev_stats, \%STATUS_INFO));
+		"zfsPoolDevName", "11", \%keys_dev_stats, \%STATUS_INFO));
 }
 # }}}
 
 
-# {{{ Generic 'print complex index' for OID_BASE.{5,8,9,11}
+# {{{ OID_BASE.12.1.1.x         Output DBUF status index
+sub print_dbuf_stats_index {
+    my $nr = shift;
+
+    return(print_generic_complex_table_index($nr,
+		"zfsDbufStatsTable.zfsDbufStatsEntry",
+		"zfsDbufPoolName", "zfsDbufStatsIndex",
+		"12", \%keys_dbuf_stats, \%DBUFS));
+}
+# }}}
+
+# {{{ OID_BASE.12.1.X.x         Output DBUF status information
+sub print_dbuf_stats_info {
+    my $nr = shift;
+
+    return(print_generic_complex_table_info($nr,
+		"zfsDbufStatsTable.zfsDbufStatsEntry",
+		"zfsDbufPoolName", "12", \%keys_dbuf_stats, \%DBUFS));
+}
+# }}}
+
+
+# {{{ Generic 'print complex index' for OID_BASE.{5,8,9,11,12}
+# Used with double level hashes - index
 sub print_generic_complex_table_index {
     my $value_no   = shift;
     my $legend     = shift;
@@ -738,7 +941,8 @@ sub print_generic_complex_table_index {
 }
 # }}}
 
-# {{{ Generic 'print complex info'  for OID_BASE.{5,8,9,11}
+# {{{ Generic 'print complex info'  for OID_BASE.{5,8,9,11,12}
+# Used with double level hashes - values
 sub print_generic_complex_table_info {
     my $value_no   = shift; # Row number
     my $legend     = shift;
@@ -750,23 +954,48 @@ sub print_generic_complex_table_info {
     my $success = 0;
 
     if(defined($value_no)) {
-	# {{{ Specific client name
+	# {{{ Specific value
 	foreach my $key_nr (sort keys %keys) {
 	    my $value = sprintf("%02d", $TYPE_STATUS);
 	    if($key_nr == $value) {
 		my $key_name = $keys{$key_nr};
 		$key_nr =~ s/^0//;
 		debug(0, "=> OID_BASE.$legend.$key_name.$legend_key\n") if($CFG{'DEBUG'} > 1);
-		
+
 		my $pool_nr = 1;
 		foreach my $pool_name (sort keys %data) {
 		    if($pool_nr == $value_no) {
-			debug(0, "$OID_BASE.$oid.1.$key_nr.$pool_nr = ".$data{$pool_name}{$key_name}."\n") if($CFG{'DEBUG'});
-			
+			# Just to get some pretty debugging output - translate value into textual conversion
+			my $translated_value;
+			if($key_name eq 'btype' or $key_name eq 'dtype') {
+			    foreach my $key (keys %dbuf_types) {
+				if($dbuf_types{$key} == $data{$pool_name}{$key_name}) {
+				    $translated_value = $key;
+				    last;
+				}
+			    }
+
+			    if(!defined($translated_value)) {
+				$translated_value = $data{$pool_name}{$key_name};
+			    }
+			} elsif($key_name eq 'l2_comp') {
+			    foreach my $key (keys %dbuf_l2comp) {
+				if($dbuf_l2comp{$key} == $data{$pool_name}{$key_name}) {
+				    $translated_value = $key;
+				    last;
+				}
+			    }
+			} else {
+			    $translated_value = $data{$pool_name}{$key_name};
+			}
+			debug(0, "$OID_BASE.$oid.1.$key_nr.$pool_nr = $translated_value\n") if($CFG{'DEBUG'});
+
 			debug(1, "$OID_BASE.$oid.1.$key_nr.$pool_nr\n");
 			if(($key_name eq 'altroot') ||
 			   ($key_name eq 'name')    ||
-			   ($key_name eq 'dedup'))
+			   ($key_name eq 'dedup')   ||
+			   ($key_name eq 'flags')   ||
+			   ($key_name eq 'pool'))
 			{
 			    debug(1, "string\n");
 			} elsif(($key_name eq 'oper_reads') || ($key_name eq 'oper_writes') ||
@@ -783,7 +1012,7 @@ sub print_generic_complex_table_info {
 			} else {
 			    debug(1, $data{$pool_name}{$key_name}."\n");
 			}
-			
+
 			return(1);
 		    }
 
@@ -793,20 +1022,45 @@ sub print_generic_complex_table_info {
 	}
 # }}}
     } else {
-	# {{{ ALL pools
+	# {{{ ALL values
 	foreach my $key_nr (sort keys %keys) {
 	    my $key_name = $keys{$key_nr};
 	    $key_nr =~ s/^0//;
 	    debug(0, "=> OID_BASE.$legend.$key_name.$legend_key\n") if($CFG{'DEBUG'} > 1);
-	    
+
 	    my $pool_nr = 1;
 	    foreach my $pool_name (sort keys %data) {
-		debug(0, "$OID_BASE.$oid.1.$key_nr.$pool_nr = ".$data{$pool_name}{$key_name}."\n") if($CFG{'DEBUG'});
+		# Just to get some pretty debugging output - translate value into textual conversion
+		my $translated_value;
+		if($key_name eq 'btype' or $key_name eq 'dtype') {
+		    foreach my $key (keys %dbuf_types) {
+			if($dbuf_types{$key} == $data{$pool_name}{$key_name}) {
+			    $translated_value = $key;
+			    last;
+			}
+		    }
+
+		    if(!defined($translated_value)) {
+			$translated_value = $data{$pool_name}{$key_name};
+		    }
+		} elsif($key_name eq 'l2_comp') {
+		    foreach my $key (keys %dbuf_l2comp) {
+			if($dbuf_l2comp{$key} == $data{$pool_name}{$key_name}) {
+			    $translated_value = $key;
+			    last;
+			}
+		    }
+		} else {
+		    $translated_value = $data{$pool_name}{$key_name};
+		}
+		debug(0, "$OID_BASE.$oid.1.$key_nr.$pool_nr = $translated_value\n") if($CFG{'DEBUG'});
 		
 		debug(1, "$OID_BASE.$oid.1.$key_nr.$pool_nr\n");
 		if(($key_name eq 'altroot') ||
-		    ($key_name eq 'name')   ||
-		    ($key_name eq 'dedup'))
+		   ($key_name eq 'name')    ||
+		   ($key_name eq 'dedup')   ||
+		   ($key_name eq 'flags')   ||
+		   ($key_name eq 'pool'))
 		{
 		    debug(1, "string\n");
 		} elsif(($key_name eq 'oper_reads') || ($key_name eq 'oper_writes') ||
@@ -839,6 +1093,7 @@ sub print_generic_complex_table_info {
 
 
 # {{{ Generic 'print simple index' for OID_BASE.{6,7,10}
+# Used with one level hases - index
 sub print_generic_simple_table_index {
     my $nr         = shift;
     my $legend     = shift;
@@ -880,6 +1135,7 @@ sub print_generic_simple_table_index {
 	    $success = 1;
 	    $nr++;
 	}
+	debug(0, "\n") if(($CFG{'DEBUG'} > 2) && !$ENV{'MIBDIRS'});
 
 	return($success);
 # }}}
@@ -888,26 +1144,27 @@ sub print_generic_simple_table_index {
 # }}}
 
 # {{{ Generic 'print simple info' for OID_BASE.{6,7,10}
+# Used with one level hases - values
 sub print_generic_simple_table_info {
-    my $nr     = shift;
-    my $legend = shift;
-    my $oid    = shift;
-    my %keys   = %{shift()};
-    my %data   = %{shift()};
+    my $value_no = shift;
+    my $legend   = shift;
+    my $oid      = shift;
+    my %keys     = %{shift()};
+    my %data     = %{shift()};
 
     my $success = 0;
 
-    if(defined($nr)) {
+    if(defined($value_no)) {
 	# {{{ Specific value
 	foreach my $key_nr (sort keys %keys) {
 	    my $value = sprintf("%02d", $TYPE_STATUS);
 	    if($key_nr == $value) {
 		my $key_name = $keys{$key_nr};
 		$key_nr =~ s/^0//;
-		debug(0, "=> OID_BASE.$legend.$key_name.$nr\n") if($CFG{'DEBUG'} > 1);
-		debug(0, "$OID_BASE.$oid.1.$key_nr.$nr = ".$data{$key_name}."\n") if($CFG{'DEBUG'});
+		debug(0, "=> OID_BASE.$legend.$key_name.$value_no\n") if($CFG{'DEBUG'} > 1);
+		debug(0, "$OID_BASE.$oid.1.$key_nr.$value_no = ".$data{$key_name}."\n") if($CFG{'DEBUG'});
 			
-		debug(1, "$OID_BASE.$oid.1.$key_nr.$nr\n");
+		debug(1, "$OID_BASE.$oid.1.$key_nr.$value_no\n");
 		debug(1, "counter\n");
 		debug(1, $data{$key_name}."\n");
 
@@ -922,6 +1179,7 @@ sub print_generic_simple_table_info {
 	    my $key_name = $keys{$key_nr};
 	    $key_nr =~ s/^0//;
 	    debug(0, "=> OID_BASE.$legend.$key_name.1\n") if($CFG{'DEBUG'} > 1);
+	    debug(0, "$OID_BASE.$oid.1.$key_ctr.1 = $data{$key_name}\n") if($CFG{'DEBUG'});
 
 	    debug(1, "$OID_BASE.$oid.1.$key_ctr.1\n");
 	    debug(1, "counter\n");
@@ -1034,6 +1292,10 @@ sub load_information {
     %ZIL = &get_zil_stats();
 
     # ---------------------------------
+    # Get DBUFS status information
+    %DBUFS = &get_dbufs_stats();
+
+    # ---------------------------------
     # Schedule an alarm once every ten minute to re-read information.
     alarm(60*$CFG{'RELOAD'});
 }
@@ -1091,7 +1353,8 @@ sub get_next_oid {
     }
 
     # Global variables for the print function(s).
-    if(($tmp[0] == 5) || ($tmp[0] == 8) || ($tmp[0] == 9) || ($tmp[0] == 11)) {
+    if(($tmp[0] == 5)  || ($tmp[0] == 8) || ($tmp[0] == 9) ||
+       ($tmp[0] == 11) || ($tmp[0] == 12)) {
 	$TYPE_STATUS = $tmp[2];
     } else {
 	if($tmp[2] == 1) {
@@ -1136,6 +1399,9 @@ if($ALL) {
     $functions{$OID_BASE.".07.1.2"} = "arc_stats_info";
     $functions{$OID_BASE.".08.1.2"} = "vfs_iops_info";
     $functions{$OID_BASE.".09.1.2"} = "vfs_bandwidth_info";
+    $functions{$OID_BASE.".10.1.2"} = "zil_stats_info";
+    $functions{$OID_BASE.".11.1.2"} = "pool_device_status_info";
+    $functions{$OID_BASE.".12.1.2"} = "dbuf_stats_info";
 
     foreach my $oid (sort keys %functions) {
 	my $func = $functions{$oid};
@@ -1204,8 +1470,14 @@ if($ALL) {
 
     # ... and zpool device stats.
     ($i, $j) = (0, 2);
-    for(; $i < keys(%pool_dev_stats); $i++, $j++) {
+    for(; $i < keys(%keys_dev_stats); $i++, $j++) {
 	$functions{$OID_BASE.".11.1.$j"} = "pool_device_status_info";
+    }
+
+    # ... and DBUF stats.
+    ($i, $j) = (0, 2);
+    for(; $i < keys(%keys_dbuf_stats); $i++, $j++) {
+	$functions{$OID_BASE.".12.1.$j"} = "dbuf_stats_info";
     }
 # }}}
 
@@ -1267,14 +1539,15 @@ if($ALL) {
 		}
 # }}} # OID_BASE.[1-4]
 
-	    } elsif(($tmp[0] == 5) || ($tmp[0] == 8) || ($tmp[0] == 9) || ($tmp[0] == 11)) {
-		# {{{ ------------------------------------- OID_BASE.{5,8,9,11}   
+	    } elsif(($tmp[0] == 5)  || ($tmp[0] == 8) || ($tmp[0] == 9) ||
+		    ($tmp[0] == 11) || ($tmp[0] == 12)) {
+		# {{{ ------------------------------------- OID_BASE.{5,8,9,11,12}   
 		# {{{ Figure out the NEXT value from the input
-		# NOTE: Make sure to skip the OID_BASE.{5,8,9,11}.1.1 branch - it's the index and should not be returned!
+		# NOTE: Make sure to skip the OID_BASE.{5,8,9,11,12}.1.1 branch - it's the index and should not be returned!
 		if(!defined($tmp[1]) || !defined($tmp[2])) {
 		    $tmp[1] = 1;
 		    if($CFG{'IGNORE_INDEX'}) {
-			# Called only as 'OID_BASE.{5,8,9,11}' (jump directly to OID_BASE.{5,8,9,11}.1.2 because of the index).
+			# Called only as 'OID_BASE.{5,8,9,11,12}' (jump directly to OID_BASE.{5,8,9,11,12}.1.2 because of the index).
 			$tmp[2] = 2;
 		    } else {
 			$tmp[2] = 1; # Show index.
@@ -1282,7 +1555,7 @@ if($ALL) {
 		    $tmp[3] = 1;
 
 		} elsif(!defined($tmp[3])) {
-		    # Called only as 'OID_BASE.{5,8,9,11}.1.x'
+		    # Called only as 'OID_BASE.{5,8,9,11,12}.1.x'
 		    $tmp[2] = 1 if($tmp[2] == 0);
 
 		    if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
@@ -1293,25 +1566,28 @@ if($ALL) {
 			$tmp[3] = 1;
 		    }
 		} else {
-		    if((($tmp[0] == 5)  && ($tmp[2] >= keys(%keys_pools)+2)) ||
-		       (($tmp[0] == 8)  && ($tmp[2] >= keys(%keys_vfs_iops)+2)) ||
+		    if((($tmp[0] == 5)  && ($tmp[2] >= keys(%keys_pools)+2))      ||
+		       (($tmp[0] == 8)  && ($tmp[2] >= keys(%keys_vfs_iops)+2))   ||
 		       (($tmp[0] == 9)  && ($tmp[2] >= keys(%keys_vfs_bwidth)+2)) ||
-			($tmp[0] == 11) && ($tmp[2] >= keys(%pool_dev_stats)+2))
+		       (($tmp[0] == 11) && ($tmp[2] >= keys(%keys_dev_stats)+2)) ||
+		       (($tmp[0] == 12) && ($tmp[2] >= keys(%keys_dbuf_stats)+2)))
 		    {
-			# We've reached the end of the OID_BASE.{5,8,9,11}.1.x -> OID_BASE.{5,8,9,11}+1.1.1.1.1
+			# Max number of columns reached, start with the next entry line
 			$tmp[0]++;
 			for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
 
 		    } elsif(((($tmp[0] == 5) || ($tmp[0] == 8) || ($tmp[0] == 9)) && ($tmp[3] >= $POOLS)) ||
-			    (($tmp[0] == 11) && ($tmp[3] >= $DEVICES))) {
-			debug(0, "xx: --------- (devices=".$DEVICES.")\n");
+			    (($tmp[0] == 11) && ($tmp[3] >= $DEVICES)) ||
+			    (($tmp[0] == 12) && ($tmp[3] >= keys(%DBUFS)))) {
+			debug(0, "xx: ---------\n");
+			# Max number of POOLS/DEVICES/DBUF entries reached.
 			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			    debug(0, "    skipping index\n");
 			    # The index, skip it!
 			    no_value();
 			    next;
 			} else {
-			    # We've reached the end of the OID_BASE.{5,8,9,11}.1.x.y
+			    # We've reached the end of the OID_BASE.{5,8,9,11,12}.1.x.y
 			    if((($tmp[0] == 8) || ($tmp[0] == 9)) && ($tmp[2] == 1))
 			    {
 				# Skip the Pool Name column - these two tables augments the 'zfsPoolStatusTable'
@@ -1321,17 +1597,18 @@ if($ALL) {
 				$tmp[2] = 3;
 				$tmp[3] = 1;
 			    } else {
-				# -> OID_BASE.{5,8,9,11}.1.x+1.1
+				# -> OID_BASE.{5,8,9,11,12}.1.x+1.1
 				$tmp[2]++;
 				$tmp[3] = 1;
 			    }
 
-			    if((($tmp[0] == 5)  && ($tmp[2] >= keys(%keys_pools)+2)) ||
-			       (($tmp[0] == 8)  && ($tmp[2] >= keys(%keys_vfs_iops)+2)) ||
+			    if((($tmp[0] == 5)  && ($tmp[2] >= keys(%keys_pools)+2))      ||
+			       (($tmp[0] == 8)  && ($tmp[2] >= keys(%keys_vfs_iops)+2))   ||
 			       (($tmp[0] == 9)  && ($tmp[2] >= keys(%keys_vfs_bwidth)+2)) ||
-			       (($tmp[0] == 11) && ($tmp[2] >= keys(%pool_dev_stats)+2)))
+			       (($tmp[0] == 11) && ($tmp[2] >= keys(%keys_dev_stats)+2))  ||
+			       (($tmp[0] == 12) && ($tmp[2] >= keys(%keys_dbuf_stats)+2)))
 			    {
-				# That was the end of the OID_BASE.{5,8,9,11}.1.x -> OID_BASE.{5,8,9,11}+1.1.1.1.1
+				# That was the end of the OID_BASE.{5,8,9,11,12}.1.x -> OID_BASE.{5,8,9,11,12}+1.1.1.1.1
 				$tmp[0]++;
 				for(my $i=1; $i <= 3; $i++) { $tmp[$i] = 1; }
 			    }
@@ -1339,7 +1616,7 @@ if($ALL) {
 
 		    } else {
 			debug(0, "yy: ---------\n");
-			# Get OID_BASE.{5,8,9,11}.1.x.y+1
+			# Get OID_BASE.{5,8,9,11,12}.1.x.y+1
 			if(($tmp[2] == 1) && $CFG{'IGNORE_INDEX'}) {
 			    # The index, skip it!
 			    no_value();
