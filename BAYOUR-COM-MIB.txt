@@ -24,6 +24,9 @@ bayourCom MODULE-IDENTITY
                                         E-Mail:      turbo@bayour.com"
   DESCRIPTION                          "The MIB module defines the Bayour.COM Bind9, Bacula and ZFS statistics."
 
+  REVISION                             "201507082035Z"  -- July 08, 2015
+  DESCRIPTION                          "Change the zfsDbufL2Comp from a Integer32 to a ZFSDbufL2CompValue."
+
   REVISION                             "201409170211Z"  -- September 17, 2014
   DESCRIPTION                          "Added ZFS DBUF status information."
 
