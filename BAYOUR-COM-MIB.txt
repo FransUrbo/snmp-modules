@@ -2747,7 +2747,7 @@ bayourCom MODULE-IDENTITY
             zfsDbufL2                  Integer32,
             zfsDbufL2DAttr             Integer32,
             zfsDbufL2ASize             Integer32,
-            zfsDbufL2Comp              Integer32,
+            zfsDbufL2Comp              ZFSDbufL2CompValue,
             zfsDbufAHolds              Integer32,
             zfsDbufDType               ZFSDbufTypeValue,
             zfsDbufBType               ZFSDbufTypeValue,
