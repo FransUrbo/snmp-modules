@@ -139,7 +139,7 @@ Testing
    b. snmpget -v 2c -c private localhost zfsTotalPools.0
 
    Both of these commands should return the number of
-   pools in your Bind9 server, something like this:
+   pools in your ZFS server, something like this:
 
 	.1.3.6.1.4.1.8767.2.6.1.0 = INTEGER: 4
 
@@ -160,3 +160,40 @@ Testing
    pool statistics data.
    Instead of 'snmptable', you can use 'snmpwalk' (same options)
    to get the data in a slightly different view on the data.
+
+Issues
+=================
+Because support for large integers (64-bit size) is ... 'limited'
+in Net-SNMP, a patch to support pools larger than 4.3GB is needed.
+
+   https://gist.github.com/FransUrbo/a2bfee606ffda0b7b81e
+
+This applies cleanly on Net-SNMP version 5.7.3. Hopefully, this will
+be accepted into their source repository 'shortly'.
+
+There is a test script at
+
+   https://gist.github.com/FransUrbo/b891f94b1100f2a3b251
+
+That will allow to test this. Add the pass_persist script as
+
+   pass_persist .1.3.6.1.4.1.2021.255 /etc/snmp/passpersist-example.pl
+
+Make sure to use the correct path and script name here, before
+restarting snmpd.
+
+Then test as such:
+
+   for i in {1..6}; do snmpget -uro -v2c -cpublic localhost .1.3.6.1.4.1.22222.42.$i.0; done
+
+This should return the following:
+
+   SNMPv2-SMI::enterprises.22222.42.1.0 = INTEGER: 123456
+   SNMPv2-SMI::enterprises.22222.42.2.0 = Opaque: Int64: 9223372036854775806
+   SNMPv2-SMI::enterprises.22222.42.3.0 = Counter32: 123456
+   SNMPv2-SMI::enterprises.22222.42.4.0 = Counter64: 9223372036854775806
+   SNMPv2-SMI::enterprises.22222.42.5.0 = Gauge32: 4294967294
+   SNMPv2-SMI::enterprises.22222.42.6.0 = Opaque: UInt64: 18446744073709551614
+
+If any of the values return does not match exactly this, the patch
+is needed. Or if it's applied, it needs more work.

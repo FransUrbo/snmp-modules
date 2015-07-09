@@ -13,7 +13,7 @@ IMPORTS
 
 -- {{{ bayourCom Module identity
 bayourCom MODULE-IDENTITY
-  LAST-UPDATED                         "201507121618Z"  -- July 12, 2015
+  LAST-UPDATED                         "201507121641Z"  -- July 12, 2015
   ORGANIZATION                         "Bayour.COM"
   CONTACT-INFO                         "Postal:      Turbo Fredriksson
                                                      Dobelnsgatan 69
@@ -23,6 +23,9 @@ bayourCom MODULE-IDENTITY
                                         Tel:         +46 704-697645
                                         E-Mail:      turbo@bayour.com"
   DESCRIPTION                          "The MIB module defines the Bayour.COM Bind9, Bacula and ZFS statistics."
+
+  REVISION                             "201507121641Z"  -- July 12, 2015
+  DESCRIPTION                          "Add the large int values from draft-perkins-bigint-00."
 
   REVISION                             "201507121618Z"  -- July 12, 2015
   DESCRIPTION                          "Add support for ARC status values l2_{size,asize} in the zfsARCStatsTable."
@@ -2135,9 +2138,9 @@ bayourCom MODULE-IDENTITY
 
             zfsPoolName                DisplayString,
             zfsPoolGUID                DisplayString,
-            zfsPoolSize                Integer32,
-            zfsPoolAlloc               Integer32,
-            zfsPoolFree                Integer32,
+            zfsPoolSize                Integer64,
+            zfsPoolAlloc               Integer64,
+            zfsPoolFree                Integer64,
             zfsPoolCap                 Integer32,
             zfsPoolDedup               DisplayString,
             zfsPoolHealth              ZFSPoolStatusValue,
@@ -2168,21 +2171,21 @@ bayourCom MODULE-IDENTITY
             ::= { zfsPoolStatusEntry 3 }
 
           zfsPoolSize                  OBJECT-TYPE
-            SYNTAX                     Integer32
+            SYNTAX                     Integer64
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "."
             ::= { zfsPoolStatusEntry 4 }
 
           zfsPoolAlloc                 OBJECT-TYPE
-            SYNTAX                     Integer32
+            SYNTAX                     Integer64
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "."
             ::= { zfsPoolStatusEntry 5 }
 
           zfsPoolFree                  OBJECT-TYPE
-            SYNTAX                     Integer32
+            SYNTAX                     Integer64
             MAX-ACCESS                 read-only
             STATUS                     current
             DESCRIPTION                "."

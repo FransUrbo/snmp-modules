@@ -1038,6 +1038,9 @@ sub print_generic_complex_table_info {
 				($key_name eq 'bandwidth_reads') || ($key_name eq 'bandwidth_writes'))
 			{
 			    debug(1, "counter\n");
+			} elsif(($key_name eq 'size') || ($key_name eq 'free') || ($key_name eq 'alloc')) {
+			    # Require https://gist.github.com/FransUrbo/a2bfee606ffda0b7b81e
+			    debug(1, "unsigned64\n");
 			} else {
 			    debug(1, "integer\n");
 			}
@@ -1104,6 +1107,9 @@ sub print_generic_complex_table_info {
 			($key_name eq 'bandwidth_reads') || ($key_name eq 'bandwidth_writes'))
 		{
 		    debug(1, "counter\n");
+		} elsif(($key_name eq 'size') || ($key_name eq 'free') || ($key_name eq 'alloc')) {
+		    # Require https://gist.github.com/FransUrbo/a2bfee606ffda0b7b81e
+		    debug(1, "unsigned64\n");
 		} else {
 		    debug(1, "integer\n");
 		}
