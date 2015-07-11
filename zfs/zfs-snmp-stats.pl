@@ -1719,6 +1719,8 @@ if($ALL) {
 			$tmp[2] = 1; # Show index.
 		    }
 		    $tmp[3] = 1;
+		} elsif(!defined($tmp[3])) {
+		    $tmp[3] = 1;
 		}
 
 		# How to call call_print()
