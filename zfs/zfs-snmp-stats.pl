@@ -558,13 +558,17 @@ sub get_vfs_stats {
 
     open(ZPOOL, "$CFG{'ZPOOL'} iostat 2> /dev/null |") ||
 	die("Can't call $CFG{'ZPOOL'}, $!\n");
+    # Ignore the first three lines. First pool info is at line four.
+    for(my $i=1; $i < 4; $i++) {
+	$line = <ZPOOL>;
+    }
+
     while(! eof(ZPOOL)) {
 	$line = <ZPOOL>;
 	chomp($line);
 
-	$name = (split(' ', $line))[0];
-	next if(($name eq 'capacity') || ($name eq 'pool') ||
-		($name eq '----------'));
+	$name = (split('  ', $line))[0];
+	next if($name eq '----------');
 
 	foreach my $pool_name (sort keys %POOLS) {
 	    if($name eq $pool_name) {
@@ -1592,7 +1596,7 @@ if($ALL) {
 		    if((($tmp[0] == 5)  && ($tmp[2] >= keys(%keys_pools)+2))      ||
 		       (($tmp[0] == 8)  && ($tmp[2] >= keys(%keys_vfs_iops)+2))   ||
 		       (($tmp[0] == 9)  && ($tmp[2] >= keys(%keys_vfs_bwidth)+2)) ||
-		       (($tmp[0] == 11) && ($tmp[2] >= keys(%keys_dev_stats)+2)) ||
+		       (($tmp[0] == 11) && ($tmp[2] >= keys(%keys_dev_stats)+2))  ||
 		       (($tmp[0] == 12) && ($tmp[2] >= keys(%keys_dbuf_stats)+2)))
 		    {
 			# Max number of columns reached, start with the next entry line
