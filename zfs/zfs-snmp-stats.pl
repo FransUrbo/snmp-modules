@@ -325,6 +325,7 @@ sub get_pools {
 	$cols[$i] = lc($cols[$i]);
     }
 
+    # Get pools and the 'zpool list' data.
     while(! eof(ZPOOL)) {
 	my $pool = <ZPOOL>;
 	return(0, ()) if($pool eq 'no pools available');
@@ -341,6 +342,22 @@ sub get_pools {
     }
     close(ZPOOL);
 
+    # Convert some of the values to bytes.
+    # maybe use 'zfs get' to get the _exact_ values instead?
+    # # zfs get -H -oproperty,value -p used,avail,refer rpool
+    # used    132096
+    # available       8256355328
+    # referenced      19456
+    # # expr 132096 + 8256355328 + 19456
+    # 8256506880
+    # # zpool list -H -osize rpool
+    # 7.94G
+    # # echo 7.94 \* 1024 \* 1024 \* 1024 | bc
+    # 8525510082.56
+    #
+    # There's a slight missmatch here...
+    # # expr 8525510082 - 8256506880
+    # 269003202 (27MB)
     my @keys = ("size", "alloc", "free");
     foreach my $pool_name (keys %pools) {
 	for(my $i = 0; $i <= $#keys; $i++) {
