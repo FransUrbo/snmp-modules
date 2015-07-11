@@ -57,15 +57,16 @@ my %functions  = ($OID_BASE.".01"	=> "amount_pools",
 # OID_BASE.5 => zfsPoolStatusTable
 my %keys_pools =     (#01  => index
 		      "02" => "name",
-		      "03" => "size",
-		      "04" => "alloc",
-		      "05" => "free",
-		      "06" => "cap",
-		      "07" => "dedup",
-		      "08" => "health",
-		      "09" => "altroot",
-		      "10" => "usedbysnapshots",
-		      "11" => "used");
+		      "03" => "guid",
+		      "04" => "size",
+		      "05" => "alloc",
+		      "06" => "free",
+		      "07" => "cap",
+		      "08" => "dedup",
+		      "09" => "health",
+		      "10" => "altroot",
+		      "11" => "usedbysnapshots",
+		      "12" => "used");
 
 # OID_BASE.6 => zfsARCUsageTable
 my %keys_arc_usage = (#01  => index
@@ -302,8 +303,12 @@ sub zpool_get_prop {
     my $prop = shift;
     my $pool = shift;
 
-    my $val = (split('	', `$CFG{'ZPOOL'} get $prop $pool | egrep ^$pool"`))[3];
-    print $val;
+    open(ZPOOL, "$CFG{'ZPOOL'} get -H $prop '$pool' |") ||
+	die("Can't call $CFG{'ZFS'}, $!\n");
+    my $line = <ZPOOL>; chomp($line);
+    close(ZPOOL);
+
+    return (split('	', $line))[2];
 }
 # }}}
 
@@ -348,6 +353,8 @@ sub get_pools {
 
 	chop($pools{$pool_name}{'cap'});
 	chop($pools{$pool_name}{'dedup'});
+
+	$pools{$pool_name}{'guid'} = &zpool_get_prop('guid', $pool_name);
     }
 
     return($pools, %pools);
@@ -1021,7 +1028,8 @@ sub print_generic_complex_table_info {
 			   ($key_name eq 'name')    ||
 			   ($key_name eq 'dedup')   ||
 			   ($key_name eq 'flags')   ||
-			   ($key_name eq 'pool'))
+			   ($key_name eq 'pool')    ||
+			   ($key_name eq 'guid'))
 			{
 			    debug(1, "string\n");
 			} elsif(($key_name eq 'oper_reads') || ($key_name eq 'oper_writes') ||
@@ -1086,7 +1094,8 @@ sub print_generic_complex_table_info {
 		   ($key_name eq 'name')    ||
 		   ($key_name eq 'dedup')   ||
 		   ($key_name eq 'flags')   ||
-		   ($key_name eq 'pool'))
+		   ($key_name eq 'pool')    ||
+		   ($key_name eq 'guid'))
 		{
 		    debug(1, "string\n");
 		} elsif(($key_name eq 'oper_reads') || ($key_name eq 'oper_writes') ||
