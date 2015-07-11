@@ -342,28 +342,11 @@ sub get_pools {
     }
     close(ZPOOL);
 
-    # Convert some of the values to bytes.
-    # maybe use 'zfs get' to get the _exact_ values instead?
-    # # zfs get -H -oproperty,value -p used,avail,refer rpool
-    # used    132096
-    # available       8256355328
-    # referenced      19456
-    # # expr 132096 + 8256355328 + 19456
-    # 8256506880
-    # # zpool list -H -osize rpool
-    # 7.94G
-    # # echo 7.94 \* 1024 \* 1024 \* 1024 | bc
-    # 8525510082.56
-    #
-    # There's a slight missmatch here...
-    # # expr 8525510082 - 8256506880
-    # 269003202 (27MB)
-    my @keys = ("size", "alloc", "free");
+    # Use 'zfs get' to get the exact size of the pool(s).
     foreach my $pool_name (keys %pools) {
-	for(my $i = 0; $i <= $#keys; $i++) {
-	    my $key = $keys[$i];
-	    
-	    $pools{$pool_name}{$key} = &human_to_bytes($pools{$pool_name}{$key});
+	my %data = &zpool_get_sizes($pool_name);
+	foreach my $key (keys %data) {
+	    $pools{$pool_name}{$key} = $data{$key};
 	}
 
 	chop($pools{$pool_name}{'cap'});
@@ -371,6 +354,31 @@ sub get_pools {
     }
 
     return($pools, %pools);
+}
+# }}}
+
+# {{{ Get pool sizes
+sub zpool_get_sizes {
+    my $pool = shift;
+    my($prop, $val, %data, %rets);
+
+    open(ZFS, "$CFG{'ZFS'} get -H -oproperty,value -p used,available,referenced $pool |") ||
+	die("Can't call $CFG{'ZFS'}, $!");
+    while(! eof(ZFS)) {
+	my $line = <ZFS>; chomp($line);
+	($prop, $val) = split('	', $line);
+	$data{$prop} = $val;
+    }
+    close(ZFS);
+
+    # size  => used + avail + refer
+    # alloc => used
+    # free  => size - alloc
+    $rets{'size'}  = $data{'used'} + $data{'available'} + $data{'referenced'};
+    $rets{'alloc'} = $data{'used'};
+    $rets{'free'}  = $rets{'size'} - $rets{'alloc'};
+
+    return(%rets);
 }
 # }}}
 
