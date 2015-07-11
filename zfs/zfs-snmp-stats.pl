@@ -312,27 +312,24 @@ sub get_pools {
     my(%pools);
     my $pools = 0;
 
-    open(ZPOOL, "$CFG{'ZPOOL'} list |") ||
+    # Let's hope that the columns don't change order!
+    my @cols = ("name", "size", "alloc", "free", "expandsz",
+		"frag", "cap", "dedup", "health", "altroot");
+
+    # To support pools with spaces, we MUST use '-H' to get
+    # columns separated with single tab instead of arbitrary
+    # spaces.
+    open(ZPOOL, "$CFG{'ZPOOL'} list -H |") ||
 	die("Can't call $CFG{'ZPOOL'}, $!");
-
-    # First line is column
-    my $line = <ZPOOL>;
-    chomp($line);
-    my @cols = split(' ', $line);
-
-    # Make the columns lower case
-    for(my $i=0; $cols[$i]; $i++) {
-	$cols[$i] = lc($cols[$i]);
-    }
 
     # Get pools and the 'zpool list' data.
     while(! eof(ZPOOL)) {
-	my $pool = <ZPOOL>;
+	my $pool = <ZPOOL>; chomp($pool);
 	return(0, ()) if($pool eq 'no pools available');
 
-	my $pool_name = (split(' ', $pool))[0];
+	my $pool_name = (split('	', $pool))[0];
 
-	my @data = split(' ', $pool);
+	my @data = split('	', $pool);
 
 	for(my $i=0; $cols[$i]; $i++) {
 	    $pools{$pool_name}{$cols[$i]} = $data[$i];
@@ -362,7 +359,7 @@ sub zpool_get_sizes {
     my $pool = shift;
     my($prop, $val, %data, %rets);
 
-    open(ZFS, "$CFG{'ZFS'} get -H -oproperty,value -p used,available,referenced $pool |") ||
+    open(ZFS, "$CFG{'ZFS'} get -H -oproperty,value -p used,available,referenced '$pool' |") ||
 	die("Can't call $CFG{'ZFS'}, $!");
     while(! eof(ZFS)) {
 	my $line = <ZFS>; chomp($line);
