@@ -20,17 +20,18 @@ the GIT version!
                         !!!!! NOTE !!!!!
 
                         !!!!! NOTE !!!!!
-   Because of a bug in ZoL version <0.6.4, reading DBUF info (the
-   zfsDbufStatsTable table), reading DBUF values from /proc/spl/kstat/zfs/dbufs
-   is disabled. If you want to enable it, look for the lines:
+   If you're running a ZoL version <0.6.4, reading DBUF info (the
+   zfsDbufStatsTable table) from /proc/spl/kstat/zfs/dbufs can cause
+   a kernel crash. That is quite old now, so the code that does this
+   is enabled. If you're running pre-0.6.4 ZoL, you might want to
+   disable this code. Look for the lines:
 
 	     # ---------------------------------
 	     # Get DBUFS status information
 	# Could be dangerous - see https://github.com/zfsonlinux/zfs/issues/2495
-	#    %DBUFS = &get_dbufs_stats();
+	     %DBUFS = &get_dbufs_stats();
 
-   Remove the dash at the front of that last line. There is a fix,
-   but it have yet to be merged/issued.
+   Add a dash at the front of that last line.
                         !!!!! NOTE !!!!!
 
 SNMP Setup files
