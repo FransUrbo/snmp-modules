@@ -12,7 +12,7 @@ use vars qw(@EXPORT @ISA %CFG);
 
 %CFG = ();
 @ISA = qw(Exporter);
-@EXPORT = qw(help debug no_value check_val get_config output_extra_debugging get_timestring open_log %CFG);
+@EXPORT = qw(help debug no_value check_val get_config output_extra_debugging %CFG);
 our $log_opened = 0;
 
 # ----- INTERNAL
@@ -67,15 +67,14 @@ sub debug {
     if($stdout) {
         print $string;
     } elsif($CFG{'DEBUG'}) {
-	if(!$log_opened && open_log()) {
-	    $log_opened = 1;
+	if(&open_log()) {
 	    open(STDERR, ">LOG") if(($CFG{'DEBUG'} <= 2) || $ENV{'MIBDIRS'});
-	}
 
-	if($log_opened) {
 	    print LOG get_timestring()," " if($CFG{'DEBUG'} > 2);
 	    print LOG $string;
 	    LOG->autoflush(1);
+
+	    close(LOG);
 	}
     }
 }
