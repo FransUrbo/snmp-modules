@@ -13,7 +13,7 @@ IMPORTS
 
 -- {{{ bayourCom Module identity
 bayourCom MODULE-IDENTITY
-  LAST-UPDATED                         "201409170211Z"  -- September 17, 2014
+  LAST-UPDATED                         "201507121618Z"  -- July 12, 2015
   ORGANIZATION                         "Bayour.COM"
   CONTACT-INFO                         "Postal:      Turbo Fredriksson
                                                      Dobelnsgatan 69
@@ -23,6 +23,12 @@ bayourCom MODULE-IDENTITY
                                         Tel:         +46 704-697645
                                         E-Mail:      turbo@bayour.com"
   DESCRIPTION                          "The MIB module defines the Bayour.COM Bind9, Bacula and ZFS statistics."
+
+  REVISION                             "201507121618Z"  -- July 12, 2015
+  DESCRIPTION                          "Add support for ARC status values l2_{size,asize} in the zfsARCStatsTable."
+
+  REVISION                             "201507112036Z"  -- July 11, 2015
+  DESCRIPTION                          "Support retreiving and printing the pool GUID in the zfsPoolStatusTable."
 
   REVISION                             "201507082035Z"  -- July 08, 2015
   DESCRIPTION                          "Change the zfsDbufL2Comp from a Integer32 to a ZFSDbufL2CompValue."
