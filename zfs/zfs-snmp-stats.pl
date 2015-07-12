@@ -88,8 +88,10 @@ my %keys_arc_stats = (#01  => index
 		      "09" => "prefetch_data_misses",
 		      "10" => "prefetch_metadata_hits",
 		      "11" => "prefetch_metadata_misses",
-		      "12" => "l2_hits",
-		      "13" => "l2_misses");
+		      "12" => "l2_size",
+		      "13" => "l2_asize",
+		      "14" => "l2_hits",
+		      "15" => "l2_misses");
 
 # OID_BASE.8 => zfsVFSIOPSTable
 my %keys_vfs_iops =  (#01  => index
